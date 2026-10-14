@@ -18,6 +18,8 @@
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
+    "check:env": "node scripts/check-env.mjs",
+    "smoke": "node scripts/smoke.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
