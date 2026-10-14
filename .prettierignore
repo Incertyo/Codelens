@@ -1,0 +1,10 @@
+node_modules
+.next
+public/pyodide
+public/monaco
+public/language-detection
+test-results
+playwright-report
+artifacts
+package-lock.json
+next-env.d.ts

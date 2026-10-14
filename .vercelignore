@@ -1,0 +1,15 @@
+.git/
+.next/
+.vercel/
+node_modules/
+.env*
+!.env.example
+public/pyodide/
+public/monaco/
+public/language-detection/
+data/*.sqlite*
+artifacts/
+test-results/
+playwright-report/
+*.tsbuildinfo
+library/python/__pycache__/

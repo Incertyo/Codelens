@@ -1,0 +1,269 @@
+.algo-view {
+  padding-block: var(--s4);
+  border-bottom: 1px solid var(--border);
+}
+.algo-scroll {
+  overflow: auto;
+  max-height: 560px;
+  padding: 12px 4px 16px;
+}
+.algo-linear {
+  position: relative;
+  padding-top: 8px;
+  min-width: 110px;
+}
+.algo-linear.has-window {
+  padding-top: 36px;
+}
+.algo-cell-row,
+.algo-heap-array {
+  display: flex;
+  gap: 4px;
+  width: max-content;
+}
+.algo-column {
+  width: 52px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 5px;
+}
+.algo-cell {
+  width: 52px;
+  min-width: 52px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid var(--muted);
+  background: var(--surface);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.algo-cell.pointed,
+.algo-cell.changed,
+.algo-bit.set-bit,
+.algo-root {
+  border-color: var(--ink);
+  background: var(--accent);
+  color: var(--ink);
+}
+.algo-pins {
+  position: relative;
+  height: 195px;
+  margin-top: 4px;
+}
+.algo-pin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--fg);
+  border-bottom: 2px solid var(--accent);
+}
+.algo-window {
+  position: absolute;
+  top: 56px;
+  left: 0;
+  height: 47px;
+  border: 2px solid var(--fg);
+  border-top: 3px solid var(--accent);
+  pointer-events: none;
+}
+.algo-window > span {
+  position: absolute;
+  top: -51px;
+  left: 0;
+  color: var(--fg);
+  background: var(--bg);
+  white-space: nowrap;
+  padding: 2px;
+}
+.algo-beaker {
+  display: flex;
+  flex-direction: column-reverse;
+  position: relative;
+  width: 150px;
+  min-height: 48px;
+  margin: 12px 110px 12px 12px;
+  border: 2px solid var(--muted);
+  border-top: 0;
+  padding: 0 6px 6px;
+}
+.algo-stack-item {
+  height: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--muted);
+}
+.algo-top {
+  position: absolute;
+  left: 150px;
+  white-space: nowrap;
+  background: var(--accent);
+  color: var(--ink);
+  padding: 3px;
+}
+.algo-pipe {
+  display: flex;
+  gap: 4px;
+  border-block: 2px solid var(--muted);
+  padding: 10px 0;
+  width: max-content;
+  min-width: 180px;
+}
+.algo-direction {
+  display: flex;
+  justify-content: space-between;
+  gap: 60px;
+  max-width: 640px;
+}
+.algo-svg {
+  display: block;
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  color: var(--fg);
+}
+.algo-svg text {
+  fill: var(--fg);
+}
+.algo-node {
+  fill: var(--surface);
+  stroke: var(--muted);
+  stroke-width: 1.5px;
+}
+.algo-node.active {
+  fill: var(--accent);
+  stroke: var(--ink);
+  stroke-width: 2px;
+}
+.algo-svg .on-accent {
+  fill: var(--ink);
+}
+.algo-edge {
+  stroke: var(--muted);
+  stroke-width: 1.5px;
+}
+.algo-terminal {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 2px;
+  stroke-dasharray: 3 2;
+}
+.algo-edge.active-edge {
+  stroke: var(--fg);
+  stroke-width: 3px;
+}
+.algo-terminal-signal {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5px;
+}
+.algo-clusters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.algo-cluster {
+  border: 1px solid var(--muted);
+  padding: 10px;
+}
+.algo-root {
+  display: inline-block;
+  padding: 4px;
+}
+.algo-register {
+  display: flex;
+  gap: 2px;
+  width: max-content;
+  padding-block: 10px;
+}
+.algo-bit-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 24px;
+}
+.algo-bit {
+  width: 24px;
+  height: 32px;
+  border: 1px solid var(--muted);
+  display: grid;
+  place-items: center;
+}
+.algo-dp {
+  position: relative;
+}
+.algo-dp-table {
+  padding-top: 26px;
+}
+.algo-dp-row {
+  display: flex;
+  gap: 4px;
+  height: 48px;
+}
+.algo-dp-row > span {
+  width: 32px;
+  min-width: 32px;
+  padding: 12px 0;
+}
+.algo-dp-arrows {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  color: var(--fg);
+}
+.algo-dependency {
+  stroke: var(--fg);
+  stroke-width: 2px;
+}
+.dependency-source {
+  border: 2px dashed var(--fg);
+}
+.algo-bucket {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.algo-bucket .algo-cell {
+  width: auto;
+  min-width: 80px;
+  padding: 6px;
+}
+.algo-set,
+.algo-scalars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.algo-set .algo-cell {
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+}
+.algo-scalar {
+  border: 1px solid var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 100px;
+  padding: 16px;
+}
+.algo-heap-array {
+  padding-top: 16px;
+}
+.algorithm-canvas {
+  contain: layout style;
+}
+@media (prefers-reduced-motion: reduce) {
+  .algo-view * {
+    scroll-behavior: auto;
+  }
+}
