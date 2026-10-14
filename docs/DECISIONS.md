@@ -146,6 +146,14 @@ Focus restoration runs in a post-commit effect, after React removes inert from t
 - Check SSR intro, full refresh/new tab, real readiness/minimum, skip controls, focus, mobile accessibility, reduced motion and stalled hydration/asset fallback. Keep the run loader independent.
 - Require lint/typecheck/unit/build/production Playwright checks before publishing; these changes do not deploy or configure dashboard controls.
 
+## Hosted AI reliability
+
+The first public daily ceiling was five provider attempts for the entire environment, including validation retries. That budget was exhausted during smoke testing and use, pausing every AI feature. The owner reported a 1,500-request free daily quota, so a temporary increase to 100 allowed bounded diagnostics. Google subsequently returned RESOURCE_EXHAUSTED with a 20-request daily ceiling for the configured model/project. Restore Production AI_DAILY_LIMIT to five pending verified higher free capacity, retaining the stable namespace, existing counters and Preview's disabled state. Do not reset counters or enable billing to bypass a pause. Provider quota exhaustion requires a provider reset or an explicitly selected model with available free quota; a source fix cannot increase Google's quota.
+
+Use the installed SDK's portable minimal reasoning setting for Google so it maps the environment-selected model to supported thinking controls without hardcoded model IDs. Keep the 18-second total provider deadline, 3,500-token output budget, full schema/source/trace validation and at most one counted validation retry. Give that retry trusted validator feedback; strengthen the simulation prompt with explicit module/frame push/pop rules. Reject invalid traces rather than repairing them. Authentication/model/request/provider failures are specific, non-secret states and do not consume a pointless validation retry. Timeout and invalid-output fallbacks explain what happened.
+
+Recheck readiness before each AI source upload and invalidate pending readiness results after a failure. The 24-second client request deadline accommodates provider work and shared-store/network overhead within the function's 25-second allowance. Local analysis and real traces remain available during all AI pauses.
+
 ## Public GitHub source preparation
 
 Remove nonfunctional application comments with parser/token ranges and AST equivalence checks, preserving directives, compiler/lint/bundler pragmas and literal contents. Keep all manifest inputs and the exported catalog byte-for-byte unchanged, including source files that contain reference programs or fixtures. Generated runtime metadata and Next type declarations are recreated locally and ignored with dependencies, builds, SQLite files, reports and logs.

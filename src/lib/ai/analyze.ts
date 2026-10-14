@@ -12,7 +12,13 @@ import {
   reserveProviderCall,
 } from './rate-limit';
 import { AIControlError } from './control-error';
-import { throwProviderQuota } from './provider-quota';
+import {
+  AIOutputError,
+  generationOptions,
+  generationFailureReason,
+  retryFeedback,
+  throwProviderFailure,
+} from './generation';
 import { providerOutputSchema } from './output-schema';
 export const analyzeRequestSchema = z
   .object({
@@ -137,12 +143,14 @@ export async function enrichCode(
     };
   const deadline = AbortSignal.timeout(18000);
   const abortSignal = signal ? AbortSignal.any([signal, deadline]) : deadline;
+  let failure: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       await reserveProviderCall(abortSignal);
       abortSignal.throwIfAborted();
       const { output } = await generateText({
         model: model(),
+        ...generationOptions(),
         output: Output.object({
           schema: providerOutputSchema(enrichmentSchema),
           name: 'code_breakdown',
@@ -158,10 +166,7 @@ export async function enrichCode(
           source: input.code,
           functions: input.functions,
           sampledSteps: input.steps,
-          retry:
-            attempt > 0
-              ? 'The previous response was invalid. Check the JSON schema and source locations carefully.'
-              : undefined,
+          retry: attempt > 0 ? retryFeedback(failure) : undefined,
         }),
       });
       const parsed = enrichmentSchema.parse(output);
@@ -173,17 +178,19 @@ export async function enrichCode(
         parsed.annotations.some((a) => a.line > lines) ||
         parsed.stepNotes.some((n) => !knownSteps.has(n.index))
       )
-        throw new Error('Invalid source references.');
+        throw new AIOutputError(
+          'Annotation lines must exist in the source. Function names/start lines and step indices must exactly match the supplied functions and sampledSteps.',
+        );
       return { source: 'ai', enrichment: parsed };
     } catch (error) {
       if (error instanceof AIControlError) throw error;
-      throwProviderQuota(error);
+      throwProviderFailure(error);
+      failure = error;
       if (abortSignal.aborted) break;
     }
   }
   return {
     source: 'static',
-    reason:
-      'AI enrichment could not be validated or the provider was unavailable. Your static breakdown and trace are intact.',
+    reason: generationFailureReason(failure, abortSignal.aborted, 'AI notes'),
   };
 }

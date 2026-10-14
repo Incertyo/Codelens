@@ -66,7 +66,16 @@ function googleFixture(output: unknown, status = 200) {
         ? {
             candidates: [
               {
-                content: { role: 'model', parts: [{ text: JSON.stringify(output) }] },
+                content: {
+                  role: 'model',
+                  parts: [
+                    {
+                      text: JSON.stringify(
+                        typeof output === 'function' ? output(requests.length) : output,
+                      ),
+                    },
+                  ],
+                },
                 finishReason: 'STOP',
               },
             ],
@@ -75,7 +84,7 @@ function googleFixture(output: unknown, status = 200) {
         : {
             error: {
               code: status,
-              status: 'RESOURCE_EXHAUSTED',
+              status: status === 429 ? 'RESOURCE_EXHAUSTED' : 'INVALID_ARGUMENT',
               message: 'private provider diagnostic',
             },
           },
@@ -95,7 +104,86 @@ describe('actual Google SDK contract through the route', () => {
     expect(requests[0].headers.get('x-goog-api-key')).toBe('google-fixture-key');
     expect(JSON.stringify(requests[0].body)).not.toContain('maxItems');
     expect(JSON.stringify(requests[0].body)).not.toContain('maxLength');
+    expect(
+      (requests[0].body.generationConfig as Record<string, unknown>).thinkingConfig,
+    ).toBeDefined();
   });
+  it.each([400, 401, 403, 404, 503])(
+    'does not spend a validation retry on provider HTTP %s',
+    async (status) => {
+      const requests = googleFixture(null, status);
+      const response = await post(input);
+      expect(response.status).toBe(503);
+      const result = await response.json();
+      expect(result.code).toMatch(/^provider_(request|auth|model|unavailable)$/);
+      expect(JSON.stringify(result)).not.toContain('private provider diagnostic');
+      expect(requests).toHaveLength(1);
+      expect(
+        [...store.counters()]
+          .filter(([key]) => key.includes(':day:'))
+          .map(([, value]) => value.count),
+      ).toEqual([1]);
+    },
+  );
+  it('validates Google advice and supplies reference feedback for the only retry', async () => {
+    const advice = {
+      summary: 'Check bounds.',
+      issues: [],
+      optimization: null,
+      tests: [{ name: 'zero', entry: 'f', line: 1, argument: 0, expectedOutput: '1' }],
+    };
+    const requests = googleFixture((call: number) =>
+      call === 1 ? { ...advice, tests: [{ ...advice.tests[0], entry: 'invented' }] } : advice,
+    );
+    const response = await post({
+      mode: 'analysis',
+      code,
+      language: 'javascript',
+      identity: await sourceIdentity('draft', code),
+      entries: inspectJavaScript(code).entries,
+    });
+    expect((await response.json()).advice).toEqual(advice);
+    expect(requests).toHaveLength(2);
+    expect(JSON.stringify(requests[1].body)).toContain('argument type');
+  });
+  it.each(['cpp', 'java'])(
+    'accepts a balanced Google simulation for %s after rejecting an invalid stack',
+    async (language) => {
+      const frame = { id: 'root', func: '<module>', line: 1, locals: {} };
+      const step = {
+        line: 1,
+        func: '<module>',
+        callStack: [frame],
+        globals: {},
+        heap: {},
+        stdout: '',
+      };
+      const trace = {
+        steps: [
+          { ...step, index: 0, event: 'call' },
+          { ...step, index: 1, event: 'return' },
+        ],
+        truncated: false,
+        error: null,
+        elapsed: 0,
+      };
+      const requests = googleFixture((call: number) =>
+        call === 1 ? { ...trace, steps: trace.steps.map((s) => ({ ...s, callStack: [] })) } : trace,
+      );
+      const source = language === 'cpp' ? 'int main(){}' : 'class Main {}';
+      const response = await post({
+        mode: 'simulate',
+        code: source,
+        language,
+        identity: await sourceIdentity('draft', source),
+        consent: true,
+        maxSteps: 100,
+      });
+      expect((await response.json()).trace).toMatchObject({ ...trace, origin: 'ai-simulated' });
+      expect(requests).toHaveLength(2);
+      expect(JSON.stringify(requests[1].body)).toContain('Invalid simulated frame push');
+    },
+  );
   it.each(['notes', 'analysis', 'simulate'])(
     'does not retry provider quota failures for %s',
     async (mode) => {

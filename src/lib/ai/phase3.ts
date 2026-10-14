@@ -6,7 +6,13 @@ import { adviceSchema, identitySchema, entrySchema } from '../analysis';
 import { simulatedTraceSchema, validateSimulation } from './simulation';
 import { reserveProviderCall } from './rate-limit';
 import { AIControlError } from './control-error';
-import { throwProviderQuota } from './provider-quota';
+import {
+  AIOutputError,
+  generationOptions,
+  generationFailureReason,
+  retryFeedback,
+  throwProviderFailure,
+} from './generation';
 import { providerOutputSchema } from './output-schema';
 const source = z.object({ code: z.string().min(1).max(30000), identity: identitySchema });
 export const adviceRequestSchema = source
@@ -37,16 +43,18 @@ async function validated<T>(
   system: string,
   check: (v: T) => void,
   signal?: AbortSignal,
-): Promise<T | null> {
-  if (!providerStatus().configured) return null;
+): Promise<{ data: T | null; reason: string }> {
+  if (!providerStatus().configured) return { data: null, reason: providerStatus().reason! };
   const deadline = AbortSignal.timeout(18000),
     abortSignal = signal ? AbortSignal.any([signal, deadline]) : deadline;
+  let failure: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       await reserveProviderCall(abortSignal);
       abortSignal.throwIfAborted();
       const { output } = await generateText({
         model: model(),
+        ...generationOptions(),
         output: Output.object({ schema: providerOutputSchema(schema) }),
         maxOutputTokens: 3500,
         maxRetries: 0,
@@ -56,21 +64,23 @@ async function validated<T>(
           system,
         prompt: JSON.stringify({
           input,
-          retry: attempt
-            ? 'Previous output was rejected. Generate a new valid result; check the schema and all source locations.'
-            : undefined,
+          retry: attempt ? retryFeedback(failure) : undefined,
         }),
       });
       const data = schema.parse(output);
       check(data);
-      return data;
+      return { data, reason: '' };
     } catch (error) {
       if (error instanceof AIControlError) throw error;
-      throwProviderQuota(error);
+      throwProviderFailure(error);
+      failure = error;
       if (abortSignal.aborted) break;
     }
   }
-  return null;
+  return {
+    data: null,
+    reason: generationFailureReason(failure, abortSignal.aborted, 'AI generation'),
+  };
 }
 export async function analyzeAdvice(
   input: z.infer<typeof adviceRequestSchema>,
@@ -79,7 +89,7 @@ export async function analyzeAdvice(
   adviceRequestSchema.parse(input);
   validateIdentity(input);
   const lines = input.code.split('\n').length;
-  const advice = await validated(
+  const { data: advice, reason } = await validated(
     adviceSchema,
     input,
     'Provide possible bugs and edge cases, a proposed optimization if justified, and at most five tests. Tests may use only supplied supported top-level entries with one int n, list of integers, or string argument. All issue and optimization line references must refer to the original source. A test line must match the entry start line exactly. Expected outputs are conjectures, never measured. Do not claim tests or optimized code were executed.',
@@ -105,7 +115,9 @@ export async function analyzeAdvice(
             ),
         )
       )
-        throw new Error('Invalid source references.');
+        throw new AIOutputError(
+          "Issue and optimization lines must exist in the source. Each test entry/name/start line must exactly match a supplied entry without a reason, and its argument type must be one of that entry's kinds. Use an empty tests array if no supported entries exist.",
+        );
     },
     signal,
   );
@@ -114,8 +126,7 @@ export async function analyzeAdvice(
     : {
         source: 'static' as const,
         identity: input.identity,
-        reason:
-          'AI suggestions were unavailable or could not be validated. AST analysis and real traces remain available.',
+        reason,
       };
 }
 export async function simulate(
@@ -123,12 +134,18 @@ export async function simulate(
   signal?: AbortSignal,
 ) {
   validateIdentity(input);
-  const trace = await validated(
+  const { data: trace, reason } = await validated(
     simulatedTraceSchema,
     input,
-    'Generate a hypothetical trace, never a claimed execution. Frame snapshots are pre-execution: call pushes one unique frame id; return includes that frame, which is removed before the next step. Begin with a call for <module>. Complete traces end with return from <module>. Every step and frame line must exist in source. Indices are contiguous from zero. References must resolve in that step heap. stdout is cumulative. Honor maxSteps; use truncated true if capped. elapsed must be 0. Represent integers outside the safe JSON integer range as exact decimal strings, never rounded numbers. You receive no stdin or runtime values; do not invent input.',
+    'Generate a hypothetical trace, never a claimed execution. Keep it compact enough for the output budget; if incomplete set truncated true. Begin with a call for <module> and callStack [{id:"module",func:"<module>",line:1,locals:{}}]. A call appends ONE new frame with a unique id; all existing frame ids/functions stay in order. step.func MUST equal the last frame.func, including output events. A return snapshot still includes the returning frame; remove it only for the NEXT step. Final complete step is return from <module> with only the module frame still visible. Never use an empty callStack in any step. Every step/frame line must be between 1 and the source line count. Indices start at zero and are contiguous. globals and heap are objects, stdout is cumulative, heap refs must resolve. Honor maxSteps; use truncated true when capped or shortening a longer trace to fit. elapsed must be 0. Represent unsafe integers as exact decimal strings. You receive no stdin or runtime values; do not invent input.',
     (v) => {
-      validateSimulation(v, input.code, input.maxSteps);
+      try {
+        validateSimulation(v, input.code, input.maxSteps);
+      } catch (error) {
+        throw new AIOutputError(
+          error instanceof Error ? error.message : 'Invalid simulated trace.',
+        );
+      }
     },
     signal,
   );
@@ -141,7 +158,6 @@ export async function simulate(
     : {
         source: 'static' as const,
         identity: input.identity,
-        reason:
-          'No valid AI-simulated trace was available. Invalid traces are rejected; please review the source or provider configuration.',
+        reason,
       };
 }

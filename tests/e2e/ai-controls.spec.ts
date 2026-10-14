@@ -2,6 +2,39 @@ import { test, expect } from '@playwright/test';
 import { encodeShare } from '../../src/lib/share';
 const code = 'function size(n) { return n; }\nconsole.log(size(3));';
 
+test('rechecks an exhausted budget before uploading source from an already enabled control', async ({
+  page,
+}) => {
+  let paused = false;
+  let posts = 0;
+  await page.route('**/api/analyze', (route) => {
+    if (route.request().method() !== 'GET') {
+      posts++;
+      return route.fulfill({ status: 500, json: {} });
+    }
+    return route.fulfill({
+      json: {
+        configured: !paused,
+        reason: paused
+          ? 'AI notes are paused for today. Static analysis and traces remain available.'
+          : null,
+      },
+    });
+  });
+  await page.goto('/' + encodeShare(code, '', 'javascript'));
+  await expect(page.getByTestId('site-loading')).not.toBeVisible();
+  await page.getByRole('tab', { name: '03 analysis' }).click();
+  const button = page.getByRole('button', { name: 'Request AI suggestions', exact: true });
+  await expect(button).toBeEnabled();
+  paused = true;
+  await button.click();
+  await expect(page.locator('.analysis-status')).toContainText('AI notes are paused for today');
+  await expect(button).toBeDisabled();
+  expect(posts).toBe(0);
+  await page.getByRole('button', { name: '/ run code', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
+});
+
 test('provider quota pauses AI without retry, discloses free-tier use and keeps local work', async ({
   page,
 }) => {

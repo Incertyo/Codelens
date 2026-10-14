@@ -161,10 +161,12 @@ export function Analysis({ implementationId }: { implementationId: string }) {
     setAdvice(null);
     setTests([]);
     try {
+      const availability = await readiness.check(controller.signal);
+      if (!availability.configured) throw new Error(availability.reason);
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(19000)]),
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(24000)]),
         body: JSON.stringify({
           mode: 'analysis',
           code,

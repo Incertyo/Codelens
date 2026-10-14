@@ -42,9 +42,12 @@ pushing and record any Git-triggered deployment as part of the release.
 
 ## Free Redis and exact environment variables
 
-Create `codelens-prod` and `codelens-preview` on the free plan, in the available
-region nearest the verified Vercel function region. Stop if either requires a
-paid plan. Keep the databases separate. Verify REST authentication and an EVAL
+Prefer separate production and preview databases when the available free plan
+permits them. For this hosted release, the owner approved sharing the existing
+Free `Codelens` database in `us-east-1`, with automatic upgrades disabled, because
+the account's Free-plan database allowance is already used. Both targets share
+the REST credentials and keep separate stable environment namespaces. Stop if
+a paid plan is required. Verify REST authentication and an EVAL
 write/expiry/read probe using a unique short-lived verification key. Do not
 alter or clear existing limiter counters. Never print REST credentials.
 
@@ -142,7 +145,7 @@ this release; the owner reviews traffic and enables enforcement later.
 2. GET `/api/analyze` must report `configured: true` with null code/reason.
    Readiness probes store permissions and quota without reserving provider calls;
    it cannot guarantee against a subsequent outage or concurrent consumption.
-3. Snapshot relevant counters in both Redis databases without changing them,
+3. Snapshot relevant counters in both Redis namespaces without changing them,
    then run exactly once:
 
    ```sh
@@ -155,8 +158,8 @@ this release; the owner reviews traffic and enables enforcement later.
    quota reached; local analysis remains available”. Client/minute/daily limit,
    store error, malformed output and generic provider failures fail the gate.
 
-4. Verify production daily/global counters increased only in the production
-   database, compare preview counters before/after, and verify preview readiness
+4. Verify production daily/global counters increased only under the production
+   namespace, compare preview namespace counters before/after, and verify preview readiness
    remains AI-disabled. Do not intentionally exhaust any quota.
 
 ## Kill switch and rollback

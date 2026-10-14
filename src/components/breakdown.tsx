@@ -76,6 +76,8 @@ export function Breakdown() {
       .slice(0, 32)
       .map(({ index, line, event, func }) => ({ index, line, event, func }));
     try {
+      const availability = await readiness.check(abort.signal);
+      if (!availability.configured) throw new Error(availability.reason);
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -87,7 +89,7 @@ export function Breakdown() {
             .map(({ name, line, endLine, parameters }) => ({ name, line, endLine, parameters })),
           steps: sample,
         }),
-        signal: abort.signal,
+        signal: AbortSignal.any([abort.signal, AbortSignal.timeout(24000)]),
       });
       const body = await response.json();
       if (!response.ok) {

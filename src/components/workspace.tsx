@@ -91,6 +91,7 @@ export function Workspace() {
     reason: aiReason,
     unavailable: setAIUnavailable,
     refresh: refreshAI,
+    check: checkAI,
   } = useAIReadiness(simulatedLanguage);
   const implementationId =
     implementation && implementation.language === language && code === implementation.code
@@ -145,11 +146,13 @@ export function Workspace() {
         const controller = new AbortController();
         simulationAbort.current = controller;
         patch({ message: 'Requesting an AI-simulated trace…' });
+        const availability = await checkAI(controller.signal);
+        if (!availability.configured) throw new Error(availability.reason);
         const identity = await sourceIdentity(implementationId, state.code);
         const response = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(19000)]),
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(24000)]),
           body: JSON.stringify({
             mode: 'simulate',
             code: state.code,
@@ -223,6 +226,7 @@ export function Workspace() {
     aiConfigured,
     aiReason,
     setAIUnavailable,
+    checkAI,
   ]);
   const stop = () => {
     runId.current++;
