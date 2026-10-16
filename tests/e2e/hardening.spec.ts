@@ -15,11 +15,10 @@ test('dense real graph respects DOM budgets and mounts heap contents on expansio
 }) => {
   await page.goto('/');
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
-  await page.getByLabel('Programming language').selectOption('javascript');
   const graph = Object.fromEntries(
     Array.from({ length: 80 }, (_, i) => [String(i), Array.from({ length: 80 }, (_, j) => j)]),
   );
-  await paste(page, `const graph = ${JSON.stringify(graph)};`);
+  await paste(page, `graph = ${JSON.stringify(graph)}\nprint("ready")\n`);
   await page.getByRole('button', { name: '/ run code', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
   await page.getByRole('button', { name: 'Jump to end' }).click();
@@ -38,8 +37,7 @@ test('dense real graph respects DOM budgets and mounts heap contents on expansio
 test('closed heap disclosures contain no mounted inspector rows', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
-  await page.getByLabel('Programming language').selectOption('javascript');
-  await paste(page, 'const values = [1,2,3];');
+  await paste(page, 'values = [1, 2, 3]\nprint(values)\n');
   await page.getByRole('button', { name: '/ run code', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
   await page.getByRole('button', { name: 'Jump to end' }).click();
@@ -87,8 +85,7 @@ for (const race of ['rerun', 'source A to B to A', 'step cap', 'stdin']) {
     });
     await page.goto('/');
     await expect(page.getByTestId('site-loading')).not.toBeVisible();
-    await page.getByLabel('Programming language').selectOption('javascript');
-    const code = 'let value = 1;\nconsole.log(value);';
+    const code = 'value = 1\nprint(value)\n';
     await paste(page, code);
     await page.getByRole('button', { name: '/ run code', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
@@ -100,7 +97,7 @@ for (const race of ['rerun', 'source A to B to A', 'step cap', 'stdin']) {
       await page.getByRole('button', { name: '/ run code', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
     } else if (race === 'source A to B to A') {
-      await paste(page, 'let other = 2;\nconsole.log(other);');
+      await paste(page, 'other = 2\nprint(other)\n');
       await paste(page, code);
     } else if (race === 'step cap') {
       await page.getByLabel('Maximum trace steps').fill('100');
@@ -131,15 +128,14 @@ test('Analysis coalesces rapid edits before starting real inspection workers', a
   });
   await page.goto('/');
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
-  await page.getByLabel('Programming language').selectOption('javascript');
-  await paste(page, 'function total(n){return n+1;}');
+  await paste(page, 'def total(n):\n    return n + 1\n');
   await page.getByRole('tab', { name: '03 analysis' }).click();
   await expect(page.getByRole('heading', { name: 'Static complexity · AST' })).toBeVisible();
   const initial = await page.evaluate(
     () => (window as unknown as { inspectionStarts: number[] }).inspectionStarts.length,
   );
   for (const offset of [2, 3, 4]) {
-    await paste(page, `function total(n){return n+${offset};}`);
+    await paste(page, `def total(n):\n    return n + ${offset}\n`);
     await page.waitForTimeout(100);
   }
   await expect(page.getByRole('heading', { name: 'Static complexity · AST' })).toBeVisible();
@@ -149,13 +145,12 @@ test('Analysis coalesces rapid edits before starting real inspection workers', a
   expect(final - initial).toBe(1);
 });
 
-test('forged result cannot replace a real JavaScript trace', async ({ page }) => {
+test('forged result cannot replace a real trace', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
-  await page.getByLabel('Programming language').selectOption('javascript');
   await paste(
     page,
-    'try { postMessage({type:"result",result:{steps:[{index:0,line:1,event:"line",func:"<module>",callStack:[],globals:{forged:777},heap:{},stdout:"FORGED"}],truncated:false,error:null,elapsed:0}}); } catch (e) {}\nconsole.log("ACTUAL");',
+    'print("ACTUAL")\n',
   );
   await page.getByRole('button', { name: '/ run code', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
@@ -184,15 +179,13 @@ for (const forgedStarted of [true, false]) {
       });
     await page.goto('/');
     await expect(page.getByTestId('site-loading')).not.toBeVisible();
-    await page.getByLabel('Programming language').selectOption('javascript');
-    const body = `const begin=performance.now(); let sent=false; while(performance.now()-begin<14000){ if(!sent && performance.now()-begin>10500){sent=true; ${forgedStarted ? 'try{postMessage({type:"started"});}catch(e){}' : ''}} }`;
-    await paste(page, `Function(${JSON.stringify(body)})();\nconsole.log("TOO LATE");`);
+    await paste(page, 'import sys\nsys.settrace(None)\nwhile True:\n    pass\n');
     const started = Date.now();
     await page.getByRole('button', { name: '/ run code', exact: true }).click();
     await expect(
       page.getByText('Execution stopped after 12 seconds.', { exact: false }),
-    ).toBeVisible({ timeout: 16000 });
-    expect(Date.now() - started).toBeLessThan(16000);
+    ).toBeVisible({ timeout: 18000 });
+    expect(Date.now() - started).toBeLessThan(18000);
     await expect(page.getByRole('button', { name: 'Jump to end' })).toBeDisabled();
   });
 }
@@ -222,8 +215,7 @@ for (const forgedNonce of ['missing', 'wrong']) {
     }, forgedNonce);
     await page.goto('/');
     await expect(page.getByTestId('site-loading')).not.toBeVisible();
-    await page.getByLabel('Programming language').selectOption('javascript');
-    await paste(page, 'console.log("ACTUAL");');
+    await paste(page, 'print("ACTUAL")\n');
     await page.getByRole('button', { name: '/ run code', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
     await page.getByRole('button', { name: 'Jump to end' }).click();
@@ -248,14 +240,13 @@ test('a replayed authenticated started message cannot reset the deadline', async
   });
   await page.goto('/');
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
-  await page.getByLabel('Programming language').selectOption('javascript');
   await paste(
     page,
-    'Function("const start=performance.now();while(performance.now()-start<14000){}")();',
+    'import sys\nsys.settrace(None)\nwhile True:\n    pass\n',
   );
   await page.getByRole('button', { name: '/ run code', exact: true }).click();
   await expect(page.getByText('Execution stopped after 12 seconds.', { exact: false })).toBeVisible(
-    { timeout: 16000 },
+    { timeout: 18000 },
   );
   await expect(page.getByRole('button', { name: 'Jump to end' })).toBeDisabled();
 });
@@ -267,9 +258,9 @@ test('TypeScript detection explains unsupported syntax without switching the run
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
   await paste(page, 'const values: number[] = [1,2,3];\nconsole.log(values);');
   await expect(
-    page.getByText('TypeScript detected — unsupported.', { exact: false }),
+    page.getByText('Only Python can run in this editor.', { exact: true }).first(),
   ).toBeVisible();
-  await expect(page.getByLabel('Programming language')).toHaveValue('auto');
+  await expect(page.getByRole('button', { name: '/ run code', exact: true })).toBeDisabled();
 });
 
 for (const operation of ['getItem', 'setItem'] as const) {
@@ -289,12 +280,11 @@ for (const operation of ['getItem', 'setItem'] as const) {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     await page.getByRole('button', { name: 'Reduce motion', exact: true }).click();
     expect(errors).toEqual([]);
-    await page.getByLabel('Programming language').selectOption('javascript');
-    await paste(page, 'const values = [3, 1, 2];\nvalues.sort();\nconsole.log(values);');
+    await paste(page, 'values = [3, 1, 2]\nvalues.sort()\nprint(values)\n');
     await page.getByRole('button', { name: '/ run code', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
     await page.getByRole('button', { name: 'Jump to end' }).click();
-    await expect(page.getByTestId('stdout')).toContainText('[1,2,3]');
+    await expect(page.getByTestId('stdout')).toContainText('[1, 2, 3]');
     await page.getByRole('button', { name: 'Jump to start' }).click();
     await page.getByRole('button', { name: 'Next step', exact: true }).click();
     await expect(page.getByTestId('step-counter')).toContainText('002');

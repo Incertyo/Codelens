@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { encodeShare } from "../../src/features/share/public/codec";
 
-for (const language of ['javascript', 'python'] as const) {
+for (const language of ['python'] as const) {
   test(`Big-O comparison uses real ${language} measurements in both themes and on mobile`, async ({
     page,
   }) => {
@@ -12,10 +12,7 @@ for (const language of ['javascript', 'python'] as const) {
     page.on('request', (request) => {
       if (request.method() === 'POST') uploads.push(request.url());
     });
-    const source =
-      language === 'javascript'
-        ? 'function total(n) { let value=0; for(let i=0;i<n;i++){value+=i;} return value; }'
-        : 'def total(n: int):\n    value = 0\n    for i in range(n):\n        value += i\n    return value';
+    const source = 'def total(n: int):\n    value = 0\n    for i in range(n):\n        value += i\n    return value';
     await page.goto('/' + encodeShare(source, '', language));
     await expect(page.locator('.monaco-editor')).toBeVisible();
     await expect(page.getByTestId('site-loading')).not.toBeVisible();
@@ -118,8 +115,8 @@ test('static and measured disagreement stays neutral after a real bounded-loop r
   page,
 }) => {
   const source =
-    'function bounded(n) { let value=0; for(let i=0;i<n;i++){ if(i>1) break; value+=i; } return value; }';
-  await page.goto('/' + encodeShare(source, '', 'javascript'));
+    'def bounded(n):\n    value = 0\n    for i in range(n):\n        if i > 1:\n            break\n        value += i\n    return value\n';
+  await page.goto('/' + encodeShare(source, '', 'python'));
   await expect(page.locator('.monaco-editor')).toBeVisible();
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
   await page.getByRole('tab', { name: '04 complexity' }).click();
@@ -150,9 +147,9 @@ test('manual measurement cancellation is keyboard accessible and leaves no fitte
   await page.goto(
     '/' +
       encodeShare(
-        'function endless(n) { Function("while(true){}")(); return n; }',
+        'def endless(n):\n    while True:\n        pass\n    return n\n',
         '',
-        'javascript',
+        'python',
       ),
   );
   await expect(page.getByTestId('site-loading')).not.toBeVisible();

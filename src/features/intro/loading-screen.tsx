@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Square } from 'lucide-react';
 export function LoadingScreen({
@@ -18,6 +19,18 @@ export function LoadingScreen({
   reduced?: boolean;
   onCancel?: () => void;
 }) {
+  useEffect(() => {
+    if (mode !== 'run' || !onCancel) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mode, onCancel]);
+
   const preparing = mode === 'run' && phase === 'loading';
   return (
     <motion.div

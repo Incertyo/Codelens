@@ -10,7 +10,7 @@ test('database index and nonfeatured algorithms load and run through Python work
   expect(index.ok()).toBe(true);
   const body = await index.json();
   expect(body.algorithms).toHaveLength(309);
-  expect(body.implementations).toHaveLength(343);
+  expect(body.implementations).toHaveLength(326);
   await page.goto('/');
   await expect(page.getByTestId('site-loading')).toHaveCount(0);
   const errors: string[] = [];
@@ -28,7 +28,7 @@ test('database index and nonfeatured algorithms load and run through Python work
     await dialog.getByRole('button', { name: '/ load reference code' }).click();
     await expect(dialog).not.toBeVisible();
     await expect(page.locator('.library-provenance')).toContainText(name);
-    await expect(page.getByLabel('Programming language')).toHaveValue('python');
+    await expect(page.locator('.file-mark')).toHaveText('PYTHON');
     await expect(page.locator('.detection-chip')).toHaveCount(0);
     await page.getByRole('button', { name: '/ run code', exact: true }).click();
     await expect(page.getByTestId('run-loading')).toHaveCount(0);
@@ -50,11 +50,10 @@ test('featured database variants, loading failures, and edited code remain usabl
   const dialog = page.getByRole('dialog', { name: /FIND YOUR/ });
   await dialog.getByRole('searchbox').fill('Palindrome check');
   await dialog.getByRole('button', { name: /^Palindrome check/ }).click();
-  await expect(dialog.getByLabel('Implementation language').locator('option')).toHaveCount(1);
-  await expect(dialog.getByLabel('Implementation language')).toHaveValue('python');
+  await expect(dialog.getByLabel('Implementation language')).toHaveCount(0);
   await dialog.getByRole('button', { name: '/ load example EX.08' }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(page.getByLabel('Programming language')).toHaveValue('python');
+  await expect(page.locator('.file-mark')).toHaveText('PYTHON');
   await expect(page.locator('.detection-chip')).toHaveCount(0);
   await page.getByRole('button', { name: '/ run code', exact: true }).click();
   await expect(page.getByTestId('run-loading')).toHaveCount(0);
@@ -74,7 +73,7 @@ test('featured database variants, loading failures, and edited code remain usabl
   await expect(dialog.getByTestId('library-error')).toContainText('Please retry');
   await expect(dialog).toBeVisible();
   await dialog.getByRole('button', { name: 'Close algorithm library' }).click();
-  await expect(page.getByLabel('Programming language')).toHaveValue('python');
+  await expect(page.locator('.file-mark')).toHaveText('PYTHON');
   await page.unroute('**/api/library?*');
   await page.getByRole('button', { name: '/ new code', exact: true }).click();
   const editor = page.locator('.monaco-editor textarea');

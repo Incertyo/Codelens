@@ -63,9 +63,7 @@ test('new code clears and focuses the editor, rejects empty runs, and can undo',
   await expect(page.getByTestId('stdout')).toContainText('42');
   await page.getByRole('button', { name: '/ new code', exact: true }).click();
   await expect(page.getByTestId('stdout')).toContainText('Your program has the floor');
-  await page.getByLabel('Programming language').selectOption('javascript');
   await page.getByRole('button', { name: '/ undo new code' }).click();
-  await expect(page.getByLabel('Programming language')).toHaveValue('python');
   await run(page);
   await expect(page.getByTestId('stdout')).toContainText('42');
 });

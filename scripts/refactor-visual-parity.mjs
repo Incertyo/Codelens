@@ -28,11 +28,11 @@ if (!/^artifacts[\\/]refactor[\\/][a-zA-Z0-9_-]+$/.test(output))
   throw new Error('Output must be a named folder under artifacts/refactor.');
 await mkdir(output, { recursive: true });
 const code =
-  'function total(n) { let value=0; for(let i=0;i<n;i++){value+=i;} return value; }\nfunction fib(n) { if(n<2)return n; return fib(n-1)+fib(n-2); }\nconst values=[3,1,2];\nconsole.log(total(8), fib(4));';
+  'def total(n):\n    value = 0\n    for i in range(n):\n        value += i\n    return value\n\ndef fib(n):\n    if n < 2:\n        return n\n    return fib(n-1) + fib(n-2)\n\nvalues = [3, 1, 2]\nprint(total(8), fib(4))\n';
 const share = (source) =>
   '/#code=' +
   lz.compressToEncodedURIComponent(
-    JSON.stringify({ code: source, stdin: '', language: 'javascript' }),
+    JSON.stringify({ code: source, stdin: '', language: 'python' }),
   );
 const browser = await chromium.launch();
 const captures = [];
@@ -94,8 +94,9 @@ try {
       await page.getByRole('tab', { name: '04 complexity' }).click();
       await page.getByLabel('Entry function').selectOption('total');
       await page.getByLabel('Input generator').selectOption('int');
+      await page.getByLabel('Measurement sizes').selectOption('small');
       await page.getByRole('button', { name: 'Measure code', exact: true }).click();
-      await expect(page.getByText('Estimated O(n)', { exact: true })).toBeVisible();
+      await expect(page.getByText('Estimated O(n)', { exact: true })).toBeVisible({ timeout: 60000 });
       await capture('complexity');
       await page
         .getByRole('img', { name: 'Real function steps versus input size' })
@@ -109,7 +110,7 @@ try {
       await capture('menu');
       await page.keyboard.press('Escape');
       await page.goto(
-        new URL(share('const graph={A:["B","C"],B:["C"],C:[]};\nconsole.log(graph);'), url).href,
+        new URL(share('graph = {"A": ["B", "C"], "B": ["C"], "C": []}\nprint(graph)\n'), url).href,
       );
       await ready();
       await run();

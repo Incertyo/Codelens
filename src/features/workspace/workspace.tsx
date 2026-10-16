@@ -537,7 +537,11 @@ export function Workspace() {
         </footer>
       </div>
       <WorkspaceDialogs menu={menu} drawer={drawer} about={about} share={share} busy={busy} language={language} shareUrl={shareUrl} navigate={navigate} loadExample={loadExample} />
-      <AnimatePresence>
+      <AnimatePresence
+        onExitComplete={() => {
+          document.querySelector<HTMLButtonElement>('.run-button')?.focus();
+        }}
+      >
         {executing ? (
           <LoadingScreen
             key="run"

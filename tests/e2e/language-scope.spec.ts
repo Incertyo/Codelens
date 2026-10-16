@@ -24,7 +24,7 @@ for (const language of ['cpp', 'java'])
       await expect(
         page.getByRole('status').filter({ hasText: 'Unsupported language' }),
       ).toContainText(language === 'cpp' ? 'C++' : 'Java');
-      await expect(page.getByLabel('Programming language').locator('option')).toHaveCount(3);
+      await expect(page.getByLabel('Programming language')).toHaveCount(0);
       await expect(page.getByRole('button', { name: '/ run code', exact: true })).toBeDisabled();
       await page.keyboard.press('ControlOrMeta+Enter');
       await expect(page.getByRole('button', { name: 'Jump to end' })).toHaveCount(0);
@@ -41,12 +41,10 @@ for (const language of ['cpp', 'java'])
         page.getByRole('status').filter({ hasText: 'Unsupported language' }),
       ).toBeVisible();
       await expect(page.getByRole('button', { name: '/ run code', exact: true })).toBeDisabled();
-      await page.getByLabel('Programming language').selectOption('javascript');
-      await expect(page.locator('.monaco-editor .view-lines')).toContainText(code.split('\n')[0]);
+      await page.getByRole('button', { name: '/ new code', exact: true }).click();
       const editor = page.locator('.monaco-editor textarea');
       await editor.focus();
-      await page.keyboard.press('ControlOrMeta+A');
-      await page.keyboard.insertText('const value = 9;\nconsole.log(value);');
+      await page.keyboard.insertText('value = 9\nprint(value)\n');
       await page.getByRole('button', { name: '/ run code', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
       await page.getByRole('button', { name: 'Jump to end' }).click();
@@ -63,7 +61,7 @@ test('removed simulation is rejected by the production route without AI configur
   });
   expect(response.status()).toBe(410);
   expect(await response.json()).toEqual({
-    error: 'AI-simulated traces have been removed. Run Python or JavaScript locally.',
+    error: 'AI-simulated traces have been removed. Run Python locally.',
   });
 });
 
@@ -82,10 +80,10 @@ for (const [language, code] of [
     await page.getByRole('button', { name: '/ new code', exact: true }).click();
     await page.locator('.monaco-editor textarea').focus();
     await page.keyboard.insertText(code);
-    await expect(page.locator('.detection-chip')).toContainText(
-      `${language} detected — unsupported`,
-    );
-    await expect(page.getByLabel('Programming language')).toHaveValue('auto');
+    await expect(
+      page.getByText('Only Python can run in this editor.', { exact: true }).first(),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: '/ run code', exact: true })).toBeDisabled();
     await expect(page.locator('.filebar')).toContainText('.py');
     await expect(page.locator('.monaco-editor .view-lines')).toContainText(code.split('\n')[0]);
   });

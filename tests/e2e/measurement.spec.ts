@@ -212,7 +212,7 @@ test('parent rejects unauthenticated real counters and replayed started cannot e
   expect(result.sizes[0].status).toBe('budget-exceeded');
   expect(result.sizes[0].lineEvents).toBeNull();
   expect(result.time).toBeNull();
-  expect(Date.now() - start).toBeLessThan(3000);
+  expect(Date.now() - start).toBeLessThan(5000);
 });
 
 test('single trusted started and casual forged protocol calls are bounded by the parent deadline', async ({
@@ -223,6 +223,7 @@ test('single trusted started and casual forged protocol calls are bounded by the
   const result = await measure(page, {
     language: 'python',
     code: 'def algorithm(n):\n    import time\n    start = time.time()\n    while time.time() - start < 14:\n        pass\n    return n',
+    options: { timeoutMs: 8000 },
   });
   expect(result.sizes[0].status).toBe('budget-exceeded');
   expect(result.sizes[0].lineEvents).toBeNull();

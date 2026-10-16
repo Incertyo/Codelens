@@ -17,7 +17,7 @@ if (process.env.CI) throw new Error('Scrubbing measurement is local-only.');
 const browser = await chromium.launch();
 const results = [];
 try {
-  for (const language of ['javascript', 'python']) {
+  for (const language of ['python']) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     await context.route('**/*', (route) =>
       new URL(route.request().url()).origin === url.origin && route.request().method() === 'GET'
@@ -26,11 +26,9 @@ try {
     );
     const page = await context.newPage();
     const code =
-      language === 'python'
-        ? 'numbers = [5, 3, 8, 1, 2]\ni = 0\nwhile True:\n    i = (i + 1) % 5\n    numbers[i] += 1'
-        : 'const numbers=[5,3,8,1,2];\nlet i=0;\nwhile(true){\n i=(i+1)%5;\n numbers[i]+=1;\n}';
+      'numbers = [5, 3, 8, 1, 2]\ni = 0\nwhile True:\n    i = (i + 1) % 5\n    numbers[i] += 1';
     const fragment =
-      '#code=' + lz.compressToEncodedURIComponent(JSON.stringify({ code, stdin: '', language }));
+      '#code=' + lz.compressToEncodedURIComponent(JSON.stringify({ code, stdin: '', language: 'python' }));
     await page.goto(url.origin + '/' + fragment);
     await expect(page.getByTestId('site-loading')).not.toBeVisible();
     await page.getByRole('button', { name: '/ run code', exact: true }).click();

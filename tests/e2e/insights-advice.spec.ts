@@ -1,9 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { encodeShare } from "../../src/features/share/public/codec";
-const linearJS =
-  'function total(n) {\n let value=0;\n for(let i=0;i<n;i++){value+=i;}\n return value;\n}\nconsole.log(total(8));';
-async function openSource(page: Page, code = linearJS, language = 'javascript') {
+const linearPython =
+  'def total(n):\n    value = 0\n    for i in range(n):\n        value += i\n    return value\nprint(total(8))\n';
+async function openSource(page: Page, code = linearPython, language = 'python') {
   await page.goto('/' + encodeShare(code, 'private-stdin', language));
   await expect(page.locator('.monaco-editor')).toBeVisible();
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
@@ -45,7 +45,7 @@ test('real estimates, source hashes, heatmaps, mobile and keyboard accessibility
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({ path: 'artifacts/phase-three-mobile.png', fullPage: true });
-  await paste(page, 'function total(a,b) { return a+b; }');
+  await paste(page, 'def total(a, b):\n    return a + b\n');
   await expect(page.getByText('Estimated O(n)', { exact: true })).not.toBeVisible();
   await expect(page.locator('.analysis-pane')).not.toHaveAttribute('data-source-hash', hash!);
   await expect(page.getByText(/Cannot use this entry driver/)).toBeVisible();
@@ -87,7 +87,7 @@ test('AI suggestions are checked by real workers; expected values stay unverifie
           summary: 'Fixture suggestions, not proof.',
           issues: [{ line: 4, severity: 'edge-case', message: 'Check zero.' }],
           optimization: {
-            code: linearJS.replace('value+=i', 'value = value+i'),
+            code: linearPython.replace('value += i', 'value = value + i'),
             explanation: 'Equivalent-looking proposal; correctness unverified.',
             lines: [3],
           },
@@ -162,7 +162,7 @@ test('stale AI responses never display after source edits; failed tests are not 
   await analysis(page);
   await page.getByRole('button', { name: 'Request AI suggestions', exact: true }).click();
   await expect.poll(() => requested).toBe(true);
-  await paste(page, 'function other(n) { return n; }');
+  await paste(page, 'def other(n):\n    return n\n');
   release();
   await expect(page.getByLabel('Entry function')).toHaveValue('other');
   await expect(page.getByText('STALE RESULT MUST NEVER SHOW')).not.toBeVisible();
@@ -188,7 +188,7 @@ test('stale AI responses never display after source edits; failed tests are not 
       },
     });
   });
-  await paste(page, 'function other(n) { throw new Error("fixture failure"); }');
+  await paste(page, 'def other(n):\n    raise RuntimeError("fixture failure")\n');
   await expect(page.getByLabel('Entry function')).toHaveValue('other');
   await page.getByRole('button', { name: 'Request AI suggestions', exact: true }).click();
   await expect(page.getByText(/Not runnable:.*fixture failure/)).toBeVisible();
@@ -199,7 +199,7 @@ test('small profile measures a quadratic entry and measurement budget failures n
 }) => {
   await openSource(
     page,
-    'function square(n) {\n let value=0;\n for(let i=0;i<n;i++){for(let j=0;j<n;j++){value++;}}\n return value;\n}',
+    'def square(n):\n    value = 0\n    for i in range(n):\n        for j in range(n):\n            value += 1\n    return value\n',
   );
   await analysis(page);
   await page.getByLabel('Input generator').selectOption('int');
@@ -214,7 +214,7 @@ test('small profile measures a quadratic entry and measurement budget failures n
     page.getByRole('img', { name: 'Real function steps versus input size' }),
   ).toBeVisible();
   await analysis(page);
-  await paste(page, 'function endless(n) { while(true) {} }');
+  await paste(page, 'def endless(n):\n    while True:\n        pass\n');
   await expect(page.getByLabel('Entry function')).toHaveValue('endless');
   await page.getByRole('button', { name: 'Empirically measure', exact: true }).click();
   await expect(page.locator('.analysis-status')).toContainText(
@@ -261,6 +261,18 @@ test('production security headers, content-addressed assets and static fallback'
     expect(asset.status()).toBe(200);
     expect(asset.headers()['cache-control']).toContain('immutable');
   }
+  await page.route('**/api/analyze', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        json: {
+          configured: false,
+          reason: 'AI is disabled.',
+        },
+      });
+      return;
+    }
+    await route.continue();
+  });
   await openSource(page);
   await analysis(page);
   await expect(

@@ -12,10 +12,8 @@ async function paste(page: Page, code: string) {
 test('editor offers only Python and runs pasted code in real Pyodide', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
-  const options = await page.getByLabel('Programming language').locator('option').evaluateAll(
-    (items) => items.map((item) => (item as HTMLOptionElement).value),
-  );
-  expect(options).toEqual(['python']);
+  await expect(page.getByLabel('Programming language')).toHaveCount(0);
+  await expect(page.locator('.file-mark')).toHaveText('PYTHON');
   await paste(page, 'values = [1, 2, 3]\nprint(sum(values))');
   await page.getByRole('button', { name: '/ run code', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
@@ -41,8 +39,7 @@ test('featured library examples offer only Python implementations', async ({ pag
   const dialog = page.getByRole('dialog', { name: /FIND YOUR/ });
   await dialog.getByRole('searchbox').fill('Palindrome check');
   await dialog.getByRole('button', { name: /^Palindrome check/ }).click();
-  await expect(dialog.getByLabel('Implementation language').locator('option')).toHaveCount(1);
-  await expect(dialog.getByLabel('Implementation language')).toHaveValue('python');
+  await expect(dialog.getByLabel('Implementation language')).toHaveCount(0);
   await dialog.getByRole('button', { name: /^\/ load example EX/ }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator('.file-mark')).toHaveText('PYTHON');

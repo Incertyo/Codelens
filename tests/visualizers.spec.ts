@@ -123,30 +123,27 @@ test('single-number XOR renders changing 32-bit register states', async ({ page 
   await page.screenshot({ path: 'artifacts/phase-2.5-bits.png', fullPage: true });
   await auditThemes(page);
 });
-test('specialized JS snapshots render intervals, buckets, set, trie, DSU and range trees', async ({
+test('specialized snapshots render intervals, buckets, set, trie, DSU and range trees', async ({
   page,
 }) => {
   const snippets: [string, string][] = [
-    ['queue', 'const pending=[]; pending.shift(); console.log(pending);'],
-    ['set', 'const seen=new Set(); console.log(seen.size);'],
-    ['heap', 'const heap=[]; console.log(heap.length);'],
-    ['sequence', 'const values=[]; console.log(values.length);'],
-    ['string_buffer', 'const s=""; console.log(s.length);'],
-    ['queue', 'const pending=[1,2,3]; pending.shift(); console.log(pending);'],
-    ['queue', 'const pending=[1,2]; pending.unshift(0); console.log(pending);'],
-    ['interval_set', 'const meetings=[[0,3],[2,4],[5,8]]; let i=1; console.log(meetings.length);'],
-    ['hash_table', 'const buckets=[[ ["cat",3], ["dog",5] ],[]]; console.log(buckets.length);'],
-    ['set', 'const seen=new Set([1,2,3]); console.log(seen.size);'],
+    ['queue', 'from collections import deque\npending = deque([1, 2, 3])\npending.popleft()\nprint(len(pending))'],
+    ['set', 'seen = {1, 2, 3}\nprint(len(seen))'],
+    ['heap', 'import heapq\nheap = [1, 2, 3]\nheapq.heapify(heap)\nprint(heap)'],
+    ['sequence', 'values = [1, 2, 3]\nprint(len(values))'],
+    ['string_buffer', 's = "abc"\nprint(len(s))'],
+    ['interval_set', 'meetings = [[0, 3], [2, 4], [5, 8]]\ni = 1\nprint(len(meetings))'],
+    ['hash_table', 'buckets = [[["cat", 3], ["dog", 5]], []]\nprint(len(buckets))'],
     [
       'trie',
-      'const root={c:{a:{t:{$:true}}},d:{o:{g:{is_end:true}}}}; let node=root.c.a; console.log(1);',
+      'class TrieNode:\n    def __init__(self):\n        self.children = {}\n        self.is_end = False\nroot = TrieNode()\nroot.children["a"] = TrieNode()\nroot.children["a"].is_end = True\nprint(1)',
     ],
-    ['dsu', 'const parent=[0,0,2,2], rank=[1,0,1,0]; console.log(parent[3]);'],
-    ['segment_tree', 'const n=4; const tree=Array(2*n).fill(0); tree[1]=10; console.log(tree[1]);'],
-    ['segment_tree', 'const tree=[0,1,3,3,10]; let i=2; i += i & -i; console.log(tree[i]);'],
+    ['dsu', 'parent = [0, 0, 2, 2]\nrank = [1, 0, 1, 0]\nprint(parent[3])'],
+    ['segment_tree', 'n = 4\ntree = [0] * (4 * n)\ntree[1] = 10\nprint(tree[1])'],
+    ['segment_tree', 'tree = [0, 1, 3, 3, 10]\ni = 2\ni += i & -i\nprint(tree[i])'],
   ];
   for (const [kind, code] of snippets) {
-    await run(page, code, 'javascript');
+    await run(page, code, 'python');
     await expect(page.getByTestId(`structure-${kind}`).first()).toBeVisible();
     await auditThemes(page);
     await page.screenshot({ path: `artifacts/phase-2.5-${kind}.png`, fullPage: true });

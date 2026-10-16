@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { encodeShare } from "../../src/features/share/public/codec";
-const code = 'function size(n) { return n; }\nconsole.log(size(3));';
+const code = 'def size(n):\n    return n\nprint(size(3))\n';
 
 test('rechecks an exhausted budget before uploading source from an already enabled control', async ({
   page,
@@ -21,7 +21,7 @@ test('rechecks an exhausted budget before uploading source from an already enabl
       },
     });
   });
-  await page.goto('/' + encodeShare(code, '', 'javascript'));
+  await page.goto('/' + encodeShare(code, '', 'python'));
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
   await page.getByRole('tab', { name: '03 analysis' }).click();
   const button = page.getByRole('button', { name: 'Request AI suggestions', exact: true });
@@ -53,7 +53,7 @@ test('provider quota pauses AI without retry, discloses free-tier use and keeps 
       },
     });
   });
-  await page.goto('/' + encodeShare(code, '', 'javascript'));
+  await page.goto('/' + encodeShare(code, '', 'python'));
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
   await page.getByRole('tab', { name: '02 breakdown' }).click();
   await expect(page.getByText(/Only explicitly requested notes and advice send source code/)).toContainText(
@@ -84,7 +84,7 @@ test('missing limiter readiness explains why AI is unavailable while real traces
       },
     }),
   );
-  await page.goto('/' + encodeShare(code, '', 'javascript'));
+  await page.goto('/' + encodeShare(code, '', 'python'));
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
   await page.getByRole('button', { name: '/ run code', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
@@ -129,7 +129,7 @@ test('daily budget response is shown and AI availability can be checked again', 
       },
     });
   });
-  await page.goto('/' + encodeShare(code, '', 'javascript'));
+  await page.goto('/' + encodeShare(code, '', 'python'));
   await page.getByRole('tab', { name: '03 analysis' }).click();
   const button = page.getByRole('button', { name: 'Request AI suggestions', exact: true });
   await expect(button).toBeEnabled();
