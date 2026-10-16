@@ -22,6 +22,7 @@
 - Audit commit checks: ordinary incremental tsc and diff whitespace check pass; only markdown changed, so changed-code lint/related-test scope is empty. Prior code T0 and T2 stay green.
 - Scope: unused wrappers/PythonRunner alias, Lenis removal and AST predicate reuse. Optional export narrowing, CSS, high-risk architecture and all defect fixes deferred.
 - Cluster 1 complete: unused wrappers/alias removed; 82 related tests before/after, tsc/cached lint/quick goldens/build pass; production visualizers/complexity/language-scope pass 17/17. Ledger: REFACTOR_PHASE2B.md.
+- Cluster 1 commit: 27acd16. Cluster 2 complete: Lenis removed offline; exact one-package lock delta; tsc/quick goldens/build, 1,021 manifest-related tests, 7 maintenance tests and 10/10 production intro/layout cases pass.
 - Next: finish/commit each cluster with T0/T1, then full unit/golden T2 and stop before Phase 3A.
 - Language-scope production gap closed in 2B. Unverified: three unavailable audit tools; full browser/T3 deferred. No final bundle/security/visual gate claimed.
 - Frozen exception: removed one obsolete guard in javascript-examples.ts; deliberate export has zero new revisions and byte-identical index/implementation data. Only that manifest digest/export hash changed; proof is in REFACTOR_PHASE1.md.
