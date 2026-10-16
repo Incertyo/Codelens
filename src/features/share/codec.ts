@@ -28,9 +28,6 @@ const LANG_TO_CODE: Record<ShareLanguage, string> = {
   java: 'y',
 };
 
-/**
- * Universal fast 64-bit deterministic hash / fingerprint of source code and metadata.
- */
 export function computeCodeHash(code: string, language = 'python'): string {
   let h1 = 0xdeadbeef;
   let h2 = 0x41c64e6d;
@@ -47,30 +44,16 @@ export function computeCodeHash(code: string, language = 'python'): string {
   return `${part1}${part2}`;
 }
 
-/**
- * Standard share encoder (compatible with existing URLs and tests).
- */
 export function encodeShare(code: string, stdin: string, language: string): string {
   return '#code=' + compressToEncodedURIComponent(JSON.stringify({ code, stdin, language }));
 }
 
-/**
- * Modern compact short share URL encoder.
- * Packs fields into a minimal tuple [langCode, stdin?, code] without JSON field overhead.
- */
 export function encodeShortShare(code: string, stdin: string, language: string): string {
   const langKey = (LANG_TO_CODE[language as ShareLanguage] ?? language) as string;
   const payload = stdin ? [langKey, stdin, code] : [langKey, code];
   return '#s=' + compressToEncodedURIComponent(JSON.stringify(payload));
 }
 
-/**
- * Universal share decoder that accepts:
- * - `#code=<payload>` (legacy compressed object)
- * - `#s=<payload>` (compact compressed tuple or object)
- * - Query strings `?code=...` or `?s=...`
- * - Full URLs containing any of the above
- */
 export function decodeShare(
   input: string,
 ): { code: string; stdin: string; language: ShareLanguage } | null {
@@ -79,7 +62,6 @@ export function decodeShare(
 
     let fragment = input.trim();
 
-    // Extract fragment from full URL if provided
     if (fragment.includes('#')) {
       fragment = fragment.slice(fragment.indexOf('#'));
     } else if (fragment.includes('?')) {
@@ -109,7 +91,6 @@ export function decodeShare(
     const data: unknown = JSON.parse(decompressed);
     if (!data) return null;
 
-    // Handle compact tuple format: [lang, code] or [lang, stdin, code]
     if (Array.isArray(data)) {
       if (data.length < 2 || data.length > 3) return null;
       const langStr = String(data[0]);
@@ -123,7 +104,6 @@ export function decodeShare(
       return { code, stdin, language: mappedLang };
     }
 
-    // Handle standard object format { code, stdin, language }
     if (typeof data === 'object') {
       const d = data as Record<string, unknown>;
       const code = typeof d.code === 'string' ? d.code : typeof d.c === 'string' ? d.c : null;

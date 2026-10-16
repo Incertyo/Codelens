@@ -74,7 +74,7 @@ describe('SQLite analysis persistence and Big-O caching', () => {
 
   it('persists and updates empirical Big-O fit in SQLite', () => {
     const sourceHash = 'hash-with-fit';
-    const language = 'javascript';
+    const language = 'python';
     saveStoredAnalysis({
       sourceHash,
       language,
@@ -194,7 +194,6 @@ describe('SQLite analysis persistence and Big-O caching', () => {
     expect(loaded?.data.bigOFit?.scale).toBe(85);
     expect(loaded?.data.bigOFit?.anchor).toBe(64);
 
-    // predictGrowth must run smoothly on this loaded fit
     const pred = predictGrowth(loaded!.data.bigOFit as unknown as GrowthFit, 32);
     expect(Number.isFinite(pred)).toBe(true);
     expect(pred).toBeGreaterThan(0);

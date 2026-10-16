@@ -99,7 +99,6 @@ export function getStoredAnalysis({
   sourceHash?: string;
   language?: string;
 }): AnalysisRecord | null {
-  // 1. Try querying SQLite database
   const fromDb = withDb(true, (db) => {
     try {
       if (sourceHash && language) {
@@ -153,15 +152,12 @@ export function getStoredAnalysis({
           };
         }
       }
-    } catch {
-      // Table may not exist yet in read-only mode
-    }
+    } catch {}
     return null;
   });
 
   if (fromDb) return fromDb;
 
-  // 2. Check preset algorithm definitions if not found in DB
   if (sourceHash) {
     const presetByHash = findPresetBySourceHash(sourceHash, language);
     if (presetByHash) {
