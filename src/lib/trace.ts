@@ -21,6 +21,7 @@ export type Step = {
 };
 export type TraceResult = {
   origin?: 'ai-simulated';
+  execution?: 'java-subset-v1';
   identity?: { implementationId: string; sourceHash: string };
   steps: Step[];
   truncated: boolean;
@@ -30,6 +31,8 @@ export type TraceResult = {
 export const MAX_CODE_LENGTH = 30000;
 export const DEFAULT_MAX_STEPS = 5000;
 export const RUN_TIMEOUT_MS = 12000;
+export const MAX_TRACE_BYTES = 16 * 1024 * 1024;
+export const TRACE_NOTICE_RESERVE = 128 * 1024;
 const value = z.union([
   z.null(),
   z.boolean(),
@@ -37,11 +40,23 @@ const value = z.union([
   z.string(),
   z.object({ ref: z.string() }),
 ]);
+const record = <T extends z.ZodType>(schema: T) =>
+  z
+    .preprocess(
+      (input) =>
+        input && typeof input === 'object' && !Array.isArray(input) ? Object.entries(input) : null,
+      z.array(z.tuple([z.string(), schema])),
+    )
+    .transform((entries) => {
+      const output: Record<string, z.output<T>> = Object.create(null);
+      for (const [key, entry] of entries) output[String(key)] = entry as z.output<T>;
+      return output;
+    });
 const heap = z.object({
   type: z.string(),
   items: z.array(value).optional(),
   entries: z.array(z.tuple([value, value])).optional(),
-  fields: z.record(z.string(), value).optional(),
+  fields: record(value).optional(),
   truncated: z.boolean().optional(),
 });
 export const stepSchema = z.object({
@@ -54,15 +69,16 @@ export const stepSchema = z.object({
       id: z.string().optional(),
       func: z.string(),
       line: z.number(),
-      locals: z.record(z.string(), value),
+      locals: record(value),
     }),
   ),
-  globals: z.record(z.string(), value),
-  heap: z.record(z.string(), heap),
+  globals: record(value),
+  heap: record(heap),
   stdout: z.string(),
   explanation: z.string().optional(),
 });
 export const traceSchema = z.object({
+  execution: z.literal('java-subset-v1').optional(),
   steps: z.array(stepSchema).max(DEFAULT_MAX_STEPS),
   truncated: z.boolean(),
   error: z.string().nullable(),
@@ -84,11 +100,7 @@ export function displayValue(
   }
   return typeof v === 'string' ? JSON.stringify(v) : String(v);
 }
-export function explainStep(
-  step: Step,
-  previous?: Step,
-  language: string = 'python',
-): string {
+export function explainStep(step: Step, previous?: Step, language: string = 'python'): string {
   if (step.explanation) return step.explanation;
   if (step.event === 'call')
     return step.func === '<module>'

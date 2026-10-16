@@ -35,7 +35,11 @@ test('real estimates, source hashes, heatmaps, mobile and keyboard accessibility
   await page.getByLabel('Input generator').selectOption('int');
   await page.getByRole('button', { name: 'Empirically measure', exact: true }).click();
   await expect(page.getByText('Estimated O(n)', { exact: true })).toBeVisible();
-  await expect(page.locator('.analysis-pane tbody tr')).toHaveCount(5);
+  await expect(
+    page
+      .getByRole('table', { name: 'Real captured steps by input size', exact: true })
+      .locator('tbody tr'),
+  ).toHaveCount(10);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -260,7 +264,9 @@ test('simulation needs per-run opt-in, carries a persistent label, and shares ne
   await page.getByLabel('Programming language').selectOption('python');
   await expect(page.locator('.simulation-optin')).toHaveCount(0);
 });
-test('small profile measures a quadratic entry and cap failures never fit', async ({ page }) => {
+test('small profile measures a quadratic entry and measurement budget failures never fit', async ({
+  page,
+}) => {
   await openSource(
     page,
     'function square(n) {\n let value=0;\n for(let i=0;i<n;i++){for(let j=0;j<n;j++){value++;}}\n return value;\n}',
@@ -270,14 +276,19 @@ test('small profile measures a quadratic entry and cap failures never fit', asyn
   await page.getByLabel('Measurement sizes').selectOption('small');
   await page.getByRole('button', { name: 'Empirically measure', exact: true }).click();
   await expect(page.getByText('Estimated O(n²)', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Open Complexity Tab →', exact: true }).click();
+  await page.getByLabel('Measurement sizes').selectOption('small');
+  await page.getByRole('button', { name: 'Measure code', exact: true }).click();
+  await expect(page.getByText(/Local estimate from 5 complete measured runs/)).toBeVisible();
   await expect(
     page.getByRole('img', { name: 'Real function steps versus input size' }),
   ).toBeVisible();
+  await analysis(page);
   await paste(page, 'function endless(n) { while(true) {} }');
   await expect(page.getByLabel('Entry function')).toHaveValue('endless');
   await page.getByRole('button', { name: 'Empirically measure', exact: true }).click();
   await expect(page.locator('.analysis-status')).toContainText(
-    'No estimate is fitted to incomplete traces',
+    'No estimate is fitted: fewer than four complete positive sizes',
   );
   await expect(page.locator('.estimate-card')).toHaveCount(0);
 });
@@ -313,7 +324,7 @@ test('invalid simulated traces do not reach playback', async ({ page }) => {
       },
     });
   });
-  await openSource(page, 'class Main {}', 'java');
+  await openSource(page, 'int main() { return 0; }', 'cpp');
   await page.getByRole('checkbox', { name: /For this run, send my source code/ }).check();
   await page.getByRole('button', { name: '/ request AI simulation', exact: true }).click();
   await expect(page.locator('.notice[role="alert"]')).toContainText('could not be validated');

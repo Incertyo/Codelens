@@ -13,7 +13,7 @@ export async function sharedStoreFixture() {
     req.on('end', () => {
       const command = JSON.parse(text);
       commands.push(command);
-      if (unavailable || !writable) {
+      if (unavailable || (!writable && command[7] !== 'check')) {
         res.statusCode = 503;
         res.end('{}');
         return;

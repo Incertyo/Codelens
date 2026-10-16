@@ -123,9 +123,18 @@ export type DetectionHints = {
   segments: Set<string>;
   fenwick: boolean;
   dp: DPAccess[];
+  primaryStructure?: string;
 };
 
-export function sourceHints(code = '', language: string = 'python'): DetectionHints {
+export function sourceHints(
+  code = '',
+  language: string = 'python',
+  visualMapping?: {
+    primaryStructure?: string;
+    highlights?: Array<{ step: number; variable: string; reason: string }>;
+    keyOperations?: Array<{ line: number; type: string; description: string }>;
+  },
+): DetectionHints {
   const clean = code.replace(
     language === 'python'
       ? /("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|#[^\n]*)/g
@@ -185,6 +194,20 @@ export function sourceHints(code = '', language: string = 'python'): DetectionHi
       if (sources.some((s) => /-\s*\d|\b(?:w|weight)\b/.test(s.row + s.col)))
         dp.push({ name: match[1], row: match[2], col: match[3], line: index + 1, sources });
     });
+  if (visualMapping?.primaryStructure) {
+    const ps = visualMapping.primaryStructure.toLowerCase();
+    if (ps.includes('heap')) heaps.add(visualMapping.primaryStructure);
+    if (ps.includes('tree') || ps.includes('segment')) segments.add(visualMapping.primaryStructure);
+    if (ps.includes('bit') || ps.includes('mask')) bitwise.add(visualMapping.primaryStructure);
+  }
+  if (visualMapping?.keyOperations) {
+    for (const op of visualMapping.keyOperations) {
+      const t = op.type.toLowerCase();
+      if (t.includes('heap') && visualMapping.primaryStructure) heaps.add(visualMapping.primaryStructure);
+      if ((t.includes('bit') || t.includes('mask')) && visualMapping.primaryStructure)
+        bitwise.add(visualMapping.primaryStructure);
+    }
+  }
   return {
     language,
     lines,
@@ -194,6 +217,7 @@ export function sourceHints(code = '', language: string = 'python'): DetectionHi
     bitwise,
     segments,
     dp,
+    primaryStructure: visualMapping?.primaryStructure,
     fenwick: /\b(\w+)\s*&\s*-\s*\1\b/.test(clean),
   };
 }
@@ -412,7 +436,7 @@ export function detectVisualModels(step: Step, hints: DetectionHints = emptyHint
           : typeof value === 'string' && /^-?\d+$/.test(value)
             ? value
             : object?.type === 'bigint'
-              ? String(object.fields?.value)
+              ? String(object.fields?.value).replace(/n$/, '')
               : undefined;
       if (numeric && hints.bitwise.has(name)) {
         try {
@@ -562,8 +586,8 @@ export function detectVisualModels(step: Step, hints: DetectionHints = emptyHint
       }
       if (
         object.type === 'LifoQueue' ||
-        /^(stack|st)$/i.test(name) ||
-        (operations.size > 0 &&
+        (/^(stack|st)$/i.test(name) && !operations.has('push') && !operations.has('append')) ||
+        (operations.has('pop') &&
           !hints.dp.some((h) => h.name === name) &&
           [...operations].every((k) => ['append', 'push', 'pop'].includes(k)))
       ) {

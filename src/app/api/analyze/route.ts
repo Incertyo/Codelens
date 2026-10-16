@@ -1,6 +1,12 @@
 import { analyzeRequestSchema, enrichCode, providerStatus, aiReadiness } from '@/lib/ai/analyze';
 import { takeSharedLimit, requireAllowed } from '@/lib/ai/rate-limit';
 import { AIControlError } from '@/lib/ai/control-error';
+import { createHash } from 'node:crypto';
+import {
+  getStoredAnalysis,
+  saveStoredAnalysis,
+  type StoredAnalysis,
+} from '@/lib/analysis-repository';
 import {
   adviceRequestSchema,
   simulationRequestSchema,
@@ -17,6 +23,22 @@ const json = (body: unknown, status = 200, extra?: Record<string, string>) =>
 const clientKey = (request?: Request) =>
   request?.headers.get('x-forwarded-for')?.split(',')[0].trim().slice(0, 100) || 'local';
 export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const sourceHash = url.searchParams.get('sourceHash');
+  const implementationId = url.searchParams.get('implementationId');
+  const language = url.searchParams.get('language') || 'python';
+  if (language === 'java' && (sourceHash || implementationId)) return json({ cached: false }, 404);
+  if (sourceHash || implementationId) {
+    const stored = getStoredAnalysis({
+      sourceHash: sourceHash || undefined,
+      implementationId: implementationId || undefined,
+      language,
+    });
+    if (stored) {
+      return json({ cached: true, analysis: stored.data, record: stored });
+    }
+    return json({ cached: false }, 404);
+  }
   return json(await aiReadiness(clientKey(request)));
 }
 export async function POST(request: Request) {
@@ -48,6 +70,37 @@ export async function POST(request: Request) {
     }
     const body: unknown = JSON.parse(new TextDecoder().decode(buffer));
     const mode = body && typeof body === 'object' && 'mode' in body ? body.mode : undefined;
+    if (mode === 'save_complexity' || mode === 'save_analysis') {
+      const saveBody = body as Record<string, unknown>;
+      const sHash = typeof saveBody.sourceHash === 'string' ? saveBody.sourceHash : '';
+      const lang = typeof saveBody.language === 'string' ? saveBody.language : 'python';
+      if (lang === 'java')
+        return json({ error: 'Java source-derived analysis stays in the browser.' }, 400);
+      if (sHash) {
+        saveStoredAnalysis({
+          implementationId:
+            typeof saveBody.implementationId === 'string' ? saveBody.implementationId : undefined,
+          sourceHash: sHash,
+          language: lang,
+          data: {
+            ...(typeof saveBody.data === 'object' && saveBody.data !== null
+              ? (saveBody.data as StoredAnalysis)
+              : {}),
+            ...(saveBody.bigOFit !== undefined
+              ? { bigOFit: saveBody.bigOFit as StoredAnalysis['bigOFit'] }
+              : {}),
+            ...(typeof saveBody.timeComplexity === 'string'
+              ? { timeComplexity: saveBody.timeComplexity }
+              : {}),
+            ...(typeof saveBody.spaceComplexity === 'string'
+              ? { spaceComplexity: saveBody.spaceComplexity }
+              : {}),
+          },
+        });
+        return json({ saved: true });
+      }
+      return json({ error: 'Missing sourceHash' }, 400);
+    }
     const schema =
       mode === 'analysis'
         ? adviceRequestSchema
@@ -77,7 +130,37 @@ export async function POST(request: Request) {
           ? await analyzeAdvice(parsed.data, request.signal)
           : await simulate(parsed.data, request.signal),
       );
-    return json(await enrichCode(parsed.data, request.signal));
+
+    const checkCache = (body as Record<string, unknown>)?.checkCache === true;
+    if (checkCache && parsed.data.language !== 'java') {
+      const sourceHash = createHash('sha256').update(parsed.data.code).digest('hex');
+      const cached = getStoredAnalysis({
+        implementationId: parsed.data.implementationId,
+        sourceHash,
+        language: parsed.data.language,
+      });
+      if (cached?.data?.enrichment) {
+        return json({ source: 'ai', enrichment: cached.data.enrichment, cached: true });
+      }
+    }
+
+    const enrichmentResult = await enrichCode(parsed.data, request.signal);
+    if (enrichmentResult.source === 'ai' && parsed.data.language !== 'java') {
+      const sourceHash = createHash('sha256').update(parsed.data.code).digest('hex');
+      saveStoredAnalysis({
+        implementationId: parsed.data.implementationId,
+        sourceHash,
+        language: parsed.data.language,
+        data: {
+          timeComplexity: enrichmentResult.enrichment.timeComplexity,
+          spaceComplexity: enrichmentResult.enrichment.spaceComplexity,
+          suggestions: enrichmentResult.enrichment.suggestions,
+          visualMapping: enrichmentResult.enrichment.visualMapping,
+          enrichment: enrichmentResult.enrichment,
+        },
+      });
+    }
+    return json(enrichmentResult);
   } catch (error) {
     if (error instanceof AIControlError)
       return json(

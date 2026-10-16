@@ -11,6 +11,7 @@ function read<T>(action: (db: DatabaseSync) => T): T {
     readOnly: true,
   });
   try {
+    db.exec('PRAGMA busy_timeout = 5000;');
     return action(db);
   } finally {
     db.close();

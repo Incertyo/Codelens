@@ -49,3 +49,15 @@ CREATE TABLE IF NOT EXISTS fixtures (
   expected_stdout TEXT NOT NULL,
   match_mode TEXT NOT NULL CHECK (match_mode IN ('exact', 'contains'))
 );
+
+INSERT OR IGNORE INTO schema_migrations VALUES (2, 'Cached analysis, complexity and visual mapping responses');
+CREATE TABLE IF NOT EXISTS analysis_results (
+  id TEXT PRIMARY KEY,
+  implementation_id TEXT,
+  source_hash TEXT NOT NULL,
+  language TEXT NOT NULL,
+  data_json TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS analysis_results_lookup ON analysis_results(source_hash, language);
+CREATE INDEX IF NOT EXISTS analysis_results_impl ON analysis_results(implementation_id);

@@ -1,4 +1,4 @@
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 
 const args = process.argv.slice(2);
 const withAI = args.includes('--with-ai');
@@ -67,6 +67,18 @@ try {
     assert(asset.status === 200 && asset.headers.get('cache-control')?.includes('immutable'));
   }
   pass(active);
+  active = 'trusted execution harness assets';
+  for (const [path, marker] of [
+    ['/tracer.worker.js', 'measure_code'],
+    ['/tracer.py', 'run_trace'],
+    ['/outline.py', 'outline_code'],
+    ['/analysis.py', 'inspect_code'],
+    ['/measurement.py', 'measure_code'],
+  ]) {
+    const asset = await get(path);
+    assert(asset.status === 200 && (await asset.text()).includes(marker));
+  }
+  pass(active);
   active = 'static library catalog metadata';
   const libraryResponse = await get('/api/library');
   assert(libraryResponse.status === 200);
@@ -117,6 +129,15 @@ try {
     .first()
     .waitFor({ state: 'attached', timeout: 30000 });
   assert(await page.getByLabel('Programming language').isVisible());
+  assert(!pageFailed && !automaticPost);
+  pass(active);
+  active = 'browser Java subset without provider calls';
+  await page.getByLabel('Programming language').selectOption('java');
+  await page.getByRole('button', { name: 'Load Java example', exact: true }).click();
+  await page.getByRole('button', { name: '/ run code', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled({ timeout: 15000 });
+  await page.getByRole('button', { name: 'Jump to end' }).click();
+  assert((await page.getByTestId('stdout').textContent()) === '20\n');
   assert(!pageFailed && !automaticPost);
   pass(active);
   active = 'headless design page';

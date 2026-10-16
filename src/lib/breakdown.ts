@@ -191,6 +191,50 @@ export const enrichmentSchema = z
           .strict(),
       )
       .max(32),
+    timeComplexity: z.string().max(50).optional(),
+    spaceComplexity: z.string().max(50).optional(),
+    suggestions: z
+      .array(
+        z
+          .object({
+            type: z.enum(['optimization', 'bug', 'edge-case', 'style']),
+            message: z.string().max(600),
+            line: z.number().int().positive().max(30000).optional(),
+          })
+          .strict(),
+      )
+      .max(10)
+      .optional(),
+    visualMapping: z
+      .object({
+        primaryStructure: z.string().max(50).optional(),
+        highlights: z
+          .array(
+            z
+              .object({
+                step: z.number().int().nonnegative().max(4999),
+                variable: z.string().max(100),
+                reason: z.string().max(200),
+              })
+              .strict(),
+          )
+          .max(20)
+          .optional(),
+        keyOperations: z
+          .array(
+            z
+              .object({
+                line: z.number().int().positive().max(30000),
+                type: z.string().max(50),
+                description: z.string().max(200),
+              })
+              .strict(),
+          )
+          .max(20)
+          .optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 export type Enrichment = z.infer<typeof enrichmentSchema>;

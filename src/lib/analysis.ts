@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import type { Language } from './breakdown';
 import type { TraceResult } from './trace';
+import { fitGrowthModel, growthModels } from './complexity';
+import { javaTestHarness } from './java/analysis';
 
 export const inputKinds = ['int', 'list', 'string'] as const;
 export type InputKind = (typeof inputKinds)[number];
@@ -76,6 +78,7 @@ export function testHarness(
   if (!entry.kinds.includes(kind))
     throw new Error('This input type does not match the entry signature.');
   argumentSchema.parse(argument);
+  if (language === 'java') return javaTestHarness(inspection.moduleCode, entry.name, argument);
 
   const invocation = `${entry.name}(${JSON.stringify(argument)})`;
   const driver = output
@@ -97,41 +100,22 @@ export function executionCounts(trace: TraceResult | null): Record<number, numbe
 }
 export type Sample = { n: number; steps: number };
 export function fitComplexity(samples: Sample[]) {
-  if (samples.length < 4 || samples.some((s) => !Number.isFinite(s.steps) || s.steps < 1))
+  if (
+    samples.length < 4 ||
+    samples.some(
+      (s) => !Number.isFinite(s.steps) || s.steps < 1 || !Number.isFinite(s.n) || s.n < 1,
+    ) ||
+    new Set(samples.map((s) => s.n)).size !== samples.length
+  )
     throw new Error('At least four complete, non-empty traces are required.');
   if (samples.every((s) => s.steps === samples[0].steps))
-    return { label: 'O(1)', error: 0, alternatives: 'All tested sizes used the same step count.' };
-  const models = [
-    ['O(log n)', (n: number) => Math.log2(n)],
-    ['O(n)', (n: number) => n],
-    ['O(n log n)', (n: number) => n * Math.log2(n)],
-    ['O(n²)', (n: number) => n * n],
-    ['O(n³)', (n: number) => n * n * n],
-    ['O(2ⁿ)', (n: number) => 2 ** n],
-  ] as const;
-  const ranked = models
-    .map(([label, f]) => {
-      const xs = samples.map((s) => f(s.n)),
-        ys = samples.map((s) => s.steps);
-      const mx = xs.reduce((a, b) => a + b) / xs.length,
-        my = ys.reduce((a, b) => a + b) / ys.length;
-      let scale = Math.max(
-        0,
-        xs.reduce((sum, x, i) => sum + (x - mx) * (ys[i] - my), 0) /
-          xs.reduce((sum, x) => sum + (x - mx) ** 2, 0),
-      );
-      let intercept = my - scale * mx;
-      if (intercept < 0) {
-        intercept = 0;
-        scale =
-          xs.reduce((sum, x, i) => sum + x * ys[i], 0) / xs.reduce((sum, x) => sum + x * x, 0);
-      }
-      const error =
-        Math.sqrt(
-          xs.reduce((sum, x, i) => sum + (ys[i] - (intercept + scale * x)) ** 2, 0) / xs.length,
-        ) / my;
-      return { label, error };
-    })
+    return {
+      ...fitGrowthModel('constant', samples, true),
+      alternatives: 'All tested sizes used the same step count.',
+    };
+  const ranked = growthModels
+    .slice(1)
+    .map((model) => fitGrowthModel(model.id, samples, true))
     .sort((a, b) => a.error - b.error);
   return {
     ...ranked[0],

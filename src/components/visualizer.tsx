@@ -26,6 +26,7 @@ function PanelTitle({
   );
 }
 export function Visualizer() {
+  const [expandedHeap, setExpandedHeap] = useState<Set<string>>(() => new Set());
   const language = useStore((s) => s.language);
   const result = useStore((s) => s.result),
     cursor = useStore((s) => s.cursor),
@@ -46,6 +47,12 @@ export function Visualizer() {
             Hypothetical steps and values from the configured provider. This source was not
             executed.
           </span>
+        </div>
+      )}
+      {result?.execution === 'java-subset-v1' && (
+        <div role="status" className="notice">
+          Java subset → JavaScript · real browser trace. Steps use Java source lines; memory units
+          describe the compiled runtime, not JVM bytes.
         </div>
       )}
       <Playback />
@@ -181,36 +188,52 @@ export function Visualizer() {
         <div className="heap-list">
           {step && Object.entries(step.heap).length ? (
             Object.entries(step.heap).map(([id, obj]) => (
-              <details key={id} className="heap-object">
+              <details
+                key={id}
+                className="heap-object"
+                open={expandedHeap.has(id)}
+                onToggle={(event) => {
+                  const open = event.currentTarget.open;
+                  setExpandedHeap((previous) => {
+                    if (previous.has(id) === open) return previous;
+                    const next = new Set(previous);
+                    if (open) next.add(id);
+                    else next.delete(id);
+                    return next;
+                  });
+                }}
+              >
                 <summary className="mono">
                   <span>@{id}</span>
                   <span className="dim">
                     {obj.type} {obj.items ? `(${obj.items.length}${obj.truncated ? '+' : ''})` : ''}
                   </span>
                 </summary>
-                <div className="heap-detail mono">
-                  {obj.items
-                    ? obj.items.map((v, i) => (
-                        <div key={i}>
-                          <span className="dim">[{i}]</span>
-                          <span>{displayValue(v, step.heap, language)}</span>
-                        </div>
-                      ))
-                    : obj.entries
-                      ? obj.entries.map(([k, v], i) => (
+                {expandedHeap.has(id) && (
+                  <div className="heap-detail mono">
+                    {obj.items
+                      ? obj.items.map((v, i) => (
                           <div key={i}>
-                            <span>{displayValue(k, step.heap, language)}</span>
-                            <span>→ {displayValue(v, step.heap, language)}</span>
+                            <span className="dim">[{i}]</span>
+                            <span>{displayValue(v, step.heap, language)}</span>
                           </div>
                         ))
-                      : Object.entries(obj.fields ?? {}).map(([k, v]) => (
-                          <div key={k}>
-                            <span>{k}</span>
-                            <span>→ {displayValue(v, step.heap, language)}</span>
-                          </div>
-                        ))}
-                  {obj.truncated && <p>Additional items truncated.</p>}
-                </div>
+                      : obj.entries
+                        ? obj.entries.map(([k, v], i) => (
+                            <div key={i}>
+                              <span>{displayValue(k, step.heap, language)}</span>
+                              <span>→ {displayValue(v, step.heap, language)}</span>
+                            </div>
+                          ))
+                        : Object.entries(obj.fields ?? {}).map(([k, v]) => (
+                            <div key={k}>
+                              <span>{k}</span>
+                              <span>→ {displayValue(v, step.heap, language)}</span>
+                            </div>
+                          ))}
+                    {obj.truncated && <p>Additional items truncated.</p>}
+                  </div>
+                )}
               </details>
             ))
           ) : (

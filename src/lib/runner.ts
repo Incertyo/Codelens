@@ -40,9 +40,9 @@ export class CodeRunner {
     mode: 'run' | 'analyze' | 'inspect',
   ): Promise<TraceResult | BreakdownData | Inspection> {
     this.dispose();
-    if (!['python', 'javascript'].includes(language))
+    if (!['python', 'javascript', 'java'].includes(language))
       return Promise.reject(
-        new Error('Real execution is available for Python and JavaScript only.'),
+        new Error('Real execution is available for Python, JavaScript and the Java subset.'),
       );
     if (code.length > MAX_CODE_LENGTH)
       return Promise.reject(new Error('Code exceeds the 30,000-character limit.'));
@@ -52,8 +52,12 @@ export class CodeRunner {
           ? new Worker('/tracer.worker.js')
           : new Worker(new URL('../workers/javascript.worker.ts', import.meta.url));
       this.worker = worker;
+      const nonce = crypto.randomUUID();
+      let phase: 'loading' | 'sent' | 'started' | 'finished' = 'loading';
+      let deadline = Infinity;
       let timer: ReturnType<typeof setTimeout>;
       const finish = () => {
+        phase = 'finished';
         clearTimeout(timer);
         worker.terminate();
         if (this.worker === worker) this.worker = null;
@@ -77,26 +81,40 @@ export class CodeRunner {
         reject(new Error(e.message || 'The language worker could not start.'));
       };
       worker.onmessage = (e) => {
+        if (!e.data || e.data.nonce !== nonce || phase === 'finished') return;
+        if (performance.now() >= deadline) {
+          timeout();
+          return;
+        }
+        if (e.data.type === 'ready') {
+          if (phase !== 'loading') return;
+          phase = 'sent';
+          clearTimeout(timer);
+          deadline = performance.now() + RUN_TIMEOUT_MS;
+          timer = setTimeout(timeout, RUN_TIMEOUT_MS);
+          worker.postMessage({ code, stdin, maxSteps, mode, nonce, language });
+          return;
+        }
+        if (e.data.type === 'progress') {
+          if (phase === 'loading') progress(e.data);
+          return;
+        }
+        if (e.data.type === 'started') {
+          if (phase !== 'sent') return;
+          phase = 'started';
+          progress({ phase: 'running', progress: 100, message: 'Tracing your code…' });
+          return;
+        }
+        if (e.data.type !== 'error' && phase !== 'started') return;
         if (e.data.type === 'inspection') {
+          if (mode !== 'inspect') return;
           const parsed = inspectionSchema.safeParse(e.data.inspection);
           finish();
           if (parsed.success) resolve(parsed.data);
           else reject(new Error('The worker returned invalid AST analysis.'));
         }
-        if (e.data.type === 'progress') progress(e.data);
-        if (e.data.type === 'started') {
-          clearTimeout(timer);
-          progress({ phase: 'running', progress: 100, message: 'Tracing your code…' });
-          timer = setTimeout(() => {
-            finish();
-            reject(
-              new Error(
-                'Execution stopped after 12 seconds. Your code may contain an infinite loop or an expensive operation.',
-              ),
-            );
-          }, RUN_TIMEOUT_MS);
-        }
         if (e.data.type === 'result') {
+          if (mode !== 'run') return;
           const parsed = traceSchema.safeParse(e.data.result);
           finish();
           if (parsed.success) resolve(parsed.data);
@@ -107,6 +125,7 @@ export class CodeRunner {
           reject(new Error(e.data.message));
         }
         if (e.data.type === 'outline') {
+          if (mode !== 'analyze') return;
           try {
             const data =
               language === 'python'
@@ -120,7 +139,15 @@ export class CodeRunner {
           }
         }
       };
-      worker.postMessage({ code, stdin, maxSteps, mode });
+      const timeout = () => {
+        finish();
+        reject(
+          new Error(
+            'Execution stopped after 12 seconds. Your code may contain an infinite loop or an expensive operation.',
+          ),
+        );
+      };
+      worker.postMessage({ nonce, mode: 'bootstrap' });
     });
   }
 }

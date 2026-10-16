@@ -18,7 +18,7 @@ const source = z.object({ code: z.string().min(1).max(30000), identity: identity
 export const adviceRequestSchema = source
   .extend({
     mode: z.literal('analysis'),
-    language: z.enum(['python', 'javascript']),
+    language: z.enum(['python', 'javascript', 'java']),
     entries: z.array(entrySchema).max(40),
   })
   .strict()

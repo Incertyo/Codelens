@@ -4,6 +4,7 @@ import { JavaScriptTrace } from '../src/lib/javascript/runtime';
 import { traceSchema } from '../src/lib/trace';
 import { examples } from '../src/lib/examples';
 import { exampleCode } from '../src/lib/javascript-examples';
+import { detectVisualModels, sourceHints } from '../src/lib/visualizer/detectors';
 function run(code: string, maxSteps = 5000) {
   const engine = new JavaScriptTrace(maxSteps);
   try {
@@ -17,6 +18,83 @@ function run(code: string, maxSteps = 5000) {
   }
 }
 describe('JavaScript instrumented execution', () => {
+  it('truncates a real trace at an aggregate serialized-size budget', () => {
+    const r = run(
+      'const values=Array.from({length:80},()=>"x".repeat(200));\nfor(let i=0;i<2000;i++){values[0]="x".repeat(200);}',
+    );
+    expect(r.error).toBeNull();
+    expect(r.truncated).toBe(true);
+    expect(r.steps.length).toBeLessThan(5000);
+    expect(new TextEncoder().encode(JSON.stringify(r)).length).toBeLessThanOrEqual(
+      16 * 1024 * 1024,
+    );
+    expect(r.steps.at(-1)?.explanation).toContain('serialized-size');
+  });
+  it('composes real serialized BigInt XOR values into a BitmaskView model', () => {
+    const invalidConst = 'const mask = 123n; mask ^= 7n;';
+    const failed = run(invalidConst);
+    expect(failed.error).toContain('TypeError');
+    expect(
+      detectVisualModels(failed.steps.at(-1)!, sourceHints(invalidConst, 'javascript')).find(
+        (model) => model.kind === 'bitmask',
+      ),
+    ).toMatchObject({ kind: 'bitmask', decimalValue: '123', bitLength: 64 });
+    const code = 'let mask = 123n; mask ^= 7n;';
+    const r = run(code);
+    expect(r.error).toBeNull();
+    expect(
+      detectVisualModels(r.steps.at(-1)!, sourceHints(code, 'javascript')).find(
+        (model) => model.kind === 'bitmask',
+      ),
+    ).toMatchObject({
+      kind: 'bitmask',
+      name: 'mask',
+      decimalValue: '124',
+      bitLength: 64,
+      bits: '1111100'.padStart(64, '0'),
+    });
+  });
+  it('keeps append-only output arrays generic until removal evidence exists', () => {
+    const code = 'const values=[]; values.push(1); values.push(2);';
+    const r = run(code);
+    expect(
+      detectVisualModels(r.steps.at(-1)!, sourceHints(code, 'javascript')).find(
+        (model) => model.name === 'values',
+      )?.kind,
+    ).toBe('sequence');
+  });
+  it('instruments callbacks nested in default parameter patterns', () => {
+    const r = run('function f(g=()=>{return 7;}){return g();}\nconsole.log(f());');
+    expect(r.error).toBeNull();
+    expect(r.steps.filter((s) => s.event === 'call')).toHaveLength(3);
+    expect(
+      r.steps.filter((s) => s.event === 'return' && s.callStack.at(-1)?.locals['↳ return'] === 7),
+    ).toHaveLength(2);
+    expect(r.steps.at(-1)?.stdout).toBe('7\n');
+  });
+  it('reports instances and explicit object returns for plain function constructors', () => {
+    for (const body of ['this.value=value;', 'this.value=value; return 4;', 'return {value};']) {
+      const r = run(`function Node(value){${body}}\nconst node=new Node(7);`);
+      expect(r.error).toBeNull();
+      expect(
+        r.steps.find((s) => s.event === 'return' && s.func === 'Node')?.callStack.at(-1)?.locals[
+          '↳ return'
+        ],
+      ).toEqual(r.steps.at(-1)?.globals.node);
+    }
+  });
+  it('preserves own prototype-shaped fields and variable names through schema validation', () => {
+    const r = run(
+      'const __proto__=7;\nconst constructor=8;\nconst obj=JSON.parse(\'{"__proto__":{"value":1},"constructor":2,"toString":3,"ok":4}\');',
+    );
+    expect(r.error).toBeNull();
+    const last = r.steps.at(-1)!;
+    expect(Object.hasOwn(last.globals, '__proto__')).toBe(true);
+    expect(last.globals.__proto__).toBe(7);
+    const fields = last.heap[(last.globals.obj as { ref: string }).ref].fields!;
+    expect(Object.keys(fields).sort()).toEqual(['__proto__', 'constructor', 'ok', 'toString']);
+    expect(Object.hasOwn(fields, '__proto__')).toBe(true);
+  });
   it('restores the caller source line after a returned function', () => {
     const r = run('function f(){ return null; }\nconst value = f().x;');
     expect(r.error).toContain('TypeError');

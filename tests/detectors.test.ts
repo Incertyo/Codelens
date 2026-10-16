@@ -95,7 +95,9 @@ describe('bounded algorithmic frame detection', () => {
     });
   });
   it('detects unnamed append/pop stacks and rejects mixed mutation evidence', () => {
-    expect(kind(detect(sequence('buffer', [1]), 'buffer.append(1)'), 'stack').topIndex).toBe(0);
+    expect(kind(detect(sequence('buffer', [1]), 'buffer.append(1)'), 'sequence').elements).toEqual([
+      1,
+    ]);
     expect(kind(detect(sequence('buffer', [1]), 'buffer.pop()'), 'stack').elements).toEqual([1]);
     expect(
       kind(detect(sequence('buffer', [1, 2]), 'buffer.append(1)\nbuffer.pop()'), 'stack').topIndex,

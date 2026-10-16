@@ -13,11 +13,13 @@ npm run build
 npm start -- --port 3001
 ```
 
-Open http://localhost:3001. `npm ci` uses the committed lockfile and its postinstall copies Pyodide, Monaco and the language-detection model into content-addressed local asset folders, recreates runtime manifests, and keeps fonts local. Do not disable install scripts. Python and JavaScript execution, AST inspection and empirical measurements work without AI credentials. Offline means the local server and its installed assets are available; this is not an offline-installable PWA.
+Open http://localhost:3001. `npm ci` uses the committed lockfile and its postinstall copies Pyodide, Monaco and the language-detection model into content-addressed local asset folders, recreates runtime manifests, and keeps fonts local. Do not disable install scripts. Python, JavaScript and the documented Java subset support execution, AST inspection and empirical measurements without AI credentials. Offline means the local server and its installed assets are available; this is not an offline-installable PWA.
 
 Copy the env template with `cp .env.example .env.local` on macOS/Linux or `Copy-Item .env.example .env.local` in PowerShell. The template contains no credentials; keep private values in ignored `.env.local`. Optional AI setup is below.
 
 The template defaults to `AI_ENABLED=false` and `CODELENS_STATIC_LIBRARY=1` for the local-only setup.
+
+After changing source or adding files under public, stop the production preview, rebuild and restart it. An older server can return 404 for a newly added Python harness such as /measurement.py. The worker rejects missing, empty or HTML harness responses with an asset-specific error before executing Python; reload after restarting. It does not display or execute the error page as code.
 
 For development or catalog maintenance, also install Python 3.10+ (CI uses 3.12), then:
 
@@ -30,28 +32,43 @@ Open http://localhost:3000. Development/tests seed local SQLite; production buil
 ## Features and boundaries
 
 - Real Python and synchronous JavaScript traces in disposable browser workers; stepping, playback, breakpoints, stdin, output, aliases and recursion.
+- Browser-only Java subset compiled deterministically to JavaScript, with original-line traces, playback, arrays, recursion, stdin, AST breakdown, heatmaps and measured growth. It is labelled as a subset, not a JVM or arbitrary Java support. See [supported Java and limitations](docs/JAVA_SUBSET.md).
 - 309 catalog algorithms, 343 current implementations: 309 maintained Python references plus 17 highlighted examples in both Python and JavaScript. SQLite preserves revisions, exact source hashes, assumptions and expected-output fixtures.
 - Source-driven structure detection, theme-aware highlights, responsive graph/tree viewports and reduced-motion loading transitions.
 - Offline AST breakdown and conservative static time/auxiliary-space candidates. Unresolved calls, recursion, bounds or allocation yield Unknown; best/average cases are not inferred from a single trace.
-- Empirical estimates from real worker step counts; editor heatmaps from real line-event counts.
+- Empirical time estimates from real user-function line events and sampled total/auxiliary memory units without retaining snapshots; editor heatmaps still come from real trace line events.
 - Explicit AI requests for optional breakdown notes, potential bugs, optimization proposals with a diff, and suggested tests. Proposed optimizations are not correctness-verified. Every offered test first completes in the real tracer; clicking Run this test runs it again. AI expected outputs always remain labelled unverified.
-- C++ and Java have per-run opt-in AI simulation only. No native compiler/interpreter is supplied for them. Accepted simulated traces are visibly and persistently labelled **AI-simulated, may be inaccurate**. They are excluded from empirical measurement and heatmaps.
+- C++ has per-run opt-in AI simulation only. No native compiler/interpreter is supplied for it. Accepted simulated traces are visibly and persistently labelled **AI-simulated, may be inaccurate**. They are excluded from empirical measurement and heatmaps. Unsupported Java is rejected locally and never silently sent for simulation.
+
+For Java, select **Java · browser subset**, choose **Load Java example**, then Run. Auto detection can also recognize a pasted Java draft; a manual language choice remains authoritative. The original Java stays in the editor, with its supported subset visible in a disclosure. The existing catalog continues to contain its maintained Python/JavaScript implementations; the standalone Java example does not change its export.
 
 ## Empirical measurements
 
 Select a top-level named function, its declared input type and a size profile. The supported signature has exactly one required positional identifier parameter: **int n**, **list of integers**, or **string**. Python recognizes `int` on parameter `n`, `list[int]`, and `str`; unannotated parameters and JavaScript require the user to declare the input generator. Integer parameters must be named `n`. Methods, classes, async/generator functions, defaults, rest/destructuring/keyword-only parameters, duplicate names and executable top-level initialization are refused with a reason.
 
-An AST-prepared driver retains definitions, safe literal bindings and Python imports, preserving source lines. Top-level demo calls are omitted. Each size starts in a fresh worker; mutable state from an earlier size is not reused. Definitions depending on omitted initialization may fail and receive no estimate. The driver itself is included in the source limit; the full run retains the normal step/time limits.
+AST preparation retains definitions, safe literal bindings and Python imports, preserving source lines and omitting top-level demo calls. One worker runs all sizes for an analysis, with fresh execution globals/source bindings and fresh arguments for every size, then is disposed. This resets program bindings, not the interpreter's module cache or JavaScript intrinsics; it is not hostile-code isolation. Definitions depending on omitted initialization may fail. The existing manual UI still requires one resolved parameter; the engine accepts multiple JSON arguments. Profile coverage, pasted-code generator selection and automatic dual charts are the next numbered parts of the replacement Step 1.
 
 | Profile  | Sizes            |
 | -------- | ---------------- |
-| Standard | 4, 8, 16, 32, 64 |
+| Standard | 4, 8, 12, 16, 24, 32, 48, 64, 96, 128 |
 | Small    | 2, 4, 8, 12, 16  |
 | Tiny     | 1, 2, 3, 4, 5    |
 
-Integer n is the size. Lists are descending integers n through 1. Strings repeat ASCII `abc` to the requested length. These deterministic generators do not sample average-case behavior. Counts include call, line, return, exception and output events within functions, including called helpers; module setup and driver events are excluded. Imported library internals remain untraced. A timeout, runtime failure, zero function steps or a capped trace prevents fitting.
+Integer n is the size. Lists are descending integers n through 1. Strings repeat ASCII `abc` to the requested length. These deterministic generators do not sample average-case behavior. Time counts only executed line events inside user functions, including called helpers; module/driver events and imported/native internals are excluded. JavaScript counts instrumented line hooks; Python counts interpreter line events. No wall-clock value is fitted or returned as a metric.
 
-The chart/table shows exact captured counts. Five complete samples are fitted to constant/log/linear/n-log-n/quadratic/cubic/exponential candidates using nonnegative scale/intercept least squares (constant means identical observed counts). The UI reports the best fit, normalized RMS error and the next candidate. This is an estimate for the tested sizes, not an asymptotic proof or a benchmark based on elapsed time. Structural AST candidates also state their constant-cost/loop-bound assumptions.
+Measurement stores no per-step snapshots and has an independent ceiling of 3,000,000 events or 10 seconds per size, with an absolute parent deadline beginning at dispatch. The 5,000-step trace cap continues to apply to ordinary Run, not measurement. Call/return/exception/module guards may consume the event budget without entering the time series. Larger sizes stop after the first budget, partial or error result. Budget-exceeded, partial, failed and zero-valued points are excluded from their respective fits. A parent-terminated size has unavailable counters, never invented counts.
+
+Time, auxiliary space and total space are fitted independently to all seven fixed classes using non-negative affine least squares. Four complete positive points are required. Results include best model, runner-up and normalized RMS error. Fewer than six valid points or a best/runner-up gap below two percentage points is labelled inconclusive; tied models prefer the earlier/slower-growing class and remain inconclusive. Fits are local estimates at tested sizes, not asymptotic proofs. Static candidates retain their stated assumptions.
+
+Space is a **sampled peak object-count model, not bytes**: each reachable data object contributes 1 plus its elements, dictionary/Map entries or own fields, plus initialized variable bindings across live user functions and globals, distinct immutable string values by native length capped at 10,000, and live user call frames. Aliased objects and cycles count once per sample; argument/return aliases do not duplicate the same object or immutable string. Returned data is included at return sampling. Object field names are metadata; dictionary/Map keys are data. Functions, classes, imported modules and interpreter internals are opaque, with their user bindings counted. Generated driver bindings and synthetic JavaScript `this` are excluded. Python code-point and JavaScript UTF-16 string lengths can differ. This educational model does not reconstruct closed-over environments, native allocations or the garbage collector.
+
+Memory is sampled at every user call/return, on the first 16 user-function line events, and every 16 thereafter. Auxiliary peak = total peak minus the entry argument data's units at the first call; parameter bindings remain auxiliary overhead. Partial lower bounds clamp a negative difference to zero. The traversal bound is 20,000 objects, depth 256 and 100,000 visited values per sample. Hitting any bound marks the whole size partial and prevents fitting. Strings' 10,000-unit cap is part of the model. Short-lived allocations between samples can be missed; one native enumeration, proxy trap or allocation can still be expensive and is guarded by the parent deadline, not a total-memory guarantee. Both peak series and the memory definition are shown beneath the current manual time chart; the automatic two-chart layout belongs to Part 4.
+
+The chart overlays seven fixed Big-O reference shapes, each scaled to measured counts by a non-negative least-squares multiplier without an intercept. Thin patterned lines distinguish references; a solid line marks the guide, circles identify real measurements and a dashed line marks the estimated fit. Curves have no glow or blur. The log-scale toggle, focusable curve names, keyboard arrow probe and equivalent visually hidden data table support inspection in both themes. Curves stay within the tested input range and are clipped at 125% of the largest measured count; log display floors values below one step at one while preserving the table values. Before measurement, the chart explicitly labels its curves as guides.
+
+The code estimate and measured fit appear side by side, with neutral wording when they differ. The default view uses short descriptions of steps and extra memory; counting definitions, fit details, exact memory counters and the larger-input comparison are available in disclosures. The scale table compares a class and its neighbours at n = 10, 1,000 and 1,000,000 using BigInt/scientific notation. These are mathematical illustrations without fitted constants, not future trace or waiting-time predictions. “Effectively never finishes” describes impractical operation counts, not a measured deadline. All curves use fixed model ids; no AI or user equation is parsed or evaluated. This comparison runs entirely on the client and needs no new provider or configuration.
+
+The motion layer keeps the existing layout and uses a small local SVG/CSS perspective illustration, GSAP scroll-linked movement, short panel/menu entrances and bounded button feedback. It adds no illustration service, WebGL dependency or page-scroll interception. Touch screens keep native scrolling; system and user reduced-motion preferences leave the illustration static and remove decorative transitions. Technical content remains available without motion.
 
 All Analysis results belong to **implementation id + SHA-256 of exact source**. Editing source, changing language or changing implementation remounts the analysis before asynchronous hashing/inspection completes; pending worker/provider work is cancelled. Results carrying a different identity are discarded. Analysis is session-local and does not write back to the catalog.
 
@@ -82,7 +99,7 @@ The AI SDK pipeline uses strict Zod output validation, actual source-line bounds
 
 ## Production AI controls
 
-AI is off unless `AI_ENABLED=true`. Readiness checks provider credentials/model, Redis configuration, store connectivity/write permissions and available client/minute/day quota; it returns a specific non-secret reason. It does not contact the provider or consume budget. Readiness is a point-in-time check: concurrent requests or a later outage can change availability, so POST admission and every provider attempt recheck atomically. The UI shows the reason and offers Check AI availability; its static work remains usable.
+AI is off unless `AI_ENABLED=true`. Readiness checks provider credentials/model, Redis configuration, store connectivity and available client/minute/day quota; it returns a specific non-secret reason. Results are cached in-process for 30 seconds, with concurrent checks coalesced and at most 256 client entries. GET checks are read-only and do not verify Redis write permissions, contact the provider or consume budget. Configuration changes and UTC date changes invalidate the cache. Readiness can be stale: POST admission and every provider attempt still recheck atomically and require write permissions. The UI shows the reason and offers Check AI availability; its static work remains usable.
 
 All keys use `{CODELENS_RATE_NAMESPACE:VERCEL_ENV}`, with `development` when VERCEL_ENV is unset. Never derive namespaces from deployment IDs or URLs, and do not change the application namespace during a UTC day to reset budget. Prefer separate Redis databases and provider credentials for preview and production. The dated daily key resets at 00:00 UTC; reservations are not refunded on errors/timeouts because a provider may already have charged. `AI_DAILY_LIMIT` defaults to 100; each retry spends another call. SDK automatic retries are disabled. This is a call budget, not a dollar budget.
 
@@ -127,11 +144,12 @@ Security headers include CSP, nosniff, frame restrictions, referrer policy and d
 Editor/library/share → Zustand source → disposable CodeRunner workers
   Python: local Pyodide → sys.settrace → validated Step snapshots
   JavaScript: Acorn AST → instrumentation → guarded worker → Step snapshots
+  Java subset: typed compiler AST → JavaScript instrumentation → original-line Step snapshots
   AST inspect → isolated entry driver → fresh real worker traces → estimated fit
   Real line events → editor heatmap
 Explicit AI action → /api/analyze → shared Redis limit → provider → strict validation
   Suggestions → local real tracer checks → optional re-run in visualizer
-  C++/Java opt-in → structurally validated, labelled simulated Step snapshots
+  C++ opt-in → structurally validated, labelled simulated Step snapshots
 Local SQLite maintenance → source-verified static catalog → read-only library API
 Share hash ↔ compressed source + language + stdin (never execution state or consent)
 ```
@@ -142,9 +160,15 @@ To add real execution for a language, implement a disposable worker and AST pars
 
 ## Safety and verification
 
-Limits: 30,000 source characters, 10,000 stdin characters, at most 5,000 steps (UI 100–5,000), 12-second execution deadline outside the worker, separate 90-second runtime bootstrap. Snapshots cap 80 variables, 128 heap objects, 80 collection items, depth 6, 80 frames, 200-character values and 20,000-character output. API request bodies are bounded to 200,000 bytes. Workers are disposed after runs and analysis operations; network/asynchronous APIs are closed after trusted asset bootstrap.
+Java support is the [documented browser subset](docs/JAVA_SUBSET.md), not a universal compiler or a JVM. Unsupported features are refused before execution. Its original-line event counts and sampled memory units describe the compiled JavaScript runtime; they do not establish native Java performance, JVM memory use or full Java conformance. No compiler service, hosted runtime, new environment variable or JDK installation is needed to use it. Optional Java AI notes/advice remain explicit and are not persisted by the analysis route.
 
-Browser memory allocation and Python introspection are not fully isolated. This educational tool is not a hardened service for hostile code. Native/library operations may time out without a partial trace. Sharing places source and input in a readable URL; anyone with the link can decode them. The server does not store shared snippets, analysis results or user execution history.
+Limits: 30,000 source characters, 10,000 stdin characters, at most 5,000 steps (UI 100–5,000), and a 12-second parent execution deadline starting when the execution request is sent after a separate 90-second runtime bootstrap. A single authenticated started transition cannot reset that deadline. Snapshots cap 80 variables, 128 heap objects, 80 collection items, depth 6, 80 frames, 200-character values and 20,000-character output. Python and JavaScript traces have a 16 MiB serialized-size budget, with 128 KiB reserved for a compact final truncation notice and result metadata. Python counts its ASCII-escaped serialization conservatively. This limits retained trace data, not total interpreter/browser memory or peak allocation. API request bodies are bounded to 200,000 bytes. Workers are disposed after runs and analysis operations; named network APIs are closed after trusted asset bootstrap, with JavaScript asynchronous APIs additionally blocked.
+
+Each worker operation uses a random nonce held in trusted JavaScript closures and omitted from Python objects and instrumented user code. Trusted message emission captures postMessage before neutralizing the global method and its prototype entry. These measures raise the bar for accidental and casual abuse; they do not establish hostile-code isolation. The Python builtins-importer bridge bypass remains a known limitation of this educational sandbox: the original builtins importer can still recover the js bridge despite the direct-import restriction. Interpreter introspection, mutable JavaScript intrinsics, native operations and browser memory allocation remain limitations. Native/library operations may time out without a partial trace.
+
+Graph diagrams render at most 300 edges per diagram and show an explicit reduced-detail notice. Heap-inspector contents mount only while expanded. Analysis inspection waits for 600 ms without an edit and cancels superseded workers. Browser storage access uses a guarded adapter with an in-memory fallback; blocked storage loses persistence, while editing, running and playback remain usable. Execution notes are bound to a run epoch that changes on every Run, source/language change, stdin change and step-cap change; stale requests are aborted and late replies are discarded.
+
+Sharing places source and input in a readable URL; anyone with the link can decode them. Fragments over 100,000 characters are rejected before decompression; bounded LZ decoding stops before the expanded JSON exceeds 250,000 UTF-16 code units, then enforces the normal source/input limits. The server does not store shared snippets, analysis results or user execution history. See [HARDENING_VERIFICATION.md](docs/HARDENING_VERIFICATION.md) for regression evidence and remaining limitations.
 
 ```sh
 npm run lint
@@ -187,7 +211,7 @@ The notice before any AI upload explains that source goes to the configured prov
 
 ## Local language detection and page opening
 
-Auto is the initial language selector mode. A local syntax/shebang heuristic runs after a 350 ms debounce on at least 32 non-whitespace characters. Ambiguous drafts lazy-load Microsoft's `@vscode/vscode-languagedetection` CPU model in a Web Worker. Its model/weights are served from hashed same-origin URLs with immutable caching; neither code nor detection results are uploaded. Confident results (at least 0.65 with a 0.15 lead) map only Python, JavaScript/TypeScript, C/C++ and Java to the supported languages. Other languages show **unsupported language detected**.
+Auto is the initial language selector mode. A local syntax/shebang heuristic runs after a 350 ms debounce on at least 32 non-whitespace characters. Ambiguous drafts lazy-load Microsoft's `@vscode/vscode-languagedetection` CPU model in a Web Worker. Its model/weights are served from hashed same-origin URLs with immutable caching; neither code nor detection results are uploaded. Confident results (at least 0.65 with a 0.15 lead) map only Python, JavaScript, C/C++ and Java to the supported languages. TypeScript is unsupported and shows a message to remove type syntax before running as JavaScript; it is never mapped to the JavaScript runtime. Other languages show **unsupported language detected**.
 
 A draft originating from an empty or untouched editor can switch automatically only before any manual language choice. Library/sample/share loads never trigger a switch. Subsequent manual choices stay authoritative even after selecting Auto again; a detected language becomes a **Switch** suggestion. Switching changes interpretation and never source text. C++/Java still require separate per-run AI simulation consent.
 

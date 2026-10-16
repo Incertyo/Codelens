@@ -3,6 +3,15 @@ import { heuristicDetection, modelDetection, canAutoSwitch } from '../src/lib/la
 import { useStore } from '../src/lib/store';
 
 describe('browser language detection', () => {
+  it('rejects detected TypeScript rather than assigning the JavaScript runtime', () => {
+    expect(modelDetection([{ languageId: 'ts', confidence: 0.99 }])).toMatchObject({
+      kind: 'unsupported',
+      languageId: 'ts',
+    });
+    expect(
+      heuristicDetection('const values: number[] = [1,2,3];\nconsole.log(values);'),
+    ).toMatchObject({ kind: 'unsupported', languageId: 'ts' });
+  });
   it.each([
     ['python', 'def total(values):\n    return sum(values)\nprint(total([1,2,3]))'],
     ['javascript', 'function total(values) { return values.reduce((a,b)=>a+b,0); }'],
@@ -35,7 +44,6 @@ describe('browser language detection', () => {
   it.each([
     ['py', 'python'],
     ['js', 'javascript'],
-    ['ts', 'javascript'],
     ['c', 'cpp'],
     ['cpp', 'cpp'],
     ['java', 'java'],

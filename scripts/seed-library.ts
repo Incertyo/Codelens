@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { algorithms, algorithmTopics } from '../src/lib/algorithm-catalog';
 import { examples } from '../src/lib/examples';
 import { exampleCode } from '../src/lib/javascript-examples';
+import { getEnrichedAlgorithm } from '../src/lib/enriched-catalog';
 
 const compiled = spawnSync(process.env.PYTHON ?? 'python', ['scripts/compile-library.py'], {
   encoding: 'utf8',
@@ -38,6 +39,7 @@ const firstExpected = [
 const location = resolve(process.env.CODELENS_LIBRARY_DB ?? 'data/codelens.sqlite');
 mkdirSync(resolve(location, '..'), { recursive: true });
 const db = new DatabaseSync(location);
+db.exec('PRAGMA busy_timeout = 5000;');
 db.exec(readFileSync('library/schema.sql', 'utf8'));
 db.exec('BEGIN IMMEDIATE');
 try {
@@ -62,6 +64,14 @@ try {
   });
   const insert = db.prepare('INSERT INTO implementations VALUES (?,?,?,?,?,?,?,?,?,?,?)');
   const fixture = db.prepare('INSERT INTO fixtures VALUES (?,?,?,?,?,?)');
+  const analysisStmt = db.prepare(`
+    INSERT INTO analysis_results (id, implementation_id, source_hash, language, data_json, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      implementation_id = coalesce(excluded.implementation_id, analysis_results.implementation_id),
+      data_json = excluded.data_json,
+      created_at = excluded.created_at
+  `);
   const latest = db.prepare(
     'SELECT revision, revision_hash FROM implementations WHERE algorithm_id=? AND language=? AND variant=? ORDER BY revision DESC LIMIT 1',
   );
@@ -115,6 +125,35 @@ try {
       p.expected,
       'exact',
     );
+    const enriched = getEnrichedAlgorithm(a.id);
+    const pCodeHash = createHash('sha256').update(p.code).digest('hex');
+    const pAnalysisId = `${pCodeHash}:python`;
+    const pSyntheticEnrichment = {
+      summary: enriched.summary,
+      pattern: enriched.pattern,
+      functions: [],
+      annotations: [],
+      stepNotes: [],
+      timeComplexity: enriched.timeComplexity,
+      spaceComplexity: enriched.spaceComplexity,
+      suggestions: enriched.suggestions,
+      visualMapping: enriched.visualMapping,
+    };
+    analysisStmt.run(
+      pAnalysisId,
+      `${a.id}:python:reference:v1`,
+      pCodeHash,
+      'python',
+      JSON.stringify({
+        timeComplexity: enriched.timeComplexity,
+        spaceComplexity: enriched.spaceComplexity,
+        suggestions: enriched.suggestions,
+        visualMapping: enriched.visualMapping,
+        enrichment: pSyntheticEnrichment,
+      }),
+      Date.now(),
+    );
+
     const example = examples.find((e) => e.id === a.exampleId);
     if (example) {
       for (const language of ['python', 'javascript'] as const) {
@@ -135,6 +174,34 @@ try {
           [],
           expected,
           'contains',
+        );
+        const sourceCode = exampleCode(example, language);
+        const sHash = createHash('sha256').update(sourceCode).digest('hex');
+        const analysisId = `${sHash}:${language}`;
+        const syntheticEnrichment = {
+          summary: enriched.summary,
+          pattern: enriched.pattern,
+          functions: [],
+          annotations: [],
+          stepNotes: [],
+          timeComplexity: enriched.timeComplexity,
+          spaceComplexity: enriched.spaceComplexity,
+          suggestions: enriched.suggestions,
+          visualMapping: enriched.visualMapping,
+        };
+        analysisStmt.run(
+          analysisId,
+          `${a.id}:${language}:featured:v1`,
+          sHash,
+          language,
+          JSON.stringify({
+            timeComplexity: enriched.timeComplexity,
+            spaceComplexity: enriched.spaceComplexity,
+            suggestions: enriched.suggestions,
+            visualMapping: enriched.visualMapping,
+            enrichment: syntheticEnrichment,
+          }),
+          Date.now(),
         );
       }
     }

@@ -2,13 +2,14 @@
 import { useEffect } from 'react';
 import { Moon, Sun, Activity } from 'lucide-react';
 import { useStore } from '@/lib/store';
+import { preferenceStorage } from '@/lib/storage';
 export function usePreferences() {
   const theme = useStore((s) => s.theme),
     reduced = useStore((s) => s.reduced);
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const savedTheme = localStorage.getItem('codelens-theme');
-    const savedMotion = localStorage.getItem('codelens-motion');
+    const savedTheme = preferenceStorage.getItem('codelens-theme');
+    const savedMotion = preferenceStorage.getItem('codelens-motion');
     useStore.getState().patch({
       theme: savedTheme === 'light' ? 'light' : 'dark',
       reduced: media.matches || savedMotion === 'reduce',
@@ -16,7 +17,9 @@ export function usePreferences() {
     const update = () =>
       useStore
         .getState()
-        .patch({ reduced: media.matches || localStorage.getItem('codelens-motion') === 'reduce' });
+        .patch({
+          reduced: media.matches || preferenceStorage.getItem('codelens-motion') === 'reduce',
+        });
     media.addEventListener('change', update);
     return () => media.removeEventListener('change', update);
   }, []);
@@ -37,7 +40,7 @@ export function Preferences() {
         onClick={() => {
           const next = theme === 'dark' ? 'light' : 'dark';
           patch({ theme: next });
-          localStorage.setItem('codelens-theme', next);
+          preferenceStorage.setItem('codelens-theme', next);
         }}
       >
         {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
@@ -48,7 +51,7 @@ export function Preferences() {
         aria-pressed={reduced}
         onClick={() => {
           patch({ reduced: !reduced });
-          localStorage.setItem('codelens-motion', !reduced ? 'reduce' : 'full');
+          preferenceStorage.setItem('codelens-motion', !reduced ? 'reduce' : 'full');
         }}
       >
         <Activity size={13} />

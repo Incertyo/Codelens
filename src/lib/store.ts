@@ -6,6 +6,8 @@ import { canAutoSwitch, type LanguageMode, type SourceOrigin } from './language-
 type State = {
   code: string;
   sourceRevision: number;
+  runEpoch: number;
+  maxSteps: number;
   language: Language;
   languageMode: LanguageMode;
   languageChosenManually: boolean;
@@ -24,13 +26,15 @@ type State = {
   progress: number;
   message: string;
   edited: boolean;
-  tab: 'visualizer' | 'breakdown' | 'analysis';
+  tab: 'visualizer' | 'breakdown' | 'analysis' | 'complexity';
   theme: 'dark' | 'light';
   reduced: boolean;
   setCode: (code: string, origin?: SourceOrigin) => void;
   chooseLanguage: (mode: LanguageMode) => void;
   applyDetection: (language: Language, revision: number, explicit?: boolean) => void;
   setStdin: (stdin: string) => void;
+  setMaxSteps: (maxSteps: number) => void;
+  beginRun: () => void;
   setResult: (result: TraceResult) => void;
   seek: (index: number) => void;
   toggleBreakpoint: (line: number) => void;
@@ -39,6 +43,8 @@ type State = {
 export const useStore = create<State>((set, get) => ({
   code: examples[0].code,
   sourceRevision: 0,
+  runEpoch: 0,
+  maxSteps: 5000,
   language: 'python',
   languageMode: 'auto',
   languageChosenManually: false,
@@ -71,6 +77,7 @@ export const useStore = create<State>((set, get) => ({
           !previous.code.trim() ||
           (!previous.edited && previous.sourceOrigin === 'sample')),
       sourceRevision: previous.sourceRevision + 1,
+      runEpoch: previous.runEpoch + 1,
       edited: true,
       result: null,
       cursor: 0,
@@ -84,6 +91,7 @@ export const useStore = create<State>((set, get) => ({
     })),
   chooseLanguage: (mode) =>
     set((previous) => ({
+      runEpoch: previous.runEpoch + 1,
       languageMode: mode,
       languageChosenManually: previous.languageChosenManually || mode !== 'auto',
       ...(mode === 'auto'
@@ -117,6 +125,7 @@ export const useStore = create<State>((set, get) => ({
       language,
       autoSwitchEligible: false,
       sourceRevision: state.sourceRevision + 1,
+      runEpoch: state.runEpoch + 1,
       ...(explicit ? { languageMode: language, languageChosenManually: true } : {}),
       result: null,
       status: 'idle',
@@ -128,7 +137,8 @@ export const useStore = create<State>((set, get) => ({
     });
   },
   setStdin: (stdin) =>
-    set({
+    set((previous) => ({
+      runEpoch: previous.runEpoch + 1,
       stdin,
       result: null,
       enrichment: null,
@@ -136,7 +146,19 @@ export const useStore = create<State>((set, get) => ({
       playing: false,
       status: 'idle',
       message: '',
-    }),
+    })),
+  setMaxSteps: (maxSteps) =>
+    set((previous) => ({
+      maxSteps: Math.min(5000, Math.max(100, maxSteps || 100)),
+      runEpoch: previous.runEpoch + 1,
+      result: null,
+      enrichment: null,
+      cursor: 0,
+      playing: false,
+      status: 'idle',
+      message: '',
+    })),
+  beginRun: () => set((previous) => ({ runEpoch: previous.runEpoch + 1 })),
   setResult: (result) =>
     set({ result, cursor: 0, playing: false, status: 'ready', progress: 100, message: '' }),
   seek: (index) =>

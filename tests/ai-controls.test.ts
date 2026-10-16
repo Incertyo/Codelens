@@ -2,7 +2,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { createServer } from 'node:http';
 import { GET, POST } from '../src/app/api/analyze/route';
 import { enrichCode } from '../src/lib/ai/analyze';
-import { reserveProviderCall, limiterConfig } from '../src/lib/ai/rate-limit';
+import { reserveProviderCall, limiterConfig, takeSharedLimit, localBuckets } from '../src/lib/ai/rate-limit';
 import { sourceIdentity } from '../src/lib/analysis';
 import { inspectJavaScript } from '../src/lib/javascript/analysis';
 import { sharedStoreFixture } from './shared-store-fixture';
@@ -69,6 +69,28 @@ async function providerFixture(onCall?: () => void) {
 }
 
 describe('production AI readiness and spend controls', () => {
+  it('caches concurrent readiness GETs for 30 seconds without repeated store probes', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-15T10:00:00Z'));
+    const url = 'http://localhost/api/analyze';
+    const results = await Promise.all(Array.from({ length: 12 }, () => GET(new Request(url))));
+    for (const response of results)
+      expect(await response.json()).toMatchObject({ configured: true });
+    expect(store.commands).toHaveLength(1);
+    vi.setSystemTime(new Date('2026-10-15T10:00:29Z'));
+    await GET(new Request(url));
+    expect(store.commands).toHaveLength(1);
+    vi.setSystemTime(new Date('2026-10-15T10:00:31Z'));
+    await GET(new Request(url));
+    expect(store.commands).toHaveLength(2);
+    const fixture = await providerFixture();
+    try {
+      for (let i = 0; i < 5; i++) await POST(request());
+      expect((await POST(request())).status).toBe(429);
+    } finally {
+      await fixture.close();
+    }
+  });
   it.each(['', 'false', '1'])(
     'requires explicit AI_ENABLED=true even with credentials: %s',
     async (flag) => {
@@ -136,11 +158,10 @@ describe('production AI readiness and spend controls', () => {
     });
     expect((await POST(request())).status).toBe(503);
   });
-  it('requires write permissions as well as a reachable store for readiness', async () => {
+  it('keeps readiness read-only while POST still requires write permissions', async () => {
     store.writable(false);
     expect(await (await GET(new Request('http://localhost/api/analyze'))).json()).toMatchObject({
-      configured: false,
-      code: 'limiter_unavailable',
+      configured: true,
     });
     expect((await POST(request())).status).toBe(503);
   });
@@ -170,7 +191,7 @@ describe('production AI readiness and spend controls', () => {
       await expect(reserveProviderCall()).rejects.toMatchObject({ code: 'daily_limit' });
     }
     vi.stubEnv('VERCEL_ENV', '');
-    expect(limiterConfig().prefix).toBe('{codelens:development}');
+    expect(limiterConfig()?.prefix).toBe('{codelens:development}');
     expect([...store.counters().keys()].filter((key) => key.includes(':day:'))).toHaveLength(3);
   });
   it('atomically admits exactly the daily ceiling under concurrent provider calls', async () => {
@@ -283,4 +304,58 @@ describe('production AI readiness and spend controls', () => {
       }
     },
   );
+});
+
+describe('in-memory rate limiter fallback for local dev', () => {
+  beforeEach(() => {
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', '');
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '');
+    localBuckets.clear();
+  });
+  afterEach(() => {
+    localBuckets.clear();
+  });
+  it('returns null from limiterConfig when both Redis URL and token are absent', () => {
+    expect(limiterConfig()).toBeNull();
+  });
+  it('enforces 5 client requests per minute in memory', async () => {
+    for (let i = 0; i < 5; i++) {
+      expect((await takeSharedLimit('test-client')).allowed).toBe(true);
+    }
+    const sixth = await takeSharedLimit('test-client');
+    expect(sixth.allowed).toBe(false);
+    expect(sixth.reason).toBe('minute');
+    expect(sixth.retryAfter).toBeGreaterThan(0);
+    expect((await takeSharedLimit('other-client')).allowed).toBe(true);
+  });
+  it('enforces 10 global provider calls per minute in memory', async () => {
+    for (let i = 0; i < 10; i++) {
+      await expect(reserveProviderCall()).resolves.toBeUndefined();
+    }
+    await expect(reserveProviderCall()).rejects.toMatchObject({
+      code: 'minute_limit',
+    });
+  });
+  it('enforces daily quota in memory and resets at UTC midnight', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-15T12:00:00Z'));
+    vi.stubEnv('AI_DAILY_LIMIT', '2');
+    await reserveProviderCall();
+    await reserveProviderCall();
+    await expect(reserveProviderCall()).rejects.toMatchObject({
+      code: 'daily_limit',
+    });
+    vi.setSystemTime(new Date('2026-10-16T00:00:01Z'));
+    await expect(reserveProviderCall()).resolves.toBeUndefined();
+  });
+  it('expires minute buckets after 60 seconds and cleans up lazily', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-15T12:00:00Z'));
+    for (let i = 0; i < 5; i++) {
+      await takeSharedLimit('expiring-client');
+    }
+    expect((await takeSharedLimit('expiring-client')).allowed).toBe(false);
+    vi.setSystemTime(new Date('2026-10-15T12:01:01Z'));
+    expect((await takeSharedLimit('expiring-client')).allowed).toBe(true);
+  });
 });

@@ -1,4 +1,5 @@
 import type { HeapObject, Step, TraceResult, Value } from '../trace';
+import { MAX_TRACE_BYTES, TRACE_NOTICE_RESERVE } from '../trace';
 type Getters = Record<string, () => unknown>;
 type Frame = {
   id: string;
@@ -13,7 +14,7 @@ export class TraceLimit extends Error {}
 export class JavaScriptTrace {
   readonly steps: Step[] = [];
   private frames: Frame[] = [];
-  private globals: Getters = {};
+  private globals: Getters = Object.create(null);
   private lastActive: Frame[] = [];
   private identities = new WeakMap<object, string>();
   private objectCount = 0;
@@ -23,12 +24,29 @@ export class JavaScriptTrace {
   private started = performance.now();
   private lastLine = 1;
   private errorOrigins = new Map<unknown, { line: number; frames: Frame[] }>();
+  private serializedBytes = 2;
+  private limitMessage: string | null = null;
+  private encoder = new TextEncoder();
   constructor(private maxSteps = 5000) {}
+  private append(step: Step) {
+    const bytes = this.encoder.encode(JSON.stringify(step)).length + 1;
+    if (this.serializedBytes + bytes > MAX_TRACE_BYTES - TRACE_NOTICE_RESERVE) {
+      this.limitMessage = 'Trace stopped at the serialized-size safety limit.';
+      throw new TraceLimit(this.limitMessage);
+    }
+    this.serializedBytes += bytes;
+    this.steps.push(step);
+  }
   private check() {
-    if (this.steps.length >= this.maxSteps - 1 || performance.now() - this.started > 10000)
-      throw new TraceLimit(
-        'Trace stopped at the safety limit. The program may contain an infinite loop.',
-      );
+    if (
+      this.limitMessage ||
+      this.steps.length >= this.maxSteps - 1 ||
+      performance.now() - this.started > 10000
+    ) {
+      this.limitMessage ??=
+        'Trace stopped at the safety limit. The program may contain an infinite loop.';
+      throw new TraceLimit(this.limitMessage);
+    }
   }
   private snapshot(
     event: Step['event'],
@@ -36,7 +54,7 @@ export class JavaScriptTrace {
     explanation?: string,
     frames = this.frames,
   ): Step {
-    const heap: Record<string, HeapObject> = {};
+    const heap: Record<string, HeapObject> = Object.create(null);
     const special = (type: string, text: string): Value => {
       const key = type + ':' + text;
       let ref = this.specialIds.get(key);
@@ -45,7 +63,7 @@ export class JavaScriptTrace {
         this.specialIds.set(key, ref);
       }
       if (!heap[ref] && Object.keys(heap).length >= 128) return '[value truncated]';
-      heap[ref] = { type, fields: { value: text } };
+      heap[ref] = { type, fields: Object.assign(Object.create(null), { value: text }) };
       return { ref };
     };
     const value = (v: unknown, depth = 0): Value => {
@@ -94,7 +112,7 @@ export class JavaScriptTrace {
         }
         obj.truncated = v.size > 80;
       } else {
-        const fields: Record<string, Value> = {};
+        const fields: Record<string, Value> = Object.create(null);
         const descriptors = Object.getOwnPropertyDescriptors(v);
         const names = Object.keys(descriptors);
         for (const key of names.slice(0, 80)) {
@@ -107,7 +125,7 @@ export class JavaScriptTrace {
       return { ref };
     };
     const vars = (getters: Getters) => {
-      const result: Record<string, Value> = {};
+      const result: Record<string, Value> = Object.create(null);
       for (const [name, get] of Object.entries(getters).slice(0, 80)) {
         try {
           const v = get();
@@ -142,7 +160,7 @@ export class JavaScriptTrace {
   begin = (getters: Getters) => {
     this.globals = getters;
     this.frames = [{ id: `c${++this.callCount}`, func: '<module>', line: 1, getters }];
-    this.steps.push(this.snapshot('call', 1));
+    this.append(this.snapshot('call', 1));
   };
   line = (line: number, getters: Getters) => {
     this.check();
@@ -153,13 +171,13 @@ export class JavaScriptTrace {
       frame.getters = getters;
     }
     this.lastActive = this.frames.map((f) => ({ ...f }));
-    this.steps.push(this.snapshot('line', line));
+    this.append(this.snapshot('line', line));
   };
   enter = (func: string, line: number, getters: Getters, constructorCall = false) => {
     this.check();
     this.frames.push({ id: `c${++this.callCount}`, func, line, getters, constructorCall });
     this.lastActive = this.frames.map((f) => ({ ...f }));
-    this.steps.push(this.snapshot('call', line));
+    this.append(this.snapshot('call', line));
   };
   returnValue = (value: unknown) => {
     const frame = this.frames.at(-1);
@@ -197,7 +215,7 @@ export class JavaScriptTrace {
       frame.line = line;
       frame.getters = getters;
     }
-    this.steps.push(
+    this.append(
       this.snapshot(
         'exception',
         origin?.line ?? this.lastLine,
@@ -213,14 +231,14 @@ export class JavaScriptTrace {
     if (!frame.exception) {
       if (
         frame.constructorCall &&
-        (frame.returned === null || typeof frame.returned !== 'object')
+        (frame.returned === null || !['object', 'function'].includes(typeof frame.returned))
       ) {
         try {
           frame.returned = frame.getters.this();
         } catch {}
       }
       this.check();
-      this.steps.push(this.snapshot('return', frame.line));
+      this.append(this.snapshot('return', frame.line));
     }
     this.frames.pop();
     const parent = this.frames.at(-1);
@@ -233,13 +251,14 @@ export class JavaScriptTrace {
     this.leave();
   };
   output = (...values: unknown[]) => {
+    this.writeOutput(
+      values.map((v) => (typeof v === 'string' ? v : this.format(v))).join(' ') + '\n',
+    );
+  };
+  writeOutput = (text: string) => {
     this.check();
-    this.stdout = (
-      this.stdout +
-      values.map((v) => (typeof v === 'string' ? v : this.format(v))).join(' ') +
-      '\n'
-    ).slice(0, 20000);
-    this.steps.push(this.snapshot('output'));
+    this.stdout = (this.stdout + text).slice(0, 20000);
+    this.append(this.snapshot('output'));
   };
   private format(v: unknown): string {
     try {
@@ -265,18 +284,42 @@ export class JavaScriptTrace {
       'line' in error.loc
     )
       this.lastLine = Number(error.loc.line) || 1;
-    const truncated = error instanceof TraceLimit;
+    let truncated = !!this.limitMessage || error instanceof TraceLimit;
     const message = failed ? this.errorText(error) : null;
-    if (failed) {
+    if (failed || truncated) {
       const origin = this.errorOrigins.get(error);
       if (this.steps.length >= this.maxSteps) this.steps.pop();
+      let last = truncated
+        ? null
+        : this.snapshot(
+            'exception',
+            origin?.line ?? this.lastLine,
+            message ?? undefined,
+            origin?.frames ?? (this.lastActive.length ? this.lastActive : this.frames),
+          );
+      if (
+        last &&
+        this.serializedBytes + this.encoder.encode(JSON.stringify(last)).length >
+          MAX_TRACE_BYTES - 1024
+      ) {
+        truncated = true;
+        this.limitMessage = 'Trace stopped at the serialized-size safety limit.';
+        last = null;
+      }
       this.steps.push(
-        this.snapshot(
-          'exception',
-          origin?.line ?? this.lastLine,
-          truncated ? (error as Error).message : (message ?? undefined),
-          origin?.frames ?? (this.lastActive.length ? this.lastActive : this.frames),
-        ),
+        last ?? {
+          index: this.steps.length,
+          line: this.steps.at(-1)?.line ?? this.lastLine,
+          event: 'exception',
+          func: this.steps.at(-1)?.func ?? '<module>',
+          callStack: [],
+          globals: Object.create(null),
+          heap: Object.create(null),
+          stdout: this.steps.at(-1)?.stdout ?? '',
+          explanation:
+            this.limitMessage ??
+            'Trace stopped at the safety limit. The program may contain an infinite loop.',
+        },
       );
     }
     return {

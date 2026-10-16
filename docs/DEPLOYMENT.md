@@ -20,6 +20,8 @@ npm run lint
 npm run typecheck
 ```
 
+The source-publication branch `codex/java-browser-subset` has automatic Git deployments disabled through its exact branch entry in `vercel.json` under `git.deploymentEnabled`. This does not disable other branches or authorize a manual deployment. See [Vercel's Git configuration documentation](https://vercel.com/docs/project-configuration/git-configuration).
+
 Only deployment configuration, this guide, verification scripts and their package
 script entries may change during release setup. Keep algorithm/visualizer source,
 reference programs, catalog and source-hash manifest unchanged.
@@ -143,8 +145,10 @@ this release; the owner reviews traffic and enables enforcement later.
 1. After every prior gate passes, change only Production `AI_ENABLED` to `true`
    and redeploy. Preview stays disabled and has no provider key. Wait for Ready.
 2. GET `/api/analyze` must report `configured: true` with null code/reason.
-   Readiness probes store permissions and quota without reserving provider calls;
-   it cannot guarantee against a subsequent outage or concurrent consumption.
+   Readiness checks quota without reserving provider calls and is cached for 30
+   seconds. GET is read-only and does not verify write permissions; POST still
+   requires atomic admission/reservation. Readiness cannot guarantee against a
+   subsequent outage or concurrent consumption.
 3. Snapshot relevant counters in both Redis namespaces without changing them,
    then run exactly once:
 
@@ -187,3 +191,49 @@ checks/branch protection on `main`; optionally use Vercel Deployment Checks;
 review firewall logs before enforcing a rate limit; verify Google AI Studio /
 Cloud billing remains disabled; rotate any credential previously exposed in
 chat, clients or public files. Do not change repository settings automatically.
+
+## V2 Step 1 local verification
+
+The Big-O overlay, growth ladder, static/measured comparison and scale table are
+client-only. There are no new routes or environment variables; `.env.example`,
+`check:env` and `smoke` keep their existing contract. No dashboard action is needed
+for this step. Keep AI disabled for local verification, use the static catalog
+with an intentionally nonexistent SQLite path, and run lint, typecheck, unit
+tests, production build and the complexity/Phase 3 production Playwright tests.
+The tests measure actual Python/JavaScript workers, including keyboard log-axis
+control, both themes, reduced motion and mobile layout. Preserve the catalog
+manifest/export hash. This source pass does not authorize deployment or hosted
+smoke calls. Full-suite gates remain required after V2 Steps 3 and 5.
+
+## Replacement V2 Step 1, Part 1
+
+The snapshot-free measurement mode is entirely local. It reuses one disposable
+worker per analysis, gives each size fresh program bindings/arguments and an
+authenticated 10-second absolute deadline, and returns line-event and sampled
+memory counters. Ship public/measurement.py with the other local Python harness
+files; smoke now checks all five trusted harness assets over HTTP, including that
+new static asset. No new dynamic route or environment variable is introduced, so
+.env.example and check:env keep their existing contract. Do not add a server-side
+execution service or provider configuration for this feature.
+
+Stop and restart a local production preview after rebuilding source or adding
+public assets. A running older preview returned 404 for /measurement.py even
+though the new file was present on disk. The worker fetches all four Python
+harnesses without caching and rejects unsuccessful, empty or HTML responses
+before Pyodide evaluates them. The error names the asset and requests a rebuild,
+restart and reload. Keep the smoke asset checks in the local verification flow;
+this loader check does not repair a missing distribution file automatically.
+
+## Browser Java subset
+
+Java subset v1 compiles in the existing browser worker using repository source only. It installs no JVM, remote compiler, compiler CDN, account or new dependency, and introduces no route or environment variable. The existing `.env.example` and `check:env` configuration contract is unchanged. Keep AI disabled for local checks; Java running, breakdown, heatmaps, playback and measurement must work without provider configuration. See [the exact supported subset and exclusions](JAVA_SUBSET.md).
+
+The Java example lives outside catalog/freshness inputs; do not regenerate or translate the catalog. Existing Java share links load into the subset compiler and require Run. An unsupported old example gets a local error rather than AI simulation. C++ retains its explicit simulation path. Original Java source is only sent when the user explicitly requests an existing notes/advice action; Java source-derived analysis is neither cached nor saved by the analysis route.
+
+Smoke now selects Java, loads its local example and checks actual worker output with no automatic analyze POST. Java compiler tests also compare trusted fixed accepted programs against javac/JVM when installed; missing JDKs skip only those differential checks. This testing prerequisite is unrelated to the browser runtime. Never start a local/server JVM with pasted user code as a substitute for this compiler. There is no new hosted dashboard action and no deployment authorization.
+
+Run the real-engine known-answer tests, production worker/nonce/deadline tests and
+the retained Analysis/hardening stories with AI disabled. The current manual
+Measure action uses the new engine and shows both memory series numerically;
+catalog profiles, automatic measurement and the dual-chart UI await their
+numbered parts. This source pass does not deploy or contact hosted resources.

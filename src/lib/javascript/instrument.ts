@@ -8,8 +8,11 @@ import {
   type AstNode,
 } from './ast';
 type Scope = { names: string[]; name: string };
-export function instrumentJavaScript(code: string): { code: string; hookName: string } {
-  const root = parseProgram(code);
+export function instrumentJavaScript(
+  code: string,
+  prepared?: AstNode,
+): { code: string; hookName: string } {
+  const root = prepared ?? parseProgram(code);
   const used = new Set<string>();
   const inspect = (node: AstNode) => {
     if (node.type === 'Identifier') used.add(String(node.name));
@@ -46,7 +49,7 @@ export function instrumentJavaScript(code: string): { code: string; hookName: st
     return [...own, ...children(node).flatMap((c) => collect(c, false))];
   };
   const getters = (scope: Scope) =>
-    `{${[...new Set([...scope.names, 'this'])].map((name) => `${JSON.stringify(name)}:()=>${name}`).join(',')}}`;
+    `{${[...new Set([...scope.names, 'this'])].map((name) => `[${JSON.stringify(name)}]:()=>${name}`).join(',')}}`;
   const line = (node: AstNode, scope: Scope) =>
     statement(`${hookName}.line(${node.loc?.start.line ?? 1},${getters(scope)});`);
   const block = (node: AstNode, scope: Scope): AstNode =>
@@ -76,6 +79,7 @@ export function instrumentJavaScript(code: string): { code: string; hookName: st
         names: [...(node.params as AstNode[]).flatMap(bindingNames), ...collect(body)],
         name,
       };
+      node.params = (node.params as AstNode[]).map((param) => transform(param, inner, node));
       const original = transformList(body.body as AstNode[], inner);
       const directives: AstNode[] = [];
       while (original[0]?.directive) directives.push(original.shift()!);
@@ -89,9 +93,13 @@ export function instrumentJavaScript(code: string): { code: string; hookName: st
         type: 'BlockStatement',
         body: [
           ...directives,
-          statement(
-            `${hookName}.enter(${JSON.stringify(name)},${node.loc?.start.line ?? 1},${getters(inner)},${parent?.type === 'MethodDefinition' && parent.kind === 'constructor'});`,
-          ),
+          (
+            (
+              statement(
+                `function _(){${hookName}.enter(${JSON.stringify(name)},${node.loc?.start.line ?? 1},${getters(inner)},${parent?.type === 'MethodDefinition' && parent.kind === 'constructor' ? 'true' : node.type === 'ArrowFunctionExpression' ? 'false' : 'new.target !== undefined'});}`,
+              ).body as AstNode
+            ).body as AstNode[]
+          )[0],
           wrapper,
         ],
       };

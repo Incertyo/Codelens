@@ -112,6 +112,8 @@ test('themes, menu, phase boundaries, design page and mobile layout are accessib
 }) => {
   await page.goto('/');
   await expect(page.locator('.monaco-editor')).toBeVisible();
+  await expect(page.getByTestId('site-loading')).not.toBeVisible();
+  await expect(page.locator('.site-shell')).toHaveCSS('opacity', '1');
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.getByRole('button', { name: 'Switch to light theme' }).click();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
@@ -124,7 +126,7 @@ test('themes, menu, phase boundaries, design page and mobile layout are accessib
   await page.getByRole('tab', { name: '02 breakdown' }).click();
   await expect(page.getByText('FROM THE AST', { exact: true })).toBeVisible();
   await page.getByRole('tab', { name: '03 analysis' }).click();
-  await expect(page.getByRole('heading', {name:'Understand the cost.'})).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Understand the cost.' })).toBeVisible();
   await page.getByRole('tab', { name: '01 visualizer' }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: 'artifacts/mobile.png', fullPage: true });
@@ -132,6 +134,7 @@ test('themes, menu, phase boundaries, design page and mobile layout are accessib
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.goto('/design');
   await expect(page.getByRole('heading', { name: 'DESIGNED TO BE CLEAR.' })).toBeVisible();
+  await expect(page.getByTestId('site-loading')).not.toBeVisible();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({ path: 'artifacts/design.png', fullPage: true });
 });
@@ -143,11 +146,22 @@ test('worker network APIs are blocked after bootstrap and traces remain offline'
     () =>
       new Promise<{ error: string | null }>((resolve, reject) => {
         const worker = new Worker('/tracer.worker.js');
+        const nonce = crypto.randomUUID();
         worker.onerror = () => {
           worker.terminate();
           reject(new Error('Worker failed'));
         };
         worker.onmessage = (e) => {
+          if (e.data.nonce !== nonce) return;
+          if (e.data.type === 'ready') {
+            worker.postMessage({
+              nonce,
+              mode: 'run',
+              code: 'import sys\nbridge = sys.modules["js"]\nbridge.fetch("/api/library")',
+              stdin: '',
+              maxSteps: 100,
+            });
+          }
           if (e.data.type === 'result') {
             worker.terminate();
             resolve(e.data.result);
@@ -158,9 +172,8 @@ test('worker network APIs are blocked after bootstrap and traces remain offline'
           }
         };
         worker.postMessage({
-          code: 'import sys\nbridge = sys.modules["js"]\nbridge.fetch("https://example.com")',
-          stdin: '',
-          maxSteps: 100,
+          nonce,
+          mode: 'bootstrap',
         });
       }),
   );

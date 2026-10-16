@@ -232,11 +232,14 @@ test('ambiguous drafts load the real same-origin worker model with immutable ass
   await page.getByRole('button', { name: '/ new code', exact: true }).click();
   await paste(
     page,
-    'interface Thing {\n readonly name: string;\n readonly value: number;\n}\nexport type Items = Record<string, Thing>;\nexport default class Collection {\n private items: Items = {};\n add(item: Thing): void { this.items[item.name] = item; }\n get(name: string): Thing | undefined { return this.items[name]; }\n}',
+    'interface Thing extends Record<string, unknown> {\n readonly name: string;\n readonly value: number;\n}\nexport default class Collection {\n private items: Record<string, Thing> = {};\n add(item: Thing): void { this.items[item.name] = item; }\n get(name: string): Thing | undefined { return this.items[name]; }\n}',
   );
-  await expect(page.locator('.detection-chip')).toContainText('Detected: JavaScript', {
-    timeout: 30000,
-  });
+  await expect(page.locator('.detection-chip')).toContainText(
+    'TypeScript detected — unsupported.',
+    {
+      timeout: 30000,
+    },
+  );
   const model = outgoing.find((r) => r.url.endsWith('/model.json'));
   expect(model?.url).toMatch(/\/language-detection\/[a-f0-9]{16}\/model.json$/);
   expect(outgoing.some((r) => r.url.endsWith('/group1-shard1of1.bin'))).toBe(true);

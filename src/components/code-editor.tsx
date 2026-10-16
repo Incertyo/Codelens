@@ -95,7 +95,7 @@ export function CodeEditor({
   const code = useStore((s) => s.code),
     language = useStore((s) => s.language),
     selectedLine = useStore((s) =>
-      s.tab === 'breakdown' || s.tab === 'analysis' ? s.selectedLine : null,
+      s.tab === 'breakdown' || s.tab === 'analysis' || s.tab === 'complexity' ? s.selectedLine : null,
     ),
     setCode = useStore((s) => s.setCode),
     theme = useStore((s) => s.theme),
@@ -104,7 +104,10 @@ export function CodeEditor({
     status = useStore((s) => s.status);
   const trace = useStore((s) => s.result),
     tab = useStore((s) => s.tab);
-  const counts = useMemo(() => (tab === 'analysis' ? executionCounts(trace) : {}), [trace, tab]);
+  const counts = useMemo(
+    () => (tab === 'analysis' || tab === 'complexity' ? executionCounts(trace) : {}),
+    [trace, tab],
+  );
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null),
     monacoRef = useRef<Parameters<OnMount>[1] | null>(null);
   const decorations = useRef<editor.IEditorDecorationsCollection | null>(null);
@@ -126,7 +129,8 @@ export function CodeEditor({
       if (next !== useStore.getState().code) useStore.getState().setCode(next);
     });
     ed.onDidChangeCursorPosition((e) => {
-      if (useStore.getState().tab === 'breakdown')
+      const currentTab = useStore.getState().tab;
+      if (currentTab === 'breakdown' || currentTab === 'analysis' || currentTab === 'complexity')
         useStore.getState().patch({ selectedLine: e.position.lineNumber });
     });
     applyTheme(monaco, ed, useStore.getState().theme);
@@ -179,7 +183,7 @@ export function CodeEditor({
           hoverMessage: { value: `${count} real line executions (captured trace)` },
         },
       });
-    if (step && selectedLine === null && tab !== 'analysis') {
+    if (step && selectedLine === null && tab === 'visualizer') {
       items.push({
         range: {
           startLineNumber: step.line,

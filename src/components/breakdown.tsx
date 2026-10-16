@@ -6,7 +6,7 @@ import { CodeRunner } from '@/lib/runner';
 import { CONCEPTS, enrichmentSchema } from '@/lib/breakdown';
 import { useAIReadiness } from './use-ai-readiness';
 import { AI_SOURCE_NOTICE } from '@/lib/ai/notice';
-export function Breakdown() {
+export function Breakdown({ implementationId }: { implementationId?: string } = {}) {
   const code = useStore((s) => s.code),
     language = useStore((s) => s.language),
     data = useStore((s) => s.breakdown),
@@ -17,12 +17,12 @@ export function Breakdown() {
     [error, setError] = useState(''),
     [aiStatus, setAiStatus] = useState(''),
     [aiBusy, setAiBusy] = useState(false);
-  const readiness = useAIReadiness(['python', 'javascript'].includes(language));
+  const readiness = useAIReadiness(['python', 'javascript', 'java'].includes(language));
   const configured = readiness.configured;
   const outlineRunner = useRef<CodeRunner | null>(null),
     controller = useRef<AbortController | null>(null);
   useEffect(() => {
-    if (!['python', 'javascript'].includes(language)) return;
+    if (!['python', 'javascript', 'java'].includes(language)) return;
     if (data) return;
     let active = true;
     outlineRunner.current ??= new CodeRunner();
@@ -39,8 +39,39 @@ export function Breakdown() {
             active &&
             useStore.getState().code === code &&
             useStore.getState().language === language
-          )
+          ) {
             useStore.getState().patch({ breakdown: outline });
+            if (!useStore.getState().enrichment) {
+              const encoder = new TextEncoder();
+              crypto.subtle
+                .digest('SHA-256', encoder.encode(code))
+                .then((hashBuf) => {
+                  const sHash = Array.from(new Uint8Array(hashBuf))
+                    .map((b) => b.toString(16).padStart(2, '0'))
+                    .join('');
+                  fetch(
+                    `/api/analyze?sourceHash=${sHash}&language=${language}${implementationId ? `&implementationId=${encodeURIComponent(implementationId)}` : ''}`,
+                  )
+                    .then((r) => (r.ok ? r.json() : null))
+                    .then((res) => {
+                      if (
+                        active &&
+                        res?.analysis?.enrichment &&
+                        useStore.getState().code === code &&
+                        useStore.getState().language === language &&
+                        !useStore.getState().enrichment
+                      ) {
+                        const parsed = enrichmentSchema.safeParse(res.analysis.enrichment);
+                        if (parsed.success) {
+                          useStore.getState().patch({ enrichment: parsed.data });
+                        }
+                      }
+                    })
+                    .catch(() => {});
+                })
+                .catch(() => {});
+            }
+          }
         })
         .catch((e) => {
           if (active) setError(e instanceof Error ? e.message : 'Could not parse this snippet.');
@@ -54,9 +85,19 @@ export function Breakdown() {
       clearTimeout(timer);
       outlineRunner.current?.dispose();
     };
-  }, [code, language, data]);
+  }, [code, language, data, implementationId]);
   useEffect(() => {
-    return () => controller.current?.abort();
+    const unsubscribe = useStore.subscribe((state, previous) => {
+      if (state.runEpoch !== previous.runEpoch) {
+        controller.current?.abort();
+        setAiBusy(false);
+        setAiStatus('');
+      }
+    });
+    return () => {
+      unsubscribe();
+      controller.current?.abort();
+    };
   }, []);
   const select = (line: number) => {
     const state = useStore.getState();
@@ -66,6 +107,7 @@ export function Breakdown() {
   };
   const enrich = async () => {
     if (!data || aiBusy) return;
+    const runEpoch = useStore.getState().runEpoch;
     controller.current?.abort();
     const abort = new AbortController();
     controller.current = abort;
@@ -78,12 +120,15 @@ export function Breakdown() {
     try {
       const availability = await readiness.check(abort.signal);
       if (!availability.configured) throw new Error(availability.reason);
+      if (abort.signal.aborted || useStore.getState().runEpoch !== runEpoch) return;
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code,
           language,
+          runEpoch,
+          implementationId,
           functions: data.functions
             .slice(0, 40)
             .map(({ name, line, endLine, parameters }) => ({ name, line, endLine, parameters })),
@@ -96,13 +141,20 @@ export function Breakdown() {
         const reason = body.error || 'Enrichment is unavailable.';
         if (
           !abort.signal.aborted &&
+          useStore.getState().runEpoch === runEpoch &&
           useStore.getState().code === code &&
           useStore.getState().language === language
         )
           readiness.unavailable(reason);
         throw new Error(reason);
       }
-      if (useStore.getState().code !== code || useStore.getState().language !== language) return;
+      if (
+        abort.signal.aborted ||
+        useStore.getState().runEpoch !== runEpoch ||
+        useStore.getState().code !== code ||
+        useStore.getState().language !== language
+      )
+        return;
       if (body.source === 'ai') {
         const parsed = enrichmentSchema.safeParse(body.enrichment);
         if (!parsed.success)
@@ -136,13 +188,11 @@ export function Breakdown() {
           },
         ]
       : [];
-  if (!['python', 'javascript'].includes(language))
+  if (!['python', 'javascript', 'java'].includes(language))
     return (
       <div className="analysis-pane">
-        <h2>AST breakdown supports Python and JavaScript.</h2>
-        <p>
-          C++ and Java traces are AI-simulated, may be inaccurate, and have no local AST analysis.
-        </p>
+        <h2>AST breakdown supports Python, JavaScript and the Java subset.</h2>
+        <p>C++ traces are AI-simulated, may be inaccurate, and have no local AST analysis.</p>
       </div>
     );
   return (
@@ -156,7 +206,8 @@ export function Breakdown() {
       {loading && !data && (
         <p className="breakdown-loading mono" role="status">
           <LoaderCircle className="spinner" size={14} /> Reading the structure of your{' '}
-          {language === 'python' ? 'Python' : 'JavaScript'} code…
+          {language === 'python' ? 'Python' : language === 'java' ? 'Java subset' : 'JavaScript'}{' '}
+          code…
         </p>
       )}
       {error && (
@@ -190,6 +241,33 @@ export function Breakdown() {
                 </button>
               ))}
             </div>
+            {(enrichment?.timeComplexity ||
+              enrichment?.spaceComplexity ||
+              enrichment?.visualMapping?.primaryStructure) && (
+              <div
+                className="complexity-badges"
+                aria-label="Algorithmic complexity and visual mapping"
+              >
+                {enrichment.timeComplexity && (
+                  <div className="complexity-badge-card">
+                    <span className="mono dim">TIME COMPLEXITY</span>
+                    <strong className="mono">{enrichment.timeComplexity}</strong>
+                  </div>
+                )}
+                {enrichment.spaceComplexity && (
+                  <div className="complexity-badge-card">
+                    <span className="mono dim">AUX SPACE</span>
+                    <strong className="mono">{enrichment.spaceComplexity}</strong>
+                  </div>
+                )}
+                {enrichment.visualMapping?.primaryStructure && (
+                  <div className="complexity-badge-card">
+                    <span className="mono dim">PRIMARY STRUCTURE</span>
+                    <strong className="mono">{enrichment.visualMapping.primaryStructure}</strong>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
           <section className="outline-section">
             <div className="panel-title">
@@ -286,6 +364,38 @@ export function Breakdown() {
               );
             })}
           </section>
+          {enrichment?.suggestions && enrichment.suggestions.length > 0 && (
+            <section className="suggestions-section" aria-labelledby="suggestions-title">
+              <div className="panel-title">
+                <span id="suggestions-title">AI SUGGESTIONS & OPTIMIZATIONS</span>
+                <span className="mono dim">
+                  {enrichment.suggestions.length} NOTE
+                  {enrichment.suggestions.length === 1 ? '' : 'S'}
+                </span>
+              </div>
+              <div className="suggestions-list">
+                {enrichment.suggestions.map((suggestion, idx) => (
+                  <div key={idx} className={`suggestion-card suggestion-${suggestion.type}`}>
+                    <div className="suggestion-header">
+                      <span className={`suggestion-type-tag tag-${suggestion.type}`}>
+                        {suggestion.type.toUpperCase()}
+                      </span>
+                      {suggestion.line && (
+                        <button
+                          type="button"
+                          className="text-button mono dim"
+                          onClick={() => select(suggestion.line!)}
+                        >
+                          Line {suggestion.line} <ArrowUpRight size={12} />
+                        </button>
+                      )}
+                    </div>
+                    <p className="suggestion-message">{suggestion.message}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
           <section className="enrichment-panel">
             <div>
               <Sparkles size={17} />

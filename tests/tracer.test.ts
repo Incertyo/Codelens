@@ -13,6 +13,28 @@ function run(code: string, stdin = '', maxSteps = 5000): TraceResult {
   return traceSchema.parse(JSON.parse(py.runPython('run_trace(_request_json)')));
 }
 describe('real Python execution snapshots', () => {
+  it('truncates repeated real snapshots at an aggregate serialized-size budget', () => {
+    const r = run('values = ["x" * 200] * 80\nfor i in range(1800):\n    values[0] = "x" * 200');
+    expect(r.error).toBeNull();
+    expect(r.truncated).toBe(true);
+    expect(r.steps.length).toBeLessThan(5000);
+    expect(new TextEncoder().encode(JSON.stringify(r)).length).toBeLessThanOrEqual(
+      16 * 1024 * 1024,
+    );
+    expect(r.steps.at(-1)?.explanation).toContain('serialized-size');
+  });
+  it('marks a swallowed private step-limit exception as truncated', () => {
+    const r = run(
+      'try:\n    while True:\n        pass\nexcept BaseException:\n    swallowed = True\nprint("continued")',
+      '',
+      100,
+    );
+    expect(r.truncated).toBe(true);
+    expect(r.error).toBeNull();
+    expect(r.steps).toHaveLength(100);
+    expect(r.steps.at(-1)?.event).toBe('exception');
+    expect(r.steps.at(-1)?.explanation).toContain('safety limit');
+  });
   it('captures Queue, LifoQueue and PriorityQueue without their synchronization internals', () => {
     const r = run(
       'from queue import Queue, LifoQueue, PriorityQueue\nq = Queue()\nq.put(4)\nq.put(2)\nst = LifoQueue()\nst.put(3)\npq = PriorityQueue()\npq.put(5)\npq.put(1)\nprint(q.qsize())',

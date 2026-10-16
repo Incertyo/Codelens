@@ -16,7 +16,6 @@ export type Detection =
 const supported: Record<string, Language> = {
   py: 'python',
   js: 'javascript',
-  ts: 'javascript',
   cpp: 'cpp',
   c: 'cpp',
   java: 'java',
@@ -54,6 +53,12 @@ export function heuristicDetection(source: string): Detection {
     /(['"`])(?:\\[\s\S]|(?!\1)[^\\])*?\1|\/\/[^\n]*|\/\*[\s\S]*?\*\/|^[\t ]*#(?!\s*include\b)[^\n]*/gm,
     '',
   );
+  if (
+    /\b(?:const|let|var)\s+\w+\s*:\s*[A-Za-z_$][\w$]*(?:\[\])?\s*=|\b(?:interface|type)\s+\w+\s*(?:\{|=)|\bfunction\s+\w+\s*\([^)]*\w+\s*:\s*(?:number|string|boolean)\b/.test(
+      code,
+    )
+  )
+    return { kind: 'unsupported', languageId: 'ts', confidence: 0.98 };
   const signals: [Language, boolean][] = [
     [
       'python',

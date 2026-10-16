@@ -27,9 +27,14 @@ def run_trace(request_json):
     started = _time.perf_counter()
     error = None
     truncated = False
+    limit_hit = False
+    serialized_bytes = 2
+    byte_limit = 16 * 1024 * 1024
+    limit_message = 'Trace stopped at the safety limit. The program may contain an infinite loop.'
     environment = {'__name__': '__main__'}
 
     def snapshot(frame, event, arg=None, message=None):
+        nonlocal serialized_bytes, limit_hit, limit_message
         heap = {}
 
         def value(obj, depth=0):
@@ -109,18 +114,26 @@ def run_trace(request_json):
                 'stdout': output.getvalue()}
         if message:
             step['explanation'] = message
+        size = len(_json.dumps(step, ensure_ascii=True).encode('utf-8')) + 1
+        if serialized_bytes + size > byte_limit - 128 * 1024:
+            limit_hit = True
+            limit_message = 'Trace stopped at the serialized-size safety limit.'
+            raise _TraceLimit()
+        serialized_bytes += size
         steps.append(step)
 
     def trace(frame, event, arg):
-        nonlocal call_count
+        nonlocal call_count, limit_hit
         if frame.f_code.co_filename != '<codelens>':
             return trace
         if event == 'call':
             call_count += 1
             frame_ids[id(frame)] = 'c' + str(call_count)
-        if len(steps) >= limit - 1:
+        if limit_hit or len(steps) >= limit - 1:
+            limit_hit = True
             raise _TraceLimit()
         if _time.perf_counter() - started > 10:
+            limit_hit = True
             raise _TraceLimit()
         if event in ('line', 'call', 'return'):
             snapshot(frame, event, arg)
@@ -162,11 +175,7 @@ def run_trace(request_json):
         _sys.settrace(trace)
         exec(compiled, environment, environment)
     except _TraceLimit:
-        truncated = True
-        _sys.settrace(None)
-        last = dict(steps[-1]) if steps else {'line': 1, 'func': '<module>', 'callStack': [], 'globals': {}, 'heap': {}, 'stdout': output.getvalue()}
-        last.update(index=len(steps), event='exception', explanation='Trace stopped at the safety limit. The program may contain an infinite loop.')
-        steps.append(last)
+        limit_hit = True
     except BaseException as exc:
         _sys.settrace(None)
         error = type(exc).__name__ + ': ' + str(exc)[:500]
@@ -179,10 +188,21 @@ def run_trace(request_json):
             tb = tb.tb_next
         if len(steps) >= limit:
             steps.pop()
-        snapshot(frame, 'exception', message=error)
-        steps[-1]['line'] = max(1, error_line or 1)
+        try:
+            snapshot(frame, 'exception', message=error)
+            steps[-1]['line'] = max(1, error_line or 1)
+        except _TraceLimit:
+            limit_hit = True
     finally:
         _sys.settrace(None)
         _sys.stdout, _sys.stderr, _sys.stdin = old_out, old_err, old_in
+    if limit_hit:
+        truncated = True
+        error = None
+        if len(steps) >= limit:
+            steps.pop()
+        last = {'line': steps[-1]['line'] if steps else 1, 'func': steps[-1]['func'] if steps else '<module>', 'callStack': [], 'globals': {}, 'heap': {}, 'stdout': steps[-1]['stdout'] if steps else ''}
+        last.update(index=len(steps), event='exception', explanation=limit_message)
+        steps.append(last)
     return _json.dumps({'steps': steps, 'truncated': truncated, 'error': error,
                         'elapsed': round((_time.perf_counter() - started) * 1000)}, ensure_ascii=True)

@@ -7,7 +7,6 @@ import {
   adviceSchema,
   executionCounts,
   empiricalProfiles,
-  fitComplexity,
   generatedInput,
   identitySchema,
   sameIdentity,
@@ -23,6 +22,9 @@ import {
 import type { TraceResult } from '@/lib/trace';
 import { useAIReadiness } from './use-ai-readiness';
 import { AI_SOURCE_NOTICE } from '@/lib/ai/notice';
+import { MeasurementRunner } from '@/lib/measurement-runner';
+import { measurementSizes, type MeasurementFit } from '@/lib/measurement';
+import { MeasurementDefinition } from './measurement-results';
 type CheckedTest = {
   identity: SourceIdentity;
   name: string;
@@ -39,7 +41,7 @@ export function Analysis({ implementationId }: { implementationId: string }) {
   const code = useStore((s) => s.code),
     language = useStore((s) => s.language),
     trace = useStore((s) => s.result);
-  const readiness = useAIReadiness(['python', 'javascript'].includes(language));
+  const readiness = useAIReadiness(['python', 'javascript', 'java'].includes(language));
   const [data, setData] = useState<{ identity: SourceIdentity; inspection: Inspection } | null>(
     null,
   );
@@ -50,34 +52,51 @@ export function Analysis({ implementationId }: { implementationId: string }) {
     [notice, setNotice] = useState(''),
     [samples, setSamples] = useState<Sample[]>([]);
   const [profile, setProfile] = useState<keyof typeof empiricalProfiles>('standard');
-  const [fit, setFit] = useState<ReturnType<typeof fitComplexity> | null>(null),
+  const [fit, setFit] = useState<MeasurementFit | null>(null),
     [advice, setAdvice] = useState<Advice | null>(null),
     [tests, setTests] = useState<CheckedTest[]>([]);
+  const [measuring, setMeasuring] = useState(false);
+  const measurementWorker = useRef<MeasurementRunner | null>(null);
   const worker = useRef<CodeRunner | null>(null),
     abort = useRef<AbortController | null>(null),
     active = useRef(true);
   useEffect(() => {
     active.current = true;
-    if (!['python', 'javascript'].includes(language)) return;
-    worker.current = new CodeRunner();
-    Promise.all([sourceIdentity(implementationId, code), worker.current.inspect(code, language)])
-      .then(([identity, inspection]) => {
-        if (!active.current) return;
-        setData({ identity, inspection });
-        const first = inspection.entries.find((e) => !e.reason) || inspection.entries[0];
-        if (first) {
-          setEntryName(first.name);
-          setKind(first.kinds[0] || 'list');
-        }
-      })
-      .catch((e) => {
-        if (active.current)
-          setError(e instanceof Error ? e.message : 'AST analysis could not load.');
-      });
+    if (!['python', 'javascript', 'java'].includes(language)) return;
+    let current = true;
+    const timer = setTimeout(() => {
+      worker.current = new CodeRunner();
+      Promise.all([sourceIdentity(implementationId, code), worker.current.inspect(code, language)])
+        .then(([identity, inspection]) => {
+          if (!current) return;
+          setData({ identity, inspection });
+          const first = inspection.entries.find((e) => !e.reason) || inspection.entries[0];
+          if (first) {
+            setEntryName(first.name);
+            setKind(first.kinds[0] || 'list');
+          }
+          fetch(
+            `/api/analyze?sourceHash=${identity.sourceHash}&language=${language}&implementationId=${encodeURIComponent(implementationId)}`,
+          )
+            .then((r) => (r.ok ? r.json() : null))
+            .then((res) => {
+              if (current && res?.analysis?.bigOFit) {
+                setFit(res.analysis.bigOFit);
+              }
+            })
+            .catch(() => {});
+        })
+        .catch((e) => {
+          if (current) setError(e instanceof Error ? e.message : 'AST analysis could not load.');
+        });
+    }, 600);
     return () => {
+      current = false;
+      clearTimeout(timer);
       active.current = false;
       abort.current?.abort();
       worker.current?.dispose();
+      measurementWorker.current?.dispose();
     };
   }, [code, language, implementationId]);
   const entry = data?.inspection.entries.find((e) => e.name === entryName);
@@ -94,37 +113,49 @@ export function Analysis({ implementationId }: { implementationId: string }) {
     setBusy(true);
     setSamples([]);
     setFit(null);
-    setNotice('Preparing real worker traces…');
+    setMeasuring(true);
+    setNotice('Preparing snapshot-free measurements…');
     try {
       const collected: Sample[] = [];
-      for (const n of empiricalProfiles[profile]) {
-        if (!active.current) return;
-        setNotice(
-          `Measuring ${entry.name}: size ${n} (${collected.length + 1}/${empiricalProfiles[profile].length})…`,
-        );
-        const code = testHarness(data.inspection, entry, generatedInput(kind, n), language);
-        const result = await worker.current!.run(code, '', 5000, () => {}, language);
-        if (!active.current) return;
-        if (result.error || result.truncated)
-          throw new Error(
-            result.error
-              ? `The generated size ${n} failed: ${result.error}`
-              : `Size ${n} reached the 5,000-step limit. No estimate is fitted to incomplete traces.`,
-          );
-        const steps = result.steps.filter((s) => s.func !== '<module>').length;
-        if (!steps) throw new Error('The selected entry produced no captured function steps.');
-        collected.push({ n, steps });
-        setSamples([...collected]);
-      }
-      setFit(fitComplexity(collected));
-      setNotice('Estimate from five complete real worker traces.');
+      measurementWorker.current = new MeasurementRunner();
+      const result = await measurementWorker.current.measure(
+        {
+          code,
+          entry: entry.name,
+          language,
+          sizes: profile === 'standard' ? measurementSizes : empiricalProfiles[profile],
+          argumentsForSize: (n) => [generatedInput(kind, n)],
+        },
+        (progress) => {
+          if (!active.current) return;
+          if (progress.n !== null)
+            setNotice(
+              `Measuring ${entry.name}: size ${progress.n} (${progress.index}/${progress.total})…`,
+            );
+          if (progress.result?.status === 'complete' && progress.result.lineEvents! > 0) {
+            collected.push({ n: progress.result.n, steps: progress.result.lineEvents! });
+            setSamples([...collected]);
+          }
+        },
+      );
+      if (!active.current) return;
+      setFit(result.time);
+
+      setNotice(
+        result.time
+          ? `Local estimate from ${result.time.validPoints} complete measured runs at sizes up to ${result.time.maxN}.${result.reduced ? ' Larger sizes were stopped at a resource or execution bound.' : ''}`
+          : 'No estimate is fitted: fewer than four complete positive sizes. Budget-exceeded, partial and failed sizes are excluded.',
+      );
     } catch (e) {
       if (active.current)
         setNotice(
           `Cannot measure this entry: ${e instanceof Error ? e.message : 'Unsupported signature or runtime failure.'}`,
         );
     } finally {
-      if (active.current) setBusy(false);
+      if (active.current) {
+        setBusy(false);
+        setMeasuring(false);
+      }
     }
   };
   const rerunTest = async (test: CheckedTest) => {
@@ -236,13 +267,13 @@ export function Analysis({ implementationId }: { implementationId: string }) {
       if (active.current) setBusy(false);
     }
   };
-  if (!['python', 'javascript'].includes(language))
+  if (!['python', 'javascript', 'java'].includes(language))
     return (
       <div className="analysis-pane">
         <h2>Analysis needs a real trace.</h2>
         <p>
-          AST inspection and empirical measurement support Python and JavaScript. AI-simulated
-          traces cannot provide measured complexity or execution heatmaps.
+          AST inspection and empirical measurement support Python, JavaScript and the Java subset.
+          AI-simulated traces cannot provide measured complexity or execution heatmaps.
         </p>
       </div>
     );
@@ -347,17 +378,18 @@ export function Analysis({ implementationId }: { implementationId: string }) {
               </select>
             </label>
             <p>
-              Standard sizes: 4, 8, 16, 32, 64; small: 2, 4, 8, 12, 16; tiny: 1, 2, 3, 4, 5. Integer
-              n equals the size; lists contain descending integers n…1; strings repeat “abc” to
-              length n. For unannotated parameters, you declare the type here. No average-case
-              sampling.
+              Standard sizes: 4, 8, 12, 16, 24, 32, 48, 64, 96, 128; small: 2, 4, 8, 12, 16; tiny:
+              1, 2, 3, 4, 5. Integer n equals the size; lists contain descending integers n…1;
+              strings repeat “abc” to length n. For unannotated parameters, you declare the type
+              here. No average-case sampling.
             </p>
             <p>
-              Counts include call, line, return and output events inside functions. Module setup and
-              the driver are excluded. Limits apply to the entire trace; capped or failed runs
-              receive no fit. Native and imported library internals are untraced, so this estimates
-              captured step growth rather than all underlying computational work.
+              Time counts user-function line events only. All sizes share one disposable worker with
+              fresh source bindings and arguments per size. Measurement stores counters rather than
+              snapshots and uses its own event/time budget. Native and imported internals are
+              untraced; every result is a local estimate, not a proof.
             </p>
+            <MeasurementDefinition />
             <label className="analysis-field">
               Measurement sizes
               <select
@@ -370,7 +402,7 @@ export function Analysis({ implementationId }: { implementationId: string }) {
                   setSamples([]);
                 }}
               >
-                <option value="standard">Standard · 4 to 64</option>
+                <option value="standard">Standard · 4 to 128</option>
                 <option value="small">Small · 2 to 16</option>
                 <option value="tiny">Tiny · 1 to 5</option>
               </select>
@@ -382,68 +414,16 @@ export function Analysis({ implementationId }: { implementationId: string }) {
             >
               Empirically measure
             </button>
-            {samples.length > 0 && (
-              <svg
-                className="step-chart"
-                viewBox="0 0 500 200"
-                role="img"
-                aria-label="Real function steps versus input size"
+            {measuring && (
+              <button
+                className="analysis-button"
+                onClick={() => measurementWorker.current?.dispose()}
               >
-                <title>Real captured function steps versus generated input size</title>
-                <desc>
-                  The table below supplies all exact values. This chart contains measured counts,
-                  not wall-clock timings.
-                </desc>
-                <line x1="48" y1="162" x2="460" y2="162" />
-                <line x1="48" y1="24" x2="48" y2="162" />
-                <text x="4" y="14">
-                  steps
-                </text>
-                <text x="200" y="195">
-                  input size
-                </text>
-                <text x="6" y="30">
-                  {Math.max(...samples.map((s) => s.steps))}
-                </text>
-                <polyline
-                  fill="none"
-                  points={samples
-                    .map(
-                      (s) =>
-                        `${48 + ((s.n - samples[0].n) / Math.max(1, samples.at(-1)!.n - samples[0].n)) * 400},${162 - (s.steps / Math.max(1, ...samples.map((s) => s.steps))) * 132}`,
-                    )
-                    .join(' ')}
-                />
-                {samples.map((s) => (
-                  <g key={s.n}>
-                    <circle
-                      cx={
-                        48 +
-                        ((s.n - samples[0].n) / Math.max(1, samples.at(-1)!.n - samples[0].n)) * 400
-                      }
-                      cy={162 - (s.steps / Math.max(1, ...samples.map((s) => s.steps))) * 132}
-                      r="4"
-                    >
-                      <title>
-                        Size {s.n}: {s.steps} captured function steps
-                      </title>
-                    </circle>
-                    <text
-                      textAnchor="middle"
-                      x={
-                        48 +
-                        ((s.n - samples[0].n) / Math.max(1, samples.at(-1)!.n - samples[0].n)) * 400
-                      }
-                      y="180"
-                    >
-                      {s.n}
-                    </text>
-                  </g>
-                ))}
-              </svg>
+                Cancel measurement
+              </button>
             )}
             {samples.length > 0 && (
-              <table>
+              <table aria-label="Real captured steps by input size">
                 <caption>Real captured steps by input size</caption>
                 <thead>
                   <tr>
@@ -469,6 +449,23 @@ export function Analysis({ implementationId }: { implementationId: string }) {
                 </p>
               </div>
             )}
+            <div className="analysis-complexity-card" aria-labelledby="complexity-tab-promo">
+              <span className="mono dim">EXPLORE IN DEPTH</span>
+              <h4 id="complexity-tab-promo" style={{ margin: '8px 0', fontSize: '16px' }}>
+                Interactive Time & Space Complexity Graphs
+              </h4>
+              <p>
+                Interactive Big-O curves, Space Complexity graphs with memory bounds and
+                definitions, and hover tracing are available in the dedicated{' '}
+                <strong>Complexity</strong> tab.
+              </p>
+              <button
+                className="analysis-button"
+                onClick={() => useStore.getState().patch({ tab: 'complexity' })}
+              >
+                Open Complexity Tab →
+              </button>
+            </div>
           </section>
           <section aria-labelledby="heat-title">
             <h3 id="heat-title">Hot spots · actual line executions</h3>
@@ -477,7 +474,7 @@ export function Analysis({ implementationId }: { implementationId: string }) {
               captured executions.
             </p>
             {!hot.length ? (
-              <p>Run Python or JavaScript code to populate the heatmap.</p>
+              <p>Run Python, JavaScript or supported Java code to populate the heatmap.</p>
             ) : (
               <div className="hotspot-list">
                 {hot.map(([line, count]) => (

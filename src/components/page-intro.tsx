@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import { usePathname } from 'next/navigation';
+import { preferenceStorage } from '@/lib/storage';
 import {
   INTRO_MAX_MS,
   INTRO_MIN_MS,
@@ -85,7 +86,7 @@ export function PageIntro({ children }: { children: React.ReactNode }) {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     let savedReduced = false;
     try {
-      savedReduced = localStorage.getItem('codelens-motion') === 'reduce';
+      savedReduced = preferenceStorage.getItem('codelens-motion') === 'reduce';
     } catch {}
     reduced.current = media.matches || savedReduced;
     window.__codelensIntroHydrated = true;

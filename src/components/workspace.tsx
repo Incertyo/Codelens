@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ArrowDown,
   ArrowUpRight,
   ChevronDown,
   Plus,
@@ -18,13 +17,13 @@ import { useStore } from '@/lib/store';
 import { examples, type Example } from '@/lib/examples';
 import { CodeRunner } from '@/lib/runner';
 import { exampleCode } from '@/lib/javascript-examples';
-import type { Language } from '@/lib/breakdown';
-import { decodeShare, encodeShare } from '@/lib/share';
-import { DEFAULT_MAX_STEPS } from '@/lib/trace';
+import { type Language, enrichmentSchema } from '@/lib/breakdown';
+import { decodeShare, encodeShortShare } from '@/lib/share';
 import { Preferences, usePreferences } from './preferences';
 import { Visualizer } from './visualizer';
 import { AlgorithmBrowser } from './algorithm-browser';
 import { LoadingScreen } from './loading-screen';
+import { ScrollStudy } from './scroll-study';
 import { algorithms, type Algorithm } from '@/lib/algorithm-catalog';
 import { implementationSchema, type LibraryImplementation } from '@/lib/library-contract';
 import { sourceIdentity, sameIdentity, identitySchema } from '@/lib/analysis';
@@ -33,12 +32,14 @@ import { z } from 'zod';
 import { useAIReadiness } from './use-ai-readiness';
 import { AI_SOURCE_NOTICE } from '@/lib/ai/notice';
 import { LANGUAGE_LABELS, type LanguageMode } from '@/lib/language-detection';
+import { javaExample } from '@/lib/java/example';
 import { useLanguageDetection } from './use-language-detection';
 import { usePageIntro } from './page-intro';
 const Analysis = dynamic(() => import('./analysis').then((m) => m.Analysis));
 const Breakdown = dynamic(() => import('./breakdown').then((m) => m.Breakdown), {
   loading: () => <p className="empty-note mono">/ loading breakdown</p>,
 });
+const ComplexityView = dynamic(() => import('./complexity-view').then((m) => m.ComplexityView));
 const CodeEditor = dynamic(() => import('./code-editor').then((m) => m.CodeEditor), {
   ssr: false,
   loading: () => <div className="editor-body editor-loading mono">/ loading editor</div>,
@@ -66,7 +67,8 @@ export function Workspace() {
   const [shareState, setShareState] = useState('');
   const [shareUrl, setShareUrl] = useState('');
   const [split, setSplit] = useState(48);
-  const [maxSteps, setMaxSteps] = useState(DEFAULT_MAX_STEPS);
+  const maxSteps = useStore((s) => s.maxSteps),
+    setMaxSteps = useStore((s) => s.setMaxSteps);
   const { active: booting, editorReady: finishBoot } = usePageIntro();
   const [focusToken, setFocusToken] = useState(0);
   const [draft, setDraft] = useState<{
@@ -85,7 +87,7 @@ export function Workspace() {
   const simulationConsent =
     consentFor?.revision === sourceRevision && consentFor.language === language;
   const simulationAbort = useRef<AbortController | null>(null);
-  const simulatedLanguage = language === 'cpp' || language === 'java';
+  const simulatedLanguage = language === 'cpp';
   const {
     configured: aiConfigured,
     reason: aiReason,
@@ -116,32 +118,32 @@ export function Workspace() {
       patch({ message: 'Paste your code or load an example before running.' });
       return;
     }
-    if (!['python', 'javascript'].includes(state.language) && !aiConfigured) {
+    if (state.language === 'cpp' && !aiConfigured) {
       patch({ message: aiReason });
       return;
     }
-    if (!['python', 'javascript'].includes(state.language) && !simulationConsent) {
+    if (state.language === 'cpp' && !simulationConsent) {
       patch({ message: 'Choose the per-run AI simulation opt-in before requesting a trace.' });
       return;
     }
     const id = ++runId.current;
+    state.beginRun();
     runner.current ??= new CodeRunner();
     patch({
       status: 'loading',
       progress: 0,
-      message: `Preparing ${state.language === 'python' ? 'Python' : 'JavaScript'}…`,
+      message: `Preparing ${state.language === 'java' ? 'Java subset' : LANGUAGE_LABELS[state.language]}…`,
       playing: false,
       edited: true,
       result: null,
       cursor: 0,
       tab: 'visualizer',
       selectedLine: null,
-      enrichment: null,
     });
     try {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       if (id !== runId.current) return;
-      if (state.language === 'cpp' || state.language === 'java') {
+      if (state.language === 'cpp') {
         setConsentFor(null);
         const controller = new AbortController();
         simulationAbort.current = controller;
@@ -300,7 +302,11 @@ export function Workspace() {
   };
   const loadExample = (example: Example) => {
     const algorithm = algorithms.find((a) => a.exampleId === example.id)!;
-    void loadImplementation(algorithm, simulatedLanguage ? 'python' : language, 'featured');
+    void loadImplementation(
+      algorithm,
+      ['python', 'javascript'].includes(language) ? language : 'python',
+      'featured',
+    );
   };
   const newCode = (name = 'Untitled') => {
     setImplementation(null);
@@ -320,7 +326,7 @@ export function Workspace() {
   };
   useEffect(() => {
     const load = () => {
-      const shared = decodeShare(window.location.hash);
+      const shared = decodeShare(window.location.hash || window.location.search);
       if (shared) {
         runId.current++;
         runner.current?.dispose();
@@ -339,7 +345,12 @@ export function Workspace() {
               exampleCode(example, shared.language) === shared.code,
           )?.title ?? 'Shared code',
         );
-      } else if (window.location.hash.startsWith('#code=')) {
+      } else if (
+        window.location.hash.startsWith('#code=') ||
+        window.location.hash.startsWith('#s=') ||
+        window.location.search.includes('s=') ||
+        window.location.search.includes('code=')
+      ) {
         useStore
           .getState()
           .patch({ message: 'This share link is invalid or exceeds the code limit.' });
@@ -354,6 +365,42 @@ export function Workspace() {
       loadRequest.current?.abort();
     };
   }, []);
+  useEffect(() => {
+    if (!['python', 'javascript', 'java'].includes(language) || !code.trim()) return;
+    let active = true;
+    const encoder = new TextEncoder();
+    crypto.subtle
+      .digest('SHA-256', encoder.encode(code))
+      .then((hashBuf) => {
+        if (!active) return;
+        const sHash = Array.from(new Uint8Array(hashBuf))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+        fetch(
+          `/api/analyze?sourceHash=${sHash}&language=${language}&implementationId=${encodeURIComponent(implementationId)}`,
+        )
+          .then((r) => (r.ok ? r.json() : null))
+          .then((res) => {
+            if (
+              active &&
+              res?.analysis?.enrichment &&
+              useStore.getState().code === code &&
+              useStore.getState().language === language &&
+              !useStore.getState().enrichment
+            ) {
+              const parsed = enrichmentSchema.safeParse(res.analysis.enrichment);
+              if (parsed.success) {
+                useStore.getState().patch({ enrichment: parsed.data });
+              }
+            }
+          })
+          .catch(() => {});
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [code, language, implementationId]);
   useEffect(() => {
     const keys = (e: KeyboardEvent) => {
       if (booting) return;
@@ -398,7 +445,7 @@ export function Workspace() {
   }, [run, booting]);
   const shareCode = async () => {
     const url =
-      window.location.origin + window.location.pathname + encodeShare(code, stdin, language);
+      window.location.origin + window.location.pathname + encodeShortShare(code, stdin, language);
     setShareUrl(url);
     try {
       await navigator.clipboard.writeText(url);
@@ -448,11 +495,11 @@ export function Workspace() {
             </div>
             <div className="hero-heading-row">
               <h1 className="hero-title">
-                PASTE. RUN.
+                <span className="hero-paste-badge">PASTE.</span> RUN.
                 <br className="hero-break" /> <span>UNDERSTAND.</span>
               </h1>
               <div className="hero-note">
-                <ArrowDown size={25} strokeWidth={1} />
+                <ScrollStudy />
                 <p>
                   Less guessing.
                   <br />
@@ -543,9 +590,11 @@ export function Workspace() {
                             exampleCode(item, language) === code,
                         );
                       setCode(
-                        example && ['python', 'javascript'].includes(next)
-                          ? exampleCode(example, next)
-                          : code,
+                        next === 'java' && example
+                          ? javaExample
+                          : example && ['python', 'javascript'].includes(next)
+                            ? exampleCode(example, next)
+                            : code,
                         example ? 'sample' : 'draft',
                       );
                       patch({
@@ -571,7 +620,7 @@ export function Workspace() {
                         : ''}
                     </option>
                     <option value="cpp">C++ · AI simulation</option>
-                    <option value="java">Java · AI simulation</option>
+                    <option value="java">Java · browser subset</option>
                   </select>
                   <ChevronDown size={13} />
                 </div>
@@ -592,7 +641,9 @@ export function Workspace() {
                 )}
                 {detection?.detection?.kind === 'unsupported' && (
                   <span className="detection-chip mono" role="status">
-                    unsupported language detected
+                    {detection.detection.languageId === 'ts'
+                      ? 'TypeScript detected — unsupported. Remove type syntax to run as JavaScript.'
+                      : 'unsupported language detected'}
                   </span>
                 )}
                 {detection?.error && (
@@ -622,6 +673,32 @@ export function Workspace() {
                 <span className="dim">{code.split('\n').length} LINES</span>
               </div>
               <CodeEditor onReady={finishBoot} focusToken={focusToken} />
+              {language === 'java' && (
+                <div className="notice" role="note">
+                  Java subset → JavaScript. Compiled and traced in your browser; no JVM or AI
+                  translation.{' '}
+                  <button
+                    className="text-button"
+                    disabled={busy}
+                    onClick={() => {
+                      setCode(javaExample, 'sample');
+                      setExampleName('Java array sum');
+                    }}
+                  >
+                    Load Java example
+                  </button>
+                  <details>
+                    <summary>Supported Java</summary>
+                    <p>
+                      One class, static methods, recursion, if/else, for/while, int, boolean, String
+                      and one-dimensional arrays. Use public static void main(String[] args) to Run.
+                      Scanner input is supported with its import. Initialize locals when declaring
+                      them. Objects, collections, generics, other numeric types and threads are
+                      unsupported and rejected.
+                    </p>
+                  </details>
+                </div>
+              )}
               {!code && (
                 <p className="new-code-hint mono">
                   Paste your{' '}
@@ -686,8 +763,7 @@ export function Workspace() {
               {simulatedLanguage && (
                 <div className="simulation-optin">
                   <p>
-                    <strong>AI-simulated, may be inaccurate.</strong> C++ and Java are not executed
-                    here.
+                    <strong>AI-simulated, may be inaccurate.</strong> C++ is not executed here.
                   </p>
                   <label>
                     <input
@@ -816,7 +892,7 @@ export function Workspace() {
             </div>
             <section className="results-pane" aria-label="Execution results">
               <div className="tabs" role="tablist" aria-label="Result views">
-                {(['visualizer', 'breakdown', 'analysis'] as const).map((name, i) => (
+                {(['visualizer', 'breakdown', 'analysis', 'complexity'] as const).map((name, i) => (
                   <button
                     role="tab"
                     id={`tab-${name}`}
@@ -829,8 +905,14 @@ export function Workspace() {
                     onKeyDown={(e) => {
                       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                         e.preventDefault();
-                        const names = ['visualizer', 'breakdown', 'analysis'] as const;
-                        const next = names[(i + (e.key === 'ArrowRight' ? 1 : 2)) % 3];
+                        const names = [
+                          'visualizer',
+                          'breakdown',
+                          'analysis',
+                          'complexity',
+                        ] as const;
+                        const delta = e.key === 'ArrowRight' ? 1 : -1;
+                        const next = names[(i + delta + names.length) % names.length];
                         patch({ tab: next });
                         document.getElementById(`tab-${next}`)?.focus();
                       }
@@ -851,12 +933,14 @@ export function Workspace() {
                 {tab === 'visualizer' ? (
                   <Visualizer />
                 ) : tab === 'breakdown' ? (
-                  <Breakdown />
-                ) : (
+                  <Breakdown implementationId={implementationId} />
+                ) : tab === 'analysis' ? (
                   <Analysis
                     key={`${implementationId}:${language}:${code}`}
                     implementationId={implementationId}
                   />
+                ) : (
+                  <ComplexityView implementationId={implementationId} />
                 )}
               </div>
             </section>
@@ -909,16 +993,18 @@ export function Workspace() {
           </button>
         </div>
         <nav className="overlay-nav">
-          {['Visualizer', 'Breakdown', 'Analysis', 'Examples', 'About'].map((name, i) => (
-            <button
-              key={name}
-              onClick={() => navigate(name.toLowerCase() as typeof tab | 'examples' | 'about')}
-            >
-              <span className="mono">0{i + 1}</span>
-              <span>{name}</span>
-              <ArrowUpRight />
-            </button>
-          ))}
+          {['Visualizer', 'Breakdown', 'Analysis', 'Complexity', 'Examples', 'About'].map(
+            (name, i) => (
+              <button
+                key={name}
+                onClick={() => navigate(name.toLowerCase() as typeof tab | 'examples' | 'about')}
+              >
+                <span className="mono">0{i + 1}</span>
+                <span>{name}</span>
+                <ArrowUpRight />
+              </button>
+            ),
+          )}
         </nav>
         <div className="dialog-bottom mono">
           <span>WATCH CODE THINK.</span>
@@ -973,7 +1059,12 @@ export function Workspace() {
           ))}
         </div>
         <p className="mono dim drawer-end">
-          REAL {language === 'python' ? 'PYTHON' : 'JAVASCRIPT'}. REAL EXECUTION. EVERY SINGLE STEP.
+          {language === 'cpp'
+            ? 'C++ AI SIMULATION.'
+            : language === 'java'
+              ? 'JAVA SUBSET. COMPILED LOCALLY.'
+              : `REAL ${LANGUAGE_LABELS[language].toUpperCase()}. REAL EXECUTION.`}{' '}
+          EVERY SINGLE STEP.
         </p>
       </dialog>
       <dialog ref={about} className="about-dialog" aria-labelledby="about-title">
@@ -1006,8 +1097,8 @@ export function Workspace() {
             <p className="about-reveal">
               Explore real execution, linked structures, recursion, AST analysis and measured
               complexity estimates. AI notes and suggestions are optional. Requesting AI sends your
-              source to the configured provider. C++ and Java use a separate per-run opt-in and are
-              always labelled as AI-simulated, may be inaccurate.
+              source to the configured provider. C++ uses a separate per-run opt-in and is always
+              labelled as AI-simulated, may be inaccurate.
             </p>
             <p className="mono dim about-reveal">
               Snapshots capture user-code events, not the internals of library functions. Huge
