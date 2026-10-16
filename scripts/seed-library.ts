@@ -86,6 +86,7 @@ try {
     expected: string,
     mode: string,
   ) => {
+    // Include fixture and documentation changes in a revision, not just the code text.
     const hash = createHash('sha256')
       .update(JSON.stringify({ code, expected, notes, entryPoint, sourceFile, mode }))
       .digest('hex');
