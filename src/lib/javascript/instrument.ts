@@ -4,6 +4,7 @@ import {
   children,
   functionName,
   isFunction,
+  isNode,
   parseProgram,
   type AstNode,
 } from './ast';
@@ -196,9 +197,9 @@ export function instrumentJavaScript(
       return node;
     }
     for (const [key, value] of Object.entries(node)) {
-      if (isNodeValue(value)) node[key] = transform(value, scope, node);
+      if (isNode(value)) node[key] = transform(value, scope, node);
       else if (Array.isArray(value))
-        node[key] = value.map((v) => (isNodeValue(v) ? transform(v, scope, node) : v));
+        node[key] = value.map((v) => (isNode(v) ? transform(v, scope, node) : v));
     }
     return node;
   };
@@ -213,7 +214,4 @@ export function instrumentJavaScript(
     statement(`${hookName}.end();`),
   ];
   return { code: generate(root as Parameters<typeof generate>[0]), hookName };
-}
-function isNodeValue(value: unknown): value is AstNode {
-  return !!value && typeof value === 'object' && 'type' in value && typeof value.type === 'string';
 }
