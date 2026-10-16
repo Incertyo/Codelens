@@ -18,3 +18,6 @@
   - `npx playwright test`: 74/74 passed
   - Scrubbing & visual parity: 5,000-step measurement and visual captures completed.
 - Ledger maintained in docs/REFACTOR_LOC.md.
+
+- Follow-up: Groq optional-schema compatibility fixed with a failing real-SDK/local-HTTP test first; no existing fixture/golden change.
+- Follow-up checks: 64/64 related AI units, typecheck, scoped lint, production build and ai-controls production browser 4/4 pass; hosted Groq remains unverified.

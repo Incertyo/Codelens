@@ -29,3 +29,5 @@
 | 5ea4714 | docs: archive historical verification documents under docs/archive with index | +21 (+21 / -0) | Part D verification archive |
 | 6deeb70 | refactor: remove vestigial JavaScript references, dead measurement script and enforce Python-only library contract | -145 (+4 / -149) | Vestigial JS cleanup |
 | ff7307b | clean: remove code comments across touched files and update analysis persistence test to python | -26 (+2 / -28) | Comments & test cleanup |
+
+| Groq compatibility fix (this commit) | Scope best-effort JSON Schema to Groq; retain strict local validation | +156 source/test LOC (+159 / -3) | Generation options +8/-3; new real-SDK/local-HTTP regression test +151; no existing fixture/assertion removal |

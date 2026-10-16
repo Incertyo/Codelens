@@ -6,9 +6,14 @@ import { throwProviderQuota } from "./provider-quota";
 export class AIOutputError extends Error {}
 
 export function generationOptions() {
-  return process.env.LLM_PROVIDER?.toLowerCase() === 'google'
-    ? { reasoning: 'minimal' as const }
-    : {};
+  const provider = process.env.LLM_PROVIDER?.toLowerCase();
+  if (provider === 'google') return { reasoning: 'minimal' as const };
+  if (provider === 'openai-compatible' && process.env.LLM_BASE_URL) {
+    const endpoint = new URL(process.env.LLM_BASE_URL);
+    if (endpoint.protocol === 'https:' && endpoint.hostname === 'api.groq.com')
+      return { providerOptions: { openai: { strictJsonSchema: false } } };
+  }
+  return {};
 }
 
 export function retryFeedback(error: unknown) {
