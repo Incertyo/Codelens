@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { DETECTION_MIN_CHARS, heuristicDetection, type Detection } from '@/lib/language-detection';
+import { editorDetection } from '@/lib/editor-language';
 
 export function useLanguageDetection() {
   const code = useStore((s) => s.code),
@@ -21,7 +22,8 @@ export function useLanguageDetection() {
     let active = true;
     let timeout: ReturnType<typeof setTimeout> | undefined;
     let cleanupWorker = () => {};
-    const accept = (detection: Detection) => {
+    const accept = (rawDetection: Detection) => {
+      const detection = editorDetection(rawDetection);
       if (
         !active ||
         useStore.getState().sourceRevision !== revision ||

@@ -13,7 +13,7 @@ npm run build
 npm start -- --port 3001
 ```
 
-Open http://localhost:3001. `npm ci` uses the committed lockfile and its postinstall copies Pyodide, Monaco and the language-detection model into content-addressed local asset folders, recreates runtime manifests, and keeps fonts local. Do not disable install scripts. Python and JavaScript support execution, AST inspection and empirical measurements without AI credentials. Offline means the local server and its installed assets are available; this is not an offline-installable PWA.
+Open http://localhost:3001. `npm ci` uses the committed lockfile and its postinstall copies Pyodide, Monaco and the language-detection model into content-addressed local asset folders, recreates runtime manifests, and keeps fonts local. Do not disable install scripts. The editor runs Python, with AST inspection and empirical measurements available without AI credentials. Offline means the local server and its installed assets are available; this is not an offline-installable PWA.
 
 Copy the env template with `cp .env.example .env.local` on macOS/Linux or `Copy-Item .env.example .env.local` in PowerShell. The template contains no credentials; keep private values in ignored `.env.local`. Optional AI setup is below.
 
@@ -31,18 +31,18 @@ Open http://localhost:3000. Development/tests seed local SQLite; production buil
 
 ## Features and boundaries
 
-- Real Python and synchronous JavaScript traces in disposable browser workers; stepping, playback, breakpoints, stdin, output, aliases and recursion.
+- Real Python traces in disposable browser workers; stepping, playback, breakpoints, stdin, output, aliases and recursion.
 - 309 catalog algorithms, 343 current implementations: 309 maintained Python references plus 17 highlighted examples in both Python and JavaScript. SQLite preserves revisions, exact source hashes, assumptions and expected-output fixtures.
 - Source-driven structure detection, theme-aware highlights, responsive graph/tree viewports and reduced-motion loading transitions.
 - Offline AST breakdown and conservative static time/auxiliary-space candidates. Unresolved calls, recursion, bounds or allocation yield Unknown; best/average cases are not inferred from a single trace.
 - Empirical time estimates from real user-function line events and sampled total/auxiliary memory units without retaining snapshots; editor heatmaps still come from real trace line events.
 - Explicit AI requests for optional breakdown notes, potential bugs, optimization proposals with a diff, and suggested tests. Proposed optimizations are not correctness-verified. Every offered test first completes in the real tracer; clicking Run this test runs it again. AI expected outputs always remain labelled unverified.
 
-Python and JavaScript are the only supported execution languages. Legacy C++ and Java shares retain their exact source and stdin and show an unsupported-language notice. They do not execute or request AI; explicitly choose Python or JavaScript before running. Re-sharing preserves the original language until that choice.
+Python is the only editor and Run language. Library/example controls offer Python only. Legacy JavaScript, C++ and Java shares retain their exact source and stdin with an unsupported-language notice; they do not execute or load analysis. Re-sharing preserves the original language. Use New code for a fresh Python draft. The frozen catalog still contains historical JavaScript implementations, and internal JavaScript tools/goldens remain for catalog verification; they are not selectable editor support. Recognized non-Python drafts cannot Run. Detection is finite: ambiguous text is parsed and executed only as Python, never translated or sent to a JavaScript runtime.
 
 ## Empirical measurements
 
-Select a top-level named function, its declared input type and a size profile. The supported signature has exactly one required positional identifier parameter: **int n**, **list of integers**, or **string**. Python recognizes `int` on parameter `n`, `list[int]`, and `str`; unannotated parameters and JavaScript require the user to declare the input generator. Integer parameters must be named `n`. Methods, classes, async/generator functions, defaults, rest/destructuring/keyword-only parameters, duplicate names and executable top-level initialization are refused with a reason.
+Select a top-level named function, its declared input type and a size profile. The supported signature has exactly one required positional identifier parameter: **int n**, **list of integers**, or **string**. Python recognizes `int` on parameter `n`, `list[int]`, and `str`; unannotated parameters require the user to declare the input generator. Integer parameters must be named `n`. Methods, classes, async/generator functions, defaults, rest/destructuring/keyword-only parameters, duplicate names and executable top-level initialization are refused with a reason.
 
 AST preparation retains definitions, safe literal bindings and Python imports, preserving source lines and omitting top-level demo calls. One worker runs all sizes for an analysis, with fresh execution globals/source bindings and fresh arguments for every size, then is disposed. This resets program bindings, not the interpreter's module cache or JavaScript intrinsics; it is not hostile-code isolation. Definitions depending on omitted initialization may fail. The existing manual UI still requires one resolved parameter; the engine accepts multiple JSON arguments. Profile coverage, pasted-code generator selection and automatic dual charts are the next numbered parts of the replacement Step 1.
 
@@ -205,9 +205,9 @@ The notice before any AI upload explains that source goes to the configured prov
 
 ## Local language detection and page opening
 
-Auto is the initial language selector mode. A local syntax/shebang heuristic runs after a 350 ms debounce on at least 32 non-whitespace characters. Ambiguous drafts lazy-load Microsoft's `@vscode/vscode-languagedetection` CPU model in a Web Worker. Its model/weights are served from hashed same-origin URLs with immutable caching; neither code nor detection results are uploaded. Confident results (at least 0.65 with a 0.15 lead) map only Python and JavaScript to supported execution. C, C++ and Java remain identified as unsupported. TypeScript is unsupported and shows a message to remove type syntax before running as JavaScript; it is never mapped to the JavaScript runtime. Other languages show **unsupported language detected**.
+The language control offers Python only. A local syntax/shebang heuristic recognizes some non-Python drafts and prevents their execution. The existing debounced local detector/model remains available for draft identification; its JavaScript results are mapped to unsupported at the editor boundary. Model assets are served from hashed same-origin URLs; neither code nor detection results are uploaded. TypeScript, C, C++, Java and JavaScript are unsupported in the editor. Detection does not identify every possible language or syntax; Python remains the execution runtime for ambiguous text.
 
-A draft originating from an empty or untouched editor can switch automatically only before any manual language choice. Library/sample/share loads never trigger a switch. Subsequent manual choices stay authoritative even after selecting Auto again; a detected language becomes a **Switch** suggestion. Switching changes interpretation and never source text. Legacy C++/Java shares remain source-only until an explicit supported-language choice.
+No detection result selects a non-Python runtime or translates source. Library/sample loads use Python. Legacy non-Python shares remain source-only, with their original language preserved when re-shared; New code starts a Python draft.
 
 Every full page load, refresh and new tab renders the opening intro on the server, with an inert background and no app flash. The dot-matrix counter follows hydration, font readiness, Monaco mount and the runtime manifest. It stays visible for at least 1.4 seconds, supports click/Enter/Escape skipping after 600 ms, and releases after at most 10 seconds plus the wipe. Reduced motion uses a brief static fade; a separate inline watchdog handles stalled hydration. The per-run loading screen is unchanged.
 

@@ -93,7 +93,6 @@ export function CodeEditor({
   focusToken?: number;
 }) {
   const code = useStore((s) => s.code),
-    language = useStore((s) => s.language),
     selectedLine = useStore((s) =>
       s.tab === 'breakdown' || s.tab === 'analysis' || s.tab === 'complexity' ? s.selectedLine : null,
     ),
@@ -232,7 +231,7 @@ export function CodeEditor({
         </div>
       ) : (
         <Editor
-          language={language}
+          language="python"
           value={code}
           theme={`codelens-${theme}`}
           onMount={onMount}

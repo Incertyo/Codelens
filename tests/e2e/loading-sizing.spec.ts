@@ -6,10 +6,10 @@ test('graph and tree diagrams fit resized panes, support zoom, and keep highligh
   page,
 }) => {
   const code =
-    'const graph = {A:["B","C"],B:["D"],C:[],D:[]};\nclass Node {constructor(value,left=null,right=null){this.value=value;this.left=left;this.right=right;}}\nconst root = new Node(4,new Node(2,new Node(1),new Node(3)),new Node(6,new Node(5),new Node(7)));\nconsole.log("ready");';
+    'graph = {"A": ["B", "C"], "B": ["D"], "C": [], "D": []}\nclass Node:\n    def __init__(self, value, left=None, right=None):\n        self.value = value\n        self.left = left\n        self.right = right\nroot = Node(4, Node(2, Node(1), Node(3)), Node(6, Node(5), Node(7)))\nprint("ready")';
   await page.goto(
     '/#code=' +
-      lz.compressToEncodedURIComponent(JSON.stringify({ code, stdin: '', language: 'javascript' })),
+      lz.compressToEncodedURIComponent(JSON.stringify({ code, stdin: '', language: 'python' })),
   );
   await expect(page.getByTestId('site-loading')).toHaveCount(0);
   await page.getByRole('button', { name: '/ run code', exact: true }).click();
@@ -47,10 +47,10 @@ test('graph and tree diagrams fit resized panes, support zoom, and keep highligh
 test('large recursion trees keep active calls visible while zooming and resizing', async ({
   page,
 }) => {
-  const code = 'function fib(n){return n<=1?n:fib(n-1)+fib(n-2);}\nconsole.log(fib(11));';
+  const code = 'def fib(n):\n    return n if n <= 1 else fib(n - 1) + fib(n - 2)\nprint(fib(11))';
   await page.goto(
     '/#code=' +
-      lz.compressToEncodedURIComponent(JSON.stringify({ code, stdin: '', language: 'javascript' })),
+      lz.compressToEncodedURIComponent(JSON.stringify({ code, stdin: '', language: 'python' })),
   );
   await expect(page.getByTestId('site-loading')).toHaveCount(0);
   await page.getByRole('button', { name: '/ run code', exact: true }).click();

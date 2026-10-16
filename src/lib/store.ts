@@ -3,13 +3,14 @@ import { examples } from './examples';
 import type { TraceResult } from './trace';
 import type { BreakdownData, Enrichment, Language } from './breakdown';
 import { canAutoSwitch, type LanguageMode, type SourceOrigin } from './language-detection';
+import type { UnsupportedEditorLanguage } from './editor-language';
 type State = {
   code: string;
   sourceRevision: number;
   runEpoch: number;
   maxSteps: number;
   language: Language;
-  unsupportedLanguage: 'cpp' | 'java' | null;
+  unsupportedLanguage: UnsupportedEditorLanguage | null;
   languageMode: LanguageMode;
   languageChosenManually: boolean;
   sourceOrigin: SourceOrigin;

@@ -1,6 +1,5 @@
 'use client';
 import { ArrowUpRight } from 'lucide-react';
-import { useState } from 'react';
 import type { Language } from '@/lib/breakdown';
 import { algorithmTopics, type Algorithm } from '@/lib/algorithm-catalog';
 export function AlgorithmDetail({
@@ -16,8 +15,6 @@ export function AlgorithmDetail({
   onNewCode: (name: string) => void;
   headingLevel?: 2 | 3;
 }) {
-  const [preferredLanguage, setPreferredLanguage] = useState<Language>('python');
-  const language = algorithm.exampleId ? preferredLanguage : 'python';
   const topic = algorithmTopics.find((t) => t.id === algorithm.topicId),
     subtopic = topic?.subtopics.find((s) => s.id === algorithm.subtopicId);
   return (
@@ -31,14 +28,10 @@ export function AlgorithmDetail({
         Implementation language
         <select
           aria-label="Implementation language"
-          value={language}
+          defaultValue="python"
           disabled={busy}
-          onChange={(e) => setPreferredLanguage(e.target.value as Language)}
         >
           <option value="python">Python · available</option>
-          <option value="javascript" disabled={!algorithm.exampleId}>
-            {algorithm.exampleId ? 'JavaScript · featured example' : 'JavaScript · not yet added'}
-          </option>
         </select>
       </label>
       <div className="algorithm-detail-actions">
@@ -46,14 +39,14 @@ export function AlgorithmDetail({
           <button
             className="signal-button mono"
             disabled={busy}
-            onClick={() => onLoad(algorithm, language, 'featured')}
+            onClick={() => onLoad(algorithm, 'python', 'featured')}
           >
             / load example EX.{algorithm.exampleId} <ArrowUpRight size={14} />
           </button>
         ) : null}
         <button
           className="signal-button mono"
-          disabled={busy || language !== 'python'}
+          disabled={busy}
           onClick={() => onLoad(algorithm, 'python', 'reference')}
         >
           / load reference code <ArrowUpRight size={14} />

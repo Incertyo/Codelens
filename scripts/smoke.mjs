@@ -131,13 +131,12 @@ try {
   assert(await page.getByLabel('Programming language').isVisible());
   assert(!pageFailed && !automaticPost);
   pass(active);
-  active = 'browser JavaScript and Python options without provider calls';
-  assert(JSON.stringify(await page.getByLabel('Programming language').locator('option').evaluateAll(options => options.map(option => option.value))) === JSON.stringify(['auto', 'python', 'javascript']));
-  await page.getByLabel('Programming language').selectOption('javascript');
+  active = 'browser Python-only editor without provider calls';
+  assert(JSON.stringify(await page.getByLabel('Programming language').locator('option').evaluateAll(options => options.map(option => option.value))) === JSON.stringify(['python']));
   await page.getByRole('button', { name: '/ run code', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled({ timeout: 15000 });
   await page.getByRole('button', { name: 'Jump to end' }).click();
-  assert((await page.getByTestId('stdout').textContent())?.includes('Sorted: [1,2,3,5,8]'));
+  assert((await page.getByTestId('stdout').textContent())?.includes('Sorted: [1, 2, 3, 5, 8]'));
   assert(!pageFailed && !automaticPost);
   pass(active);
   active = 'headless design page';
@@ -156,9 +155,9 @@ try {
       signal: AbortSignal.timeout(30000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        code: 'function addOne(n) {\n  return n + 1;\n}\n',
-        language: 'javascript',
-        functions: [{ name: 'addOne', line: 1, endLine: 3, parameters: ['n'] }],
+        code: 'def add_one(n):\n  return n + 1\n',
+        language: 'python',
+        functions: [{ name: 'add_one', line: 1, endLine: 2, parameters: ['n'] }],
         steps: [],
       }),
     });

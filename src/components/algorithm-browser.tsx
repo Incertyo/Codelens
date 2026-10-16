@@ -171,8 +171,7 @@ export function AlgorithmBrowser({
         <p>
           {algorithmTopics.length} topics.{' '}
           {algorithmTopics.reduce((n, t) => n + t.subtopics.length, 0)} subtopics.{' '}
-          {algorithms.length} runnable Python references. {examples.length} featured examples in
-          both languages.
+          {algorithms.length} runnable Python references. {examples.length} featured Python examples.
         </p>
         {error && (
           <p className="library-message mono" role="alert" data-testid="library-error">

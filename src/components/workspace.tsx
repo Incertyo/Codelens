@@ -27,7 +27,8 @@ import { ScrollStudy } from './scroll-study';
 import { algorithms, type Algorithm } from '@/lib/algorithm-catalog';
 import { implementationSchema, type LibraryImplementation } from '@/lib/library-contract';
 import { sourceIdentity } from '@/lib/analysis';
-import { LANGUAGE_LABELS, type LanguageMode } from '@/lib/language-detection';
+import { LANGUAGE_LABELS } from '@/lib/language-detection';
+import { editorLanguage, editorSourceIssue, unsupportedShareLanguage, type UnsupportedEditorLanguage } from '@/lib/editor-language';
 import { useLanguageDetection } from './use-language-detection';
 import { usePageIntro } from './page-intro';
 const Analysis = dynamic(() => import('./analysis').then((m) => m.Analysis));
@@ -71,12 +72,13 @@ export function Workspace() {
     stdin: string;
     name: string;
     language: Language;
-    unsupportedLanguage: 'cpp' | 'java' | null;
+    unsupportedLanguage: UnsupportedEditorLanguage | null;
   } | null>(null);
   const [fetchingCode, setFetchingCode] = useState(false);
   const [libraryError, setLibraryError] = useState('');
   const [implementation, setImplementation] = useState<LibraryImplementation | null>(null);
   const unsupportedLanguage = useStore((s) => s.unsupportedLanguage);
+  const sourceIssue = editorSourceIssue(code);
   const implementationId =
     implementation && implementation.language === language && code === implementation.code
       ? implementation.id
@@ -100,8 +102,8 @@ export function Workspace() {
       patch({ message: 'Paste your code or load an example before running.' });
       return;
     }
-    if (state.unsupportedLanguage) {
-      patch({ message: 'Unsupported language. Choose Python or JavaScript before running.' });
+    if (state.unsupportedLanguage || state.language !== editorLanguage || editorSourceIssue(state.code)) {
+      patch({ message: 'Only Python can run in this editor.' });
       return;
     }
     const id = ++runId.current;
@@ -129,7 +131,7 @@ export function Workspace() {
           if (id === runId.current)
             patch({ status: p.phase, progress: p.progress, message: p.message });
         },
-        state.language,
+        editorLanguage,
       );
       const identity = await sourceIdentity(implementationId, state.code);
       if (
@@ -159,7 +161,7 @@ export function Workspace() {
     selectedLanguage: Language,
     variant: 'featured' | 'reference',
   ) => {
-    if (busy || loadRequest.current) return false;
+    if (busy || loadRequest.current || selectedLanguage !== editorLanguage) return false;
     const controller = new AbortController();
     loadRequest.current = controller;
     setFetchingCode(true);
@@ -197,8 +199,8 @@ export function Workspace() {
       setDraft(null);
       setImplementation(loaded);
       patch({
-        language: loaded.language,
-        languageMode: loaded.language,
+        language: editorLanguage,
+        languageMode: editorLanguage,
         autoSwitchEligible: false,
         tab: 'visualizer',
       });
@@ -221,7 +223,7 @@ export function Workspace() {
     const algorithm = algorithms.find((a) => a.exampleId === example.id)!;
     void loadImplementation(
       algorithm,
-      ['python', 'javascript'].includes(language) ? language : 'python',
+      editorLanguage,
       'featured',
     );
   };
@@ -251,15 +253,15 @@ export function Workspace() {
         useStore.getState().setCode(shared.code, 'share');
         useStore.getState().setStdin(shared.stdin);
         useStore.getState().patch({
-          language: shared.language === 'python' || shared.language === 'javascript' ? shared.language : 'python',
-          languageMode: shared.language === 'python' || shared.language === 'javascript' ? shared.language : 'auto',
-          unsupportedLanguage: shared.language === 'cpp' || shared.language === 'java' ? shared.language : null,
+          language: editorLanguage,
+          languageMode: shared.language === editorLanguage ? editorLanguage : 'auto',
+          unsupportedLanguage: unsupportedShareLanguage(shared.language),
           autoSwitchEligible: false,
         });
         setExampleName(
           examples.find(
             (example) =>
-              (shared.language === 'python' || shared.language === 'javascript') &&
+              shared.language === editorLanguage &&
               exampleCode(example, shared.language) === shared.code,
           )?.title ?? 'Shared code',
         );
@@ -283,7 +285,7 @@ export function Workspace() {
     };
   }, []);
   useEffect(() => {
-    if (unsupportedLanguage || !code.trim()) return;
+    if (unsupportedLanguage || sourceIssue || !code.trim()) return;
     let active = true;
     const encoder = new TextEncoder();
     crypto.subtle
@@ -317,7 +319,7 @@ export function Workspace() {
     return () => {
       active = false;
     };
-  }, [code, language, unsupportedLanguage, implementationId]);
+  }, [code, language, unsupportedLanguage, sourceIssue, implementationId]);
   useEffect(() => {
     const keys = (e: KeyboardEvent) => {
       if (booting) return;
@@ -493,17 +495,16 @@ export function Workspace() {
                   <span className="language-dot" />
                   <select
                     aria-label="Programming language"
-                    value={languageMode}
+                    value={editorLanguage}
                     disabled={busy}
-                    onChange={(e) => {
-                      const next = e.target.value as LanguageMode;
+                    onChange={() => {
+                      const next = editorLanguage;
                       useStore.getState().chooseLanguage(next);
-                      if (next === 'auto') return;
                       const example =
                         useStore.getState().sourceOrigin === 'sample' &&
                         examples.find(
                           (item) =>
-                            ['python', 'javascript'].includes(language) &&
+                            language === editorLanguage &&
                             exampleCode(item, language) === code,
                         );
                       setCode(
@@ -519,19 +520,7 @@ export function Workspace() {
                       });
                     }}
                   >
-                    <option value="auto">Auto</option>
                     <option value="python">Python</option>
-                    <option
-                      value="javascript"
-                      disabled={
-                        implementation?.variant === 'reference' && code === implementation.code
-                      }
-                    >
-                      JavaScript
-                      {implementation?.variant === 'reference' && code === implementation.code
-                        ? ' · use New code'
-                        : ''}
-                    </option>
                   </select>
                   <ChevronDown size={13} />
                 </div>
@@ -553,10 +542,12 @@ export function Workspace() {
                 {detection?.detection?.kind === 'unsupported' && (
                   <span className="detection-chip mono" role="status">
                     {detection.detection.languageId === 'ts'
-                      ? 'TypeScript detected — unsupported. Remove type syntax to run as JavaScript.'
+                      ? 'TypeScript detected — unsupported. Only Python can run in this editor.'
                       : ['c', 'cpp', 'java'].includes(detection.detection.languageId)
-                        ? `${({ c: 'C', cpp: 'C++', java: 'Java' } as Record<string, string>)[detection.detection.languageId]} detected — unsupported. Run Python or JavaScript.`
-                        : 'unsupported language detected'}
+                        ? `${({ c: 'C', cpp: 'C++', java: 'Java' } as Record<string, string>)[detection.detection.languageId]} detected — unsupported. Only Python can run in this editor.`
+                        : detection.detection.languageId === 'js'
+                          ? 'JavaScript detected — unsupported. Only Python can run in this editor.'
+                          : 'unsupported language detected'}
                   </span>
                 )}
                 {detection?.error && (
@@ -588,9 +579,10 @@ export function Workspace() {
               <CodeEditor onReady={finishBoot} focusToken={focusToken} />
               {unsupportedLanguage && (
                 <p className="notice" role="status">
-                  Unsupported language: {unsupportedLanguage === 'cpp' ? 'C++' : 'Java'}. Source and input were preserved. Choose Python or JavaScript before running.
+                  Unsupported language: {unsupportedLanguage === 'javascript' ? 'JavaScript' : unsupportedLanguage === 'cpp' ? 'C++' : 'Java'}. Source and input were preserved. Only Python can run in this editor.
                 </p>
               )}
+              {!unsupportedLanguage && sourceIssue && <p className="notice" role="status">{sourceIssue}</p>}
               {!code && (
                 <p className="new-code-hint mono">
                   Paste your{' '}
@@ -609,9 +601,9 @@ export function Workspace() {
                       setStdin(draft.stdin);
                       setExampleName(draft.name);
                       patch({
-                        language: draft.language,
+                        language: editorLanguage,
                         unsupportedLanguage: draft.unsupportedLanguage,
-                        languageMode: draft.language,
+                        languageMode: editorLanguage,
                         autoSwitchEligible: false,
                       });
                       setDraft(null);
@@ -672,7 +664,7 @@ export function Workspace() {
                     booting ||
                     fetchingCode ||
                     (!executing &&
-                      (!code.trim() || Boolean(unsupportedLanguage)))
+                      (!code.trim() || Boolean(unsupportedLanguage) || Boolean(sourceIssue)))
                   }
                   onClick={executing ? stop : () => void run()}
                   data-magnetic
@@ -783,8 +775,8 @@ export function Workspace() {
                 aria-labelledby={`tab-${tab}`}
                 tabIndex={0}
               >
-                {unsupportedLanguage ? (
-                  <p className="empty-note">Choose Python or JavaScript to inspect and run this source.</p>
+                {unsupportedLanguage || sourceIssue ? (
+                  <p className="empty-note">Use Python to inspect and run this source.</p>
                 ) : tab === 'visualizer' ? (
                   <Visualizer />
                 ) : tab === 'breakdown' ? (
@@ -883,7 +875,7 @@ export function Workspace() {
           TO START<span>.</span>
         </h2>
         <p className="drawer-intro">
-          {examples.length} small programs. Python and JavaScript. A whole lot to see.
+          {examples.length} small Python programs. A whole lot to see.
         </p>
         <div className="example-index">
           {examples.map((example) => (

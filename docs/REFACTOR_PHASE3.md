@@ -25,6 +25,6 @@ Owner response changes scope: make the editor and user-facing Run Python-only fi
 
 ## Pending implementation and verification
 
-Limits centralization/request injection, shared protocol and conformance tests, shared trace/message helpers and the AI pipeline have not been implemented. Classic-worker approach (a)/(b) is not yet selected. No dependency, manifest input, reference program, generated catalog, golden, provider fixture or environment variable/route changed. Application LOC delta for 3A/3B is zero so far.
+Limits centralization/request injection, shared protocol and conformance tests, shared trace/message helpers and the AI pipeline have not been implemented. Classic-worker approach (a)/(b) is not yet selected. No dependency, manifest input, reference program, generated catalog, golden, provider fixture or environment variable/route changed. Application LOC delta for 3A/3B is zero so far; the separately authorized Python-only editor checkpoint is documented in PYTHON_EDITOR_CHANGE.md, with remaining browser-story migration pending before 3A.
 
 After the decision, finish 3A's limits/protocol/validation sub-steps and 3B's mode-parameterized pipeline in small T0/T1 commits, preserving exact mode-specific prompts, errors, admission ordering, counted retries, Google schema adaptation and provider quota behavior. Run final T2 after both; no full browser/T3. Recommended later order remains 3C orchestration, 3D domain moves/names, then 3E cascade consolidation, but none is authorized in this request.

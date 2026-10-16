@@ -12,7 +12,7 @@ import { INTRO_WATCHDOG } from '@/lib/intro';
 export const metadata: Metadata = {
   title: 'CodeLens — Watch code think.',
   description:
-    'A quiet space to see how code works. Trace Python and JavaScript, explore data structures, and understand every step with an offline code breakdown.',
+    'A quiet space to see how code works. Trace Python, explore data structures, and understand every step with an offline code breakdown.',
 };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

@@ -156,7 +156,7 @@ this release; the owner reviews traffic and enables enforcement later.
    npm run smoke -- https://codelens-incerty.vercel.app --with-ai
    ```
 
-   This performs one harmless JavaScript notes POST; the application's single
+   This performs one harmless Python notes POST; the application's single
    validation retry may reserve a second call. No smoke retry is issued.
    A 429 is acceptable **only** for `provider_quota`, reported as “provider
    quota reached; local analysis remains available”. Client/minute/daily limit,
@@ -226,7 +226,7 @@ this loader check does not repair a missing distribution file automatically.
 
 ## Supported execution languages
 
-Only Python and synchronous JavaScript execute in browser workers. C/C++/Java/TypeScript detection reports unsupported; legacy C++/Java shares preserve source/input with a notice and require an explicit supported-language choice before Run. AI simulation is removed and its old API mode returns 410 without a provider or limiter call. Only explicit notes and advice send source. No provider, quota, kill-switch, route or environment setting was removed. The env-template simulation comment was removed; check:env retains the existing names and validation. Local smoke now asserts Auto/Python/JavaScript options and executes the existing JavaScript example without AI. Do not deploy as part of this local revamp.
+The editor, library/example controls and Run use Python only. JavaScript/C/C++/Java/TypeScript detection reports unsupported at the editor boundary; old non-Python shares preserve source/input and their share language without execution or analysis loading. Frozen catalog JavaScript data and internal dual-language verification tools remain; they are not editor support. AI simulation is removed and its old API mode returns 410 without a provider or limiter call. Only explicit notes and advice send source. Provider adapters, quotas, kill switch, routes and environment settings are unchanged. Local smoke asserts the sole Python option and runs the Python example; its optional explicit notes probe also uses Python. check:env keeps the same names/validation; no new environment variable or route is introduced. Do not deploy as part of this local revamp.
 
 Run the real-engine known-answer tests, production worker/nonce/deadline tests and
 the retained Analysis/hardening stories with AI disabled. The current manual
