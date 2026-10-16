@@ -1,12 +1,10 @@
 # Revamp status
 
-- Current phase: 2B approved batch COMPLETE; STOP before Phase 3A and wait for owner continue.
+- Current phase: owner changed scope to Python-only editor/Run first, then 3A/3B. Preflight documented; application implementation not started.
 - Branch: refactor/revamp; never push, deploy or contact hosted services.
 - Start: 70adfb5; only pre-existing edit was the owner's AGENTS.md rules.
 - Done: clean rules/status commit 2ef477c; pre-revamp tag; baseline 698 unit / 92 browser passes, lint/typecheck/build green.
 - Done: baseline sizes/LOC/timings, feature inventory and 360 real-runtime catalog/example goldens plus local API/share contracts; fresh-process comparisons pass.
-- Done: 1,068 unit tests, lint/typecheck; original full browser suite 92/92 plus two new characterization stories 2/2; production build and local smoke pass.
-- Done: 40 local screenshots; both real workers scrub 5,000 steps with 181 rendered positions; seven new code files contain zero comments; secret scans pass.
 - Commits: 2ef477c rules/status and pre-revamp tag; 26cb902 golden traces/contracts; following commit contains local tools and baseline docs.
 - Done: Java/C++ execution/simulation removal, source-only old shares, unsupported detection and strict notes/advice schemas; committed as the Phase 1 removal change, with T1 blocker explicit.
 - Done: quick golden selector adds 25 references/all topics, 17 JS examples and API/share contracts without rewriting baseline goldens.
@@ -20,17 +18,20 @@
 - Done: report-only lean Phase 2A audit in REFACTOR_AUDIT.md; no application changes, deletions, dependency changes or bug fixes within that phase.
 - Audit: noUnusedLocals/noUnusedParameters tsc passes; knip/depcheck/jscpd unavailable offline (ENOTCACHED). Limited TS/PostCSS scans and targeted review recorded; no coverage/per-dependency bundle analysis.
 - Audit commit checks: ordinary incremental tsc and diff whitespace check pass; only markdown changed, so changed-code lint/related-test scope is empty. Prior code T0 and T2 stay green.
-- Scope: unused wrappers/PythonRunner alias, Lenis removal and AST predicate reuse. Optional export narrowing, CSS, high-risk architecture and all defect fixes deferred.
+- Current authorization: 3A shared core and 3B AI pipeline only; no 3C/3D/3E, optional cleanups or L1–L8 fixes.
 - Cluster 1 complete: unused wrappers/alias removed; 82 related tests before/after, tsc/cached lint/quick goldens/build pass; production visualizers/complexity/language-scope pass 17/17. Ledger: REFACTOR_PHASE2B.md.
 - Cluster 1 commit: 27acd16. Cluster 2 complete: Lenis removed offline; exact one-package lock delta; tsc/quick goldens/build, 1,021 manifest-related tests, 7 maintenance tests and 10/10 production intro/layout cases pass.
 - Cluster 2 commit: d825cce. Cluster 3 complete: instrumenter reuses ast.isNode; actual generated output hashes match all 34 JS entries; 445 related tests, tsc/cached lint/quick goldens/build and production tracing 6/6 pass.
 - Phase 2B final T2: 1,021/1,021 in 26 files, 57.32 s, including full parity/contracts/frozen checks. Three quick golden/build passes and 33 targeted production browser passes; no assertions/fixtures changed.
-- Next after owner continue: Phase 3A shared core only; no broader cleanup or L1–L8 fixes implicitly authorized. Follow audit ownership proposals and preserve current limits/protocol/runtime behavior.
+- Blocker: real JS worker defaults empty options/rejects extra fields; Python rejects empty options/ignores extras. Uniform stricter validation changes protocol behavior. Evidence/decision: REFACTOR_PHASE3.md.
+- Owner reply: remove JavaScript from editor/Run, then continue 3A/3B in this pass. Language removal is a separate authorized behavior change; frozen catalog and internal golden data stay untouched.
+- Preflight: unchanged production build passed; fresh-worker real JS/Pyodide diagnostic 1/1 (10.93 s), four expected outcomes; first reused-worker diagnostic timed out. No product fix.
+- Next: Python-only editor/runtime boundary and its verification; then implement 3A/3B with T0/T1 per sub-step, final T2 and stop. No 3C/3D/3E or full browser/T3.
 - Language-scope production gap closed in 2B. Unverified: three unavailable audit tools; full browser/T3 deferred. No final bundle/security/visual gate claimed.
 - Frozen exception: removed one obsolete guard in javascript-examples.ts; deliberate export has zero new revisions and byte-identical index/implementation data. Only that manifest digest/export hash changed; proof is in REFACTOR_PHASE1.md.
-- Open decisions: no questions within the approved batch; optional export/CSS cleanup and L1–L8 fixes deferred; model removal still requires measured eligibility and approval.
+- Open decision: worker-specific validation policy versus stricter shared behavior; optional export/CSS cleanup and L1–L8 fixes remain deferred.
 - Findings: see REFACTOR_FINDINGS.md; no fixes in refactor commits. Baseline/methodology: REFACTOR_BASELINE.md and REFACTOR_PARITY.md.
 - Verification: T0 incremental/changed/related and T2 full units/goldens unchanged. Corrected T1: build production once per sub-step, then npx playwright test <affected specs> --workers=1; never dev or the rebuilding test:e2e hook.
 - Detection evaluation: about 40 labelled snippets; retain model unless measured removal criterion and approval are satisfied.
-- End the approved Phase 2B batch before Phase 3A. Full browser/T3 remains deferred until run final gate.
+- Phase 3 preflight changes markdown only; application LOC delta zero. Limits/protocol/validation/pipeline implementation and new T2 remain unverified.
 - Phase 2B frozen inputs/export unchanged; added source code has no comments; direct dependency count 37 to 36, Lenis 457,528 installed bytes removed without bundle-saving claim. No hosted calls, push or deploy.
