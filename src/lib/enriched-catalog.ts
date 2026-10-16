@@ -397,21 +397,3 @@ export function getEnrichedAlgorithm(idOrSlug: string): EnrichedAlgorithmData {
     },
   };
 }
-
-/**
- * Builds an Enrichment object suitable for Breakdown and Analysis components.
- */
-export function buildEnrichmentForAlgorithm(idOrSlug: string): Enrichment {
-  const data = getEnrichedAlgorithm(idOrSlug);
-  return {
-    summary: data.summary,
-    pattern: data.pattern,
-    functions: [],
-    annotations: [],
-    stepNotes: [],
-    timeComplexity: data.timeComplexity,
-    spaceComplexity: data.spaceComplexity,
-    suggestions: data.suggestions,
-    visualMapping: data.visualMapping,
-  };
-}

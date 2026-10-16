@@ -1,6 +1,6 @@
 # Revamp status
 
-- Current phase: 2A audit complete with tool-availability limits; STOP for owner review before Phase 2B.
+- Current phase: 2B approved first batch in progress after owner continue; no Phase 3 work.
 - Branch: refactor/revamp; never push, deploy or contact hosted services.
 - Start: 70adfb5; only pre-existing edit was the owner's AGENTS.md rules.
 - Done: clean rules/status commit 2ef477c; pre-revamp tag; baseline 698 unit / 92 browser passes, lint/typecheck/build green.
@@ -20,8 +20,10 @@
 - Done: lean audit in REFACTOR_AUDIT.md; no application changes, deletions, dependency changes or bug fixes in this resumption.
 - Audit: noUnusedLocals/noUnusedParameters tsc passes; knip/depcheck/jscpd unavailable offline (ENOTCACHED). Limited TS/PostCSS scans and targeted review recorded; no coverage/per-dependency bundle analysis.
 - Audit commit checks: ordinary incremental tsc and diff whitespace check pass; only markdown changed, so changed-code lint/related-test scope is empty. Prior code T0 and T2 stay green.
-- Next: wait for approval of specific Phase 2B clusters. Proposed unused wrappers/internal exports/lenis/AST predicate; high-risk architecture and CSS remain later phases.
-- Unverified: new e2e/language-scope spec outside the five-spec resumption list; three unavailable audit tools; full browser/T3 deferred. No final bundle/security/visual gate claimed.
+- Scope: unused wrappers/PythonRunner alias, Lenis removal and AST predicate reuse. Optional export narrowing, CSS, high-risk architecture and all defect fixes deferred.
+- Cluster 1 complete: unused wrappers/alias removed; 82 related tests before/after, tsc/cached lint/quick goldens/build pass; production visualizers/complexity/language-scope pass 17/17. Ledger: REFACTOR_PHASE2B.md.
+- Next: finish/commit each cluster with T0/T1, then full unit/golden T2 and stop before Phase 3A.
+- Language-scope production gap closed in 2B. Unverified: three unavailable audit tools; full browser/T3 deferred. No final bundle/security/visual gate claimed.
 - Frozen exception: removed one obsolete guard in javascript-examples.ts; deliberate export has zero new revisions and byte-identical index/implementation data. Only that manifest digest/export hash changed; proof is in REFACTOR_PHASE1.md.
 - Open decisions: no implementation questions; model removal requires measured eligibility and owner approval.
 - Findings: see REFACTOR_FINDINGS.md; no fixes in refactor commits. Baseline/methodology: REFACTOR_BASELINE.md and REFACTOR_PARITY.md.

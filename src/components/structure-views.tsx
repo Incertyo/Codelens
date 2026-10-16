@@ -1,12 +1,7 @@
 'use client';
 import { useId } from 'react';
 import { useStore } from '@/lib/store';
-import {
-  detectStructures,
-  objectFields,
-  type Structure,
-  type StructureNode,
-} from '@/lib/structures';
+import { objectFields, type Structure, type StructureNode } from '@/lib/structures';
 import { displayValue, type Step, type Value } from '@/lib/trace';
 import { DiagramViewport } from './diagram-viewport';
 const label = (v: Value, step?: Step, language: string = 'python') =>
@@ -248,19 +243,6 @@ export function StructureView({
         </>
       )}
       {object.truncated && <p className="mono dim">Additional entries truncated.</p>}
-    </div>
-  );
-}
-export function StructureViews({ step, previous }: { step: Step; previous?: Step }) {
-  const structures = detectStructures(step)
-    .filter((s) => !['array', 'matrix'].includes(s.kind))
-    .slice(0, 6);
-  if (!structures.length) return null;
-  return (
-    <div className="advanced-structures">
-      {structures.map((s) => (
-        <StructureView key={s.ref} structure={s} step={step} previous={previous} />
-      ))}
     </div>
   );
 }

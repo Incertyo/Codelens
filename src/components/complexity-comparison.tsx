@@ -12,10 +12,6 @@ import {
   type GrowthId,
 } from '@/lib/complexity';
 
-export function GrowthLadder() {
-  return null;
-}
-
 export function ComplexityChart({
   samples = [],
   fit = null,

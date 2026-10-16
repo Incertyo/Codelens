@@ -151,4 +151,3 @@ export class CodeRunner {
     });
   }
 }
-export { CodeRunner as PythonRunner };
