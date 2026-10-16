@@ -1,0 +1,28 @@
+{
+  "manifest": {
+    "library/python/arrays.py": "f35e300bc610082c5e34f9d63a862e3e9bfa7c5f85862a2b67672ed41600281e",
+    "library/python/backtracking.py": "8a800d9c22d361bc251efb1b67587a5f8a1df419d4b87d89a975074adea5e7bb",
+    "library/python/dynamic_programming.py": "9348d6f37bfda2af18d9273a1a5618c02258d4aa6810302851b13278ce8df2d5",
+    "library/python/geometry.py": "5dc57f549e9192c5fa05b6d3690af9baed853030aba15904b1cbbe32127e58c4",
+    "library/python/graphs.py": "6e7896aa01a3cf2e8f87f6c55f464505b611a0050d98da15c0b73e1b81f270ab",
+    "library/python/greedy.py": "5567094cb20de0b71db083116b213bbb8146ae71995f3a7c4b5c966d13bfbdd9",
+    "library/python/hashing.py": "db8a53ed3ba2cd606736ec237c1c97ce2ca5ab4cd74ebd3ac5f40eea9bd39153",
+    "library/python/heaps.py": "69c63f96a49d5eb1ed218598585bcbfada9faceab8238a70d368de4aa767f64f",
+    "library/python/linked_lists.py": "c2428b28e56ec60a69e5fb333cd13d926d55dcd990077dfe66da2447629d5852",
+    "library/python/mathematics.py": "bf68c84f2f1296a80a435987143161bb2611e80e18c1d4fa4a5f8bf1bba028d5",
+    "library/python/range_queries.py": "2b260c008881b3ab4cacdfb7d8ed6ddb1665d4e0fe1b175c580900d3da7c7ced",
+    "library/python/searching.py": "eac5c28c01f7de1d62c7baa6352829a677e3489112d241d9804ba45e1efa40d1",
+    "library/python/sorting.py": "574c16e275b233f934cef8b40b9fbcafacbbdeb49ec427ec5db84f9101fac91d",
+    "library/python/stacks.py": "0562fd93f1ada888ca808d7fb4b4d9a5660a87e0b89d48240858d104048ca615",
+    "library/python/strings.py": "4623b453a99075e581aa8bafcdcd3e4874a471a5eefddad02b2065b38657cea6",
+    "library/python/trees.py": "ebc86d10a3347904ac2ed0a9f0385af5b21430afa1f0c9c1480a7d81758c9991",
+    "library/schema.sql": "7b3e6e6e42b1427de8de6ada4f44e723b7b5eabcd511fde61ee7dd733d0dd479",
+    "scripts/compile-library.py": "487ce66fdfc6e951a8d4c3fafb3f6ef051e0e581666a543963ac033923f4e7e1",
+    "scripts/seed-library.ts": "afe6f1d5092fe517a488ff965b474e13c4a610c2331c66d82bddb8f5255cb117",
+    "src/lib/additional-examples.ts": "f4fb460b4fc076e39c520bcf118c03edaea69120b6f81128b17c4a374c1ee609",
+    "src/lib/algorithm-catalog.ts": "abbff3b26ddaf9792b7b164d8cb8f3dd8d7dd16128afa822bd19731eaf6e7009",
+    "src/lib/examples.ts": "81976ede1c25eb87c2de617f0882238054b72717e0fdcc3a4d511b8b2e9fa92b",
+    "src/lib/javascript-examples.ts": "c168206846c561a62e45f8a90ff586cbc5d9d09610f3852c2c73341bd4869d12"
+  },
+  "exportHash": "d2f57ef116702deca75662b76139359a91d0ad0e8faabb5bf4ed89cebf6b4f38"
+}
