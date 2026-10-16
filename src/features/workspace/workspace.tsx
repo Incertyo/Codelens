@@ -143,7 +143,7 @@ export function Workspace() {
       runner.current?.dispose();
       loadRequest.current?.abort();
     };
-  }, []);
+  }, [loadRequest, runId, runner]);
   useStoredNotes(code, language, unsupportedLanguage, sourceIssue, implementationId);
   useWorkspaceShortcuts(run, booting, menu);
   const shareCode = async () => {

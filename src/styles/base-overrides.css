@@ -1,0 +1,32 @@
+html {
+  scrollbar-color: var(--control-border) var(--bg);
+  scrollbar-width: thin;
+  scroll-padding-top: var(--s5);
+}
+
+body {
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+a,
+summary,
+select,
+input,
+textarea {
+  -webkit-tap-highlight-color: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+:is(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--code-active);
+  outline-offset: 3px;
+}
+
+button:disabled {
+  transform: none;
+}
+
+.mono {
+  font-variant-numeric: tabular-nums;
+}

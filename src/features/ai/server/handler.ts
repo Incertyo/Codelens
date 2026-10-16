@@ -2,7 +2,7 @@ import { limits } from "@/shared/limits";
 import { analyzeRequestSchema, enrichCode, providerStatus, aiReadiness } from "@/features/ai/server/analyze";
 import { takeSharedLimit, requireAllowed } from "@/features/ai/server/rate-limit";
 import { AIControlError } from "@/features/ai/server/control-error";
-import { createHash } from 'node:crypto';
+import { hashText } from '@/shared/server/hashing';
 import { getStoredAnalysis, saveStoredAnalysis, type StoredAnalysis } from "@/features/library/public/server/analysis-repository";
 import { adviceRequestSchema, analyzeAdvice, validateIdentity } from "@/features/ai/server/advice-generation";
 const MAX_BODY_BYTES = limits.aiBodyBytes;
@@ -114,7 +114,7 @@ export async function postAnalysis(request: Request) {
 
     const checkCache = (body as Record<string, unknown>)?.checkCache === true;
     if (checkCache) {
-      const sourceHash = createHash('sha256').update(parsed.data.code).digest('hex');
+      const sourceHash = hashText(parsed.data.code);
       const cached = getStoredAnalysis({
         implementationId: parsed.data.implementationId,
         sourceHash,
@@ -127,7 +127,7 @@ export async function postAnalysis(request: Request) {
 
     const enrichmentResult = await enrichCode(parsed.data, request.signal);
     if (enrichmentResult.source === 'ai') {
-      const sourceHash = createHash('sha256').update(parsed.data.code).digest('hex');
+      const sourceHash = hashText(parsed.data.code);
       saveStoredAnalysis({
         implementationId: parsed.data.implementationId,
         sourceHash,

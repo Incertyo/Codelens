@@ -1,0 +1,107 @@
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-signal: var(--accent);
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-code);
+}
+* {
+  box-sizing: border-box;
+}
+html {
+  background: var(--bg);
+  color: var(--fg);
+  color-scheme: dark;
+}
+html[data-theme='light'] {
+  color-scheme: light;
+}
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  -webkit-font-smoothing: antialiased;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button,
+a,
+input,
+select,
+textarea,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  cursor: pointer;
+  color: inherit;
+  border: 0;
+  background: transparent;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: var(--s1);
+}
+html[data-theme='light'] :focus-visible {
+  outline-color: var(--ink);
+}
+::selection {
+  background: var(--accent);
+  color: var(--ink);
+}
+svg {
+  flex-shrink: 0;
+}
+.mono {
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  letter-spacing: 0.02em;
+}
+.doto {
+  font-family: var(--font-dot);
+}
+.dim {
+  color: var(--muted);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.skip-link {
+  position: fixed;
+  top: var(--s2);
+  left: var(--s2);
+  padding: var(--s3);
+  z-index: 200;
+  transform: translateY(-150%);
+  color: var(--ink);
+  background: var(--accent);
+}
+.skip-link:focus {
+  transform: translateY(0);
+}

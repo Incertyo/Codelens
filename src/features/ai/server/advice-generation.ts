@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createHash } from 'node:crypto';
+import { hashText } from '@/shared/server/hashing';
 import { adviceSchema, identitySchema, entrySchema } from "../../insights/public/model/analysis";
 import { AIOutputError } from "./generation";
 import { generateValidated } from "./pipeline";
@@ -16,7 +16,7 @@ export const adviceRequestSchema = source
     message: 'Entry lines must exist in the source.',
   });
 export function validateIdentity(input: z.infer<typeof source>) {
-  if (createHash('sha256').update(input.code).digest('hex') !== input.identity.sourceHash)
+  if (hashText(input.code) !== input.identity.sourceHash)
     throw new Error('Source hash does not match.');
 }
 export async function analyzeAdvice(

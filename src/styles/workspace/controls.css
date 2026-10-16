@@ -1,0 +1,254 @@
+.topbar {
+  min-height: 80px;
+}
+
+.wordmark {
+  letter-spacing: -0.055em;
+}
+
+.topbar-caption,
+.hero-bottom,
+.workspace-topline,
+.panel-title {
+  letter-spacing: 0.09em;
+}
+
+.hero {
+  padding-block: clamp(32px, 4.5vw, 64px) var(--s8);
+}
+
+.hero-title {
+  line-height: 0.96;
+  font-weight: 500;
+  text-wrap: balance;
+}
+
+.hero-paste-badge {
+  border-radius: var(--radius);
+  padding-inline: 0.14em;
+  box-shadow: none;
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.hero-paste-badge:hover,
+.hero-docked .hero-paste-badge {
+  box-shadow: none;
+}
+
+.hero-definition {
+  max-width: 60ch;
+  line-height: 1.7;
+}
+
+.hero-note p {
+  line-height: 1.45;
+}
+
+.hero-docked {
+  padding-block: var(--s5);
+}
+
+.marquee {
+  height: 38px;
+  letter-spacing: 0.14em;
+}
+
+.marquee > div {
+  animation-duration: 56s;
+}
+
+.workspace-topline {
+  padding-block: var(--s8) var(--s4);
+}
+
+.status-indicator {
+  background: var(--code-active);
+}
+
+.algorithm-navigation {
+  padding: var(--s5);
+  gap: var(--s4);
+  background: var(--surface);
+}
+
+.algorithm-navigation label > span,
+.analysis-field > span {
+  line-height: 1.6;
+}
+
+.algorithm-navigation select,
+.analysis-field select,
+.library-language select,
+.share-dialog input,
+.stdin-box textarea {
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-code);
+  font-size: var(--text-code);
+  min-height: var(--control-height);
+  padding: var(--s3);
+  transition:
+    border-color var(--motion-fast),
+    background-color var(--motion-fast);
+}
+
+select,
+input[type='checkbox'],
+input[type='range'] {
+  accent-color: var(--code-active);
+}
+
+select option {
+  background: var(--surface);
+  color: var(--fg);
+}
+
+.workspace {
+  border-color: var(--border);
+}
+
+.editor-toolbar,
+.tabs {
+  height: 56px;
+  min-height: 56px;
+}
+
+.editor-toolbar,
+.filebar,
+.editor-bottom,
+.run-row,
+.playback,
+.panel-title {
+  padding-inline: var(--s5);
+}
+
+.editor-toolbar,
+.filebar,
+.panel-title {
+  background: color-mix(in srgb, var(--surface-raised) 28%, var(--surface));
+}
+
+.editor-actions {
+  gap: var(--s3);
+}
+
+.language-select select {
+  color: var(--fg);
+  min-height: var(--control-height);
+}
+
+.filebar {
+  min-height: 42px;
+  gap: var(--s3);
+}
+
+.filebar > span:first-child {
+  min-width: 0;
+}
+
+.filebar > span:first-child > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-mark,
+.phase-tag,
+.spotlight-badge,
+.suggestion-type-tag {
+  border-radius: var(--radius);
+  font-family: var(--font-code);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.icon-button,
+.play-button {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  transition:
+    color var(--motion-fast),
+    background-color var(--motion-fast),
+    border-color var(--motion-fast);
+}
+
+.text-button {
+  min-height: 36px;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.text-button > svg,
+.run-button > svg:last-child,
+.menu-button > svg,
+.overlay-nav > button > svg {
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.run-button,
+.signal-button,
+.analysis-button:not(.cancel-btn) {
+  min-height: var(--control-height);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--ink);
+  font-family: var(--font-code);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.4;
+  transition:
+    background-color var(--motion-fast),
+    border-color var(--motion-fast),
+    transform var(--motion-fast) var(--motion-ease);
+}
+
+.run-button:hover {
+  filter: none;
+}
+
+.run-button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.cancel-btn {
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--surface);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tabs > button {
+  flex: 1 0 auto;
+  padding-inline: var(--s3);
+  font-size: var(--text-sm);
+  transition:
+    background-color var(--motion-fast),
+    color var(--motion-fast);
+}
+
+.tabs > button.active-tab {
+  background: var(--surface-raised);
+}
+
+.tabs > button.active-tab::after {
+  left: 0;
+  right: 0;
+  background: var(--code-active);
+}
+
+.tabs > button:focus-visible {
+  outline-offset: -4px;
+}

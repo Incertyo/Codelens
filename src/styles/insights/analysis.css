@@ -1,0 +1,224 @@
+.analysis-pane {
+  padding: 26px;
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.analysis-heading h2 {
+  font-size: clamp(24px, 4vw, 36px);
+  letter-spacing: -1px;
+  margin: 8px 0;
+}
+.analysis-pane section {
+  border-top: 1px solid var(--border);
+  padding: 24px 0;
+}
+.analysis-pane h3 {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+.analysis-pane p {
+  margin: 10px 0;
+}
+.analysis-identity {
+  font-size: 10px;
+}
+.analysis-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0;
+}
+.analysis-field select {
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 10px;
+  width: 100%;
+  min-height: 44px;
+}
+.analysis-button {
+  border: 1px solid var(--border);
+  background: var(--accent);
+  color: #1a1a1a;
+  padding: 10px 14px;
+  min-height: 44px;
+  margin: 8px 0;
+  font-weight: 600;
+}
+.analysis-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.complexity-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+.complexity-facts dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+.complexity-facts dd {
+  margin: 0;
+  font-family: var(--font-code);
+}
+.analysis-refusal,
+.estimate-card {
+  padding: 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+}
+.analysis-pane table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+.analysis-pane th,
+.analysis-pane td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.analysis-pane caption {
+  text-align: left;
+  font-size: 12px;
+}
+.step-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 16px 0;
+}
+.step-chart line {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.step-chart polyline {
+  stroke: var(--fg);
+  stroke-width: 1.5;
+}
+.step-chart circle {
+  fill: var(--accent);
+  stroke: var(--fg);
+  stroke-width: 1;
+}
+.step-chart text {
+  fill: var(--fg);
+  font-family: var(--font-code);
+  font-size: 10px;
+}
+.step-chart .reference-curve,
+.curve-legend .reference-curve {
+  stroke: var(--muted);
+  stroke-width: 1.25;
+  opacity: 0.65;
+}
+.step-chart .best-fit-curve,
+.curve-legend .best-fit-curve {
+  stroke: var(--fg);
+  stroke-width: 3;
+}
+.chart-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  width: fit-content;
+  cursor: pointer;
+}
+.chart-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--fg);
+}
+.curve-legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 0;
+  font-size: 12px;
+}
+.curve-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.curve-legend svg {
+  width: 44px;
+  height: 12px;
+  flex: 0 0 44px;
+}
+.measured-marker {
+  width: 44px;
+  text-align: center;
+}
+.complexity-sources {
+  margin: 16px 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.scale-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.scale-table-scroll table {
+  min-width: 460px;
+}
+.complexity-comparison {
+  min-width: 0;
+}
+.hotspot-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.analysis-status {
+  min-height: 24px;
+}
+.analysis-pane details {
+  margin: 14px 0;
+}
+.analysis-pane summary {
+  cursor: pointer;
+  padding: 10px 0;
+}
+.analysis-pane pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 12px;
+  border: 1px solid var(--border);
+  max-height: 360px;
+  overflow: auto;
+  font-size: 11px;
+}
+.source-diff .diff-add {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.source-diff .diff-remove {
+  text-decoration: line-through;
+  background: color-mix(in srgb, var(--fg) 10%, transparent);
+}
+.suggested-test {
+  border: 1px solid var(--border);
+  padding: 12px;
+  margin: 14px 0;
+}
+.heat-1 {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.heat-2 {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.heat-3 {
+  background: color-mix(in srgb, var(--accent) 23%, transparent);
+}
+.heat-4 {
+  background: color-mix(in srgb, var(--accent) 32%, transparent);
+}
+@media (max-width: 600px) {
+  .analysis-pane {
+    padding: 18px;
+  }
+}

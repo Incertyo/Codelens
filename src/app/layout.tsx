@@ -6,7 +6,6 @@ import '@fontsource/space-grotesk/700.css';
 import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/doto/600.css';
 import './globals.css';
-import './refinements.css';
 import { PageIntro } from "@/features/intro/public/page-intro";
 import { INTRO_WATCHDOG } from "@/features/intro/public/policy";
 export const metadata: Metadata = {

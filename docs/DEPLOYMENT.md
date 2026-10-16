@@ -233,3 +233,7 @@ the retained Analysis/hardening stories with AI disabled. The current manual
 Measure action uses the new engine and shows both memory series numerically;
 catalog profiles, automatic measurement and the dual-chart UI await their
 numbered parts. This source pass does not deploy or contact hosted resources.
+
+### Shared worker helper
+
+The existing build/install flow now generates public/worker-core.js from src/shared/limits.ts and src/shared/worker-protocol.ts using scripts/generate-worker-core.mjs. Run the existing build or copy-runtime workflow when preparing local assets; do not hand-edit the generated helper. The Python worker remains a classic worker and hashed runtime asset paths, CSP and cache rules retain their roles. Local smoke includes the helper URL. No new environment variable or hosted resource is required. Phase 3 production asset delivery has not been verified in this pass, and no deployment was performed.

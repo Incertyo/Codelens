@@ -1,0 +1,44 @@
+.custom-cursor {
+  position: fixed;
+  top: -4px;
+  left: -4px;
+  width: 8px;
+  height: 8px;
+  border: var(--hairline) solid var(--muted);
+  border-radius: 50%;
+  z-index: 300;
+  pointer-events: none;
+  opacity: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: var(--font-code);
+  font-size: 8px;
+  color: var(--fg);
+  transition:
+    width 0.15s,
+    height 0.15s,
+    margin 0.15s;
+}
+.custom-cursor[data-active='true'] {
+  width: 44px;
+  height: 44px;
+  margin: -18px 0 0 -18px;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: invert(1);
+  -webkit-backdrop-filter: invert(1);
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.3);
+  transition:
+    width 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    margin 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+@supports not (backdrop-filter: invert(1)) {
+  .custom-cursor[data-active='true'] {
+    mix-blend-mode: difference;
+    background: rgba(255, 255, 255, 0.75);
+  }
+}

@@ -96,6 +96,7 @@ exports.limits = Object.freeze({
     globalMinuteDefault: 60,
     globalMinuteTest: 10,
     dailyDefault: 1000,
+    sqliteBusyMs: 5000,
 });
 exports.measurementBounds = Object.freeze({
     eventBudget: [exports.limits.measurementMinEvents, exports.limits.measurementEvents],

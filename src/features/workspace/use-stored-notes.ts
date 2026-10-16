@@ -1,4 +1,5 @@
 'use client';
+import { hashSource } from '@/shared/identity';
 import { useEffect } from 'react';
 import { useStore } from "@/features/workspace/store";
 import { enrichmentSchema, type Language } from "@/shared/breakdown";
@@ -8,14 +9,9 @@ export function useStoredNotes(code: string, language: Language, unsupportedLang
   useEffect(() => {
     if (unsupportedLanguage || sourceIssue || !code.trim()) return;
     let active = true;
-    const encoder = new TextEncoder();
-    crypto.subtle
-      .digest('SHA-256', encoder.encode(code))
-      .then((hashBuf) => {
+    hashSource(code)
+      .then((sHash) => {
         if (!active) return;
-        const sHash = Array.from(new Uint8Array(hashBuf))
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('');
         fetch(
           `/api/analyze?sourceHash=${sHash}&language=${language}&implementationId=${encodeURIComponent(implementationId)}`,
         )

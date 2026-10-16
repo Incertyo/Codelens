@@ -79,7 +79,7 @@ export function useLanguageDetection() {
       };
       timeout = setTimeout(failed, limits.detectionTimeoutMs);
       current.postMessage({ id: revision, code: code.slice(0, limits.code) });
-    }, 350);
+    }, limits.detectionDebounceMs);
     return () => {
       active = false;
       clearTimeout(timer);

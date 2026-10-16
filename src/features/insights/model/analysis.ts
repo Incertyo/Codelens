@@ -1,4 +1,3 @@
-import { identitySchema } from "@/shared/identity";
 export { identitySchema, sourceIdentity, sameIdentity, type SourceIdentity } from "@/shared/identity";
 import { limits } from "@/shared/limits";
 import { z } from 'zod';

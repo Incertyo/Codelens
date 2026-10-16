@@ -216,3 +216,9 @@ Add to the deployment checklist: verify the chosen Gemini quota and privacy noti
 ## Local revamp checks
 
 The supported-language contract is in docs/ai/LANGUAGES.md. Run `npm run test:golden:quick` for 25 catalog references spanning all 16 topics, all 17 JavaScript examples, observed detector kinds and local API/share contracts. The full unit command still includes every golden record. `npx tsx scripts/evaluate-language-detection.ts` evaluates only the 40 authored local cases in tests/fixtures/language-detection-corpus.ts; it reads installed model files and makes no hosted calls. Measured results and limitations are in docs/DETECTION_EVAL.md. No new runtime environment variable is required.
+
+### Revamp architecture
+
+Code is organized into shared primitives and feature domains, with public module entries and separate AI client/server paths. The editor remains Python-only; internal JavaScript maintenance engines and catalog data are retained. See [architecture](docs/ARCHITECTURE.md) and [style ownership](docs/STYLES.md).
+
+The classic Python worker's shared helper is generated locally by prebuild, predev and copy-runtime using the installed TypeScript compiler. Phase 3 source changes have not been verified: the owner waived all checks for this pass. No runtime, visual or bundle parity claim is made until the deferred acceptance gate.

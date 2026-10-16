@@ -1,6 +1,6 @@
 import { limits } from "@/shared/limits";
 import { ModelOperations } from '@vscode/vscode-languagedetection';
-import assets from '../generated/runtime-assets.json';
+import assets from '@/generated/runtime-assets.json';
 import { modelDetection } from "../language-detection";
 
 let model: ModelOperations | undefined;

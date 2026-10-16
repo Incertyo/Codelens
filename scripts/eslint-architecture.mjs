@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { limits } from '../src/shared/limits.ts';
 
 const normalize = value => value.replaceAll('\\', '/');
 const sourcePath = (value, file) => value.startsWith('@/')
@@ -25,7 +26,7 @@ const boundaries = {
       const target = sourcePath(value, file);
       const targetFeature = feature(target);
       let messageId;
-      if (file.includes('/src/shared/') && targetFeature) messageId = 'shared';
+      if (file.includes('/src/shared/') && (targetFeature || /\/src\/lib\//.test(target))) messageId = 'shared';
       else if (ownFeature && targetFeature && ownFeature !== targetFeature && !target.includes('/public/')) messageId = 'public';
       else if ((client || ownFeature && !server && !file.includes('/public/server/')) && target.includes('/server/')) messageId = 'server';
       else if (file.includes('/workers/') && (/^(react(?:-dom)?|next)(\/|$)/.test(value) || /monaco-editor|\/components\/|\/public\/.*(?:code-editor|workspace|preferences|page-intro)/.test(target))) messageId = 'worker';
@@ -37,6 +38,7 @@ const boundaries = {
       ExportNamedDeclaration: node => { if (node.source) inspect(node.source); },
       ExportAllDeclaration: node => inspect(node.source),
       ImportExpression: node => inspect(node.source),
+      TSImportType: node => { if (node.argument?.type === 'TSLiteralType') inspect(node.argument.literal); else if (node.source) inspect(node.source); },
     };
   },
 };
@@ -46,9 +48,22 @@ const limitOwner = {
   create(context) {
     const file = normalize(context.filename);
     if (file.endsWith('/shared/limits.ts') || file.includes('/src/lib/') || file.includes('/generated/')) return {};
-    const caps = new Set([30000, 5000, 12000, 90000, 1048576, 16777216, 18000, 3500]);
+    const caps = new Set([
+      limits.code, limits.stdin, limits.steps, limits.runTimeoutMs, limits.runtimeTimeoutMs,
+      limits.traceTimeoutMs, limits.stdout, limits.traceBytes, limits.traceNoticeBytes,
+      limits.measurementEvents, limits.measurementObjects, limits.measurementVisits,
+      limits.measurementN, limits.measurementRequestBytes, limits.aiDeadlineMs,
+      limits.aiOutputTokens, limits.aiBodyBytes, limits.shareFragment, limits.shareJson,
+    ]);
+    const snapshotCaps = new Set([limits.variables, limits.heapObjects, limits.valueCharacters, limits.snapshotDepth]);
     return { Literal(node) {
-      if (typeof node.value === 'number' && caps.has(node.value)) context.report({ node, messageId: 'limit' });
+      if (typeof node.value !== 'number') return;
+      const parent = node.parent;
+      const snapshotFile = /\/(runtime|trace|measurement|detectors|structures|breakdown|analysis)\.(ts|tsx)$/.test(file);
+      const capCall = parent.type === 'CallExpression' && parent.callee.type === 'MemberExpression' &&
+        ['max', 'slice', 'substring'].includes(parent.callee.property.name) &&
+        !(parent.callee.object.type === 'Identifier' && parent.callee.object.name === 'Math');
+      if (caps.has(node.value) || snapshotFile && capCall && snapshotCaps.has(node.value)) context.report({ node, messageId: 'limit' });
     } };
   },
 };

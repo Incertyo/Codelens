@@ -1,0 +1,98 @@
+.analysis-pane,
+.breakdown-summary,
+.function-card {
+  padding: var(--panel-space);
+}
+
+.analysis-heading h2,
+.breakdown-summary h2 {
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 500;
+  letter-spacing: -0.055em;
+  line-height: 1.1;
+}
+
+.analysis-pane p,
+.breakdown-summary > p:not(.mono),
+.algorithm-detail p,
+.drawer-intro {
+  line-height: 1.8;
+}
+
+.complexity-badge-card,
+.suggestion-card,
+.spotlight-card,
+.analysis-complexity-card,
+.estimate-card {
+  border-radius: var(--radius);
+  box-shadow: none;
+  background: var(--surface-raised);
+}
+
+.spotlight-card:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border);
+}
+
+.spotlight-val {
+  font-size: clamp(24px, 2.6vw, 34px);
+  font-weight: 500;
+  letter-spacing: -0.055em;
+}
+
+.time-spotlight .spotlight-val,
+.space-spotlight .spotlight-val {
+  text-shadow: none;
+}
+
+.complexity-badge-card strong,
+.time-spotlight .spotlight-val {
+  color: var(--time-signal);
+}
+
+.space-spotlight .spotlight-val {
+  color: var(--space-signal);
+}
+
+.indicator-dot,
+.indicator-dot.space-dot {
+  box-shadow: none;
+  animation: none;
+}
+
+.indicator-dot.space-dot {
+  background: var(--space-signal);
+}
+
+.spotlight-cards-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+
+.measurement-controls-bar {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+}
+
+.measurement-actions-row {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.analysis-pane th,
+.map-table th {
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.analysis-pane td,
+.map-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+dialog {
+  border-color: var(--control-border);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 100px color-mix(in srgb, var(--ink) 35%, transparent);
+}

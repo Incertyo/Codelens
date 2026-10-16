@@ -3,7 +3,9 @@ import ast as _analysis_ast
 import json as _analysis_json
 
 def inspect_code(request_json):
-    code = _analysis_json.loads(request_json)['code']
+    request = _analysis_json.loads(request_json)
+    limits = request.get('limits', _codelens_limits)
+    code = request['code']
     try:
         tree = _analysis_ast.parse(code, filename='<codelens>')
     except SyntaxError as exc:
@@ -73,4 +75,4 @@ def inspect_code(request_json):
     module = ['' for _ in lines]
     for node in keep:
         for i in range(node.lineno - 1, node.end_lineno): module[i] = lines[i]
-    return _analysis_json.dumps(dict(entries=entries[:_codelens_limits['inspectionEntries']], moduleCode='\n'.join(module), diagnostic=None, preparationReason=preparation))
+    return _analysis_json.dumps(dict(entries=entries[:limits['inspectionEntries']], moduleCode='\n'.join(module), diagnostic=None, preparationReason=preparation))

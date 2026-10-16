@@ -92,6 +92,7 @@ export const limits = Object.freeze({
   globalMinuteDefault: 60,
   globalMinuteTest: 10,
   dailyDefault: 1000,
+  sqliteBusyMs: 5000,
 });
 
 export const measurementBounds = Object.freeze({

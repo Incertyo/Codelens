@@ -1,3 +1,4 @@
+import { limits } from '@/shared/limits';
 import { DatabaseSync } from 'node:sqlite';
 import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -79,7 +80,7 @@ function withDb<T>(readOnly: boolean, action: (db: DatabaseSync) => T): T | null
   try {
     const db = new DatabaseSync(getDbLocation(), { readOnly });
     try {
-      db.exec('PRAGMA busy_timeout = 5000;');
+      db.exec(`PRAGMA busy_timeout = ${limits.sqliteBusyMs};`);
       if (!readOnly) {
         ensureAnalysisTable(db);
       }

@@ -1,0 +1,70 @@
+.motion-study {
+  width: 180px;
+  height: 112px;
+  margin: 0 0 var(--s5) -8px;
+  perspective: 750px;
+  pointer-events: none;
+}
+
+.study-tilt,
+.study-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.study-scene {
+  transform: rotateX(42deg) rotateY(-16deg) rotateZ(-12deg);
+}
+
+.study-plane {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+
+.study-plane:nth-child(1) {
+  transform: translate3d(-12px, -10px, 0);
+}
+
+.study-plane:nth-child(2) {
+  transform: translate3d(-6px, -5px, 20px);
+}
+
+.study-plane:nth-child(3) {
+  transform: translateZ(40px);
+}
+
+.study-plane svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.study-paper {
+  fill: var(--surface);
+  stroke: var(--control-border);
+  stroke-width: 0.8;
+}
+
+.study-rule {
+  stroke: var(--muted);
+  stroke-width: 0.8;
+}
+
+.study-plane text {
+  fill: var(--muted);
+  font-family: var(--font-code);
+  font-size: 8px;
+  letter-spacing: 0.05em;
+}
+
+.study-signal {
+  stroke: var(--code-active);
+  stroke-width: 1.5;
+}
+
+.study-point {
+  fill: var(--code-active);
+}

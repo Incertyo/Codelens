@@ -7,7 +7,7 @@ import type { Language } from "@/shared/breakdown";
 type InspectionOptions = {
   delay: number;
   failure: string;
-  cache: (analysis: { bigOFit?: import('@/lib/measurement').MeasurementFit }) => void;
+  cache: (analysis: { bigOFit?: import('@/features/runner/public/measurement').MeasurementFit }) => void;
   cancel?: () => void;
   cleanup: () => void;
 };

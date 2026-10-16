@@ -1,0 +1,39 @@
+.tab-content {
+  animation: panel-arrive 320ms var(--motion-ease) both;
+}
+
+.complexity-tab-pane {
+  gap: var(--s5);
+  animation: none;
+}
+
+dialog[open]:not(.menu-dialog) {
+  animation: panel-arrive 280ms var(--motion-ease) both;
+}
+
+.menu-dialog[open] .overlay-nav > button {
+  animation: panel-arrive 380ms var(--motion-ease) both;
+}
+
+.menu-dialog[open] .overlay-nav > button:nth-child(2) {
+  animation-delay: 35ms;
+}
+
+.menu-dialog[open] .overlay-nav > button:nth-child(3) {
+  animation-delay: 70ms;
+}
+
+.menu-dialog[open] .overlay-nav > button:nth-child(4) {
+  animation-delay: 105ms;
+}
+
+@keyframes panel-arrive {
+  from {
+    opacity: 0.6;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

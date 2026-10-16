@@ -1,0 +1,156 @@
+.site-footer {
+  margin-top: var(--s8);
+  padding-top: var(--s8);
+  border-top: 1px solid var(--border);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hero-paste-badge:hover {
+    transform: translateY(-0.035em) rotate(-1deg);
+  }
+
+  .run-button:not(:disabled):hover,
+  .signal-button:not(:disabled):hover,
+  .analysis-button:not(:disabled, .cancel-btn):hover {
+    background: var(--paper);
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  .run-button:not(:disabled):hover > svg:last-child {
+    transform: translateX(3px);
+  }
+
+  .text-button:hover > svg,
+  .overlay-nav > button:hover > svg {
+    transform: translate(2px, -2px);
+  }
+
+  .menu-button:hover > svg {
+    transform: rotate(90deg);
+  }
+
+  .catalog-result:hover,
+  .example-index > button:hover,
+  .outline-row:hover,
+  .overlay-nav > button:hover,
+  .tabs > button:not(.active-tab):hover {
+    background: var(--surface-raised);
+  }
+
+  .catalog-topics button:hover,
+  .catalog-subtopics button:hover,
+  .concept-chip:hover,
+  .diagram-controls button:hover,
+  .algorithm-navigation select:hover,
+  .analysis-field select:hover {
+    border-color: var(--fg);
+  }
+}
+
+@media (max-width: 850px) {
+  .hero {
+    padding-top: var(--s8);
+  }
+
+  .hero-docked {
+    padding-top: var(--s5);
+  }
+
+  .algorithm-navigation {
+    padding: var(--s4);
+  }
+}
+
+@media (max-width: 650px) {
+  .editor-toolbar {
+    height: auto;
+    padding-block: var(--s2);
+    row-gap: var(--s2);
+  }
+
+  .editor-toolbar,
+  .filebar,
+  .editor-bottom,
+  .run-row,
+  .playback,
+  .panel-title {
+    padding-inline: var(--s3);
+  }
+
+  .filebar {
+    font-size: 8px;
+  }
+
+  .algorithm-navigation {
+    gap: var(--s4);
+  }
+
+  .icon-button,
+  .play-button,
+  .transport .icon-button {
+    min-width: 36px;
+  }
+
+  .playback-top {
+    flex-wrap: wrap;
+    row-gap: var(--s3);
+  }
+
+  .spotlight-card {
+    padding: var(--s4);
+  }
+
+  .site-footer {
+    gap: var(--s4);
+  }
+}
+
+@media (max-width: 520px) {
+  .topbar {
+    min-height: 68px;
+  }
+
+  .hero-title {
+    font-size: clamp(36px, 10vw, 54px);
+    letter-spacing: -0.07em;
+  }
+
+  .hero-docked .hero-title {
+    font-size: 22px;
+  }
+
+  .hero-definition,
+  .hero-bottom {
+    font-size: 9px;
+  }
+
+  .hero-definition {
+    max-width: 32ch;
+  }
+
+  .tabs > button {
+    font-size: 11px;
+    padding-inline: 10px;
+  }
+
+  .tabs .mono {
+    font-size: 12px;
+  }
+
+  .run-button {
+    gap: var(--s2);
+    padding-inline: var(--s4);
+  }
+
+  .run-button > svg:last-child {
+    margin-left: var(--s1);
+  }
+}
+
+html[data-motion='reduce'] *,
+html[data-motion='reduce'] *::before,
+html[data-motion='reduce'] *::after {
+  transition: none !important;
+  animation: none !important;
+}

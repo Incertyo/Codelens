@@ -1,0 +1,219 @@
+.complexity-comparison {
+  --chart-ink: var(--time-signal);
+}
+
+.space-complexity-comparison {
+  --chart-ink: var(--space-signal);
+}
+
+.chart-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.chart-toggle {
+  gap: var(--s2);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.chart-toggle input {
+  width: 14px;
+  height: 14px;
+}
+
+.step-chart {
+  margin-block: var(--s2) var(--s3);
+  border-radius: var(--radius);
+}
+
+.step-chart line {
+  stroke-width: 0.7;
+  stroke-opacity: 0.7;
+}
+
+.step-chart text {
+  fill: var(--muted);
+  font-size: 9px;
+}
+
+.step-chart .reference-curve {
+  stroke: var(--muted);
+  stroke-width: 1;
+  opacity: 1;
+  filter: none;
+  transition: stroke-opacity 180ms ease;
+}
+
+.step-chart .reference-curve[data-main='true'] {
+  stroke: var(--chart-ink);
+  stroke-width: 1.8;
+}
+
+.step-chart .reference-curve[data-hovered='true'] {
+  stroke-width: 2;
+}
+
+.step-chart .best-fit-curve,
+.curve-legend .best-fit-curve {
+  stroke: var(--fg);
+  stroke-width: 2;
+  stroke-dasharray: 7 3;
+  filter: none;
+}
+
+.step-chart .measured-point {
+  fill: var(--surface);
+  stroke: var(--chart-ink);
+  stroke-width: 1.4;
+}
+
+.step-chart .main-curve-end-marker text {
+  fill: var(--chart-ink);
+}
+
+.step-chart .chart-hover-point {
+  fill: var(--surface);
+  stroke: var(--fg);
+  stroke-width: 1.2;
+}
+
+.step-chart .chart-tooltip-label {
+  fill: var(--fg);
+  font-size: 10px;
+}
+
+.chart-hover-overlay > line {
+  stroke: var(--muted);
+}
+
+.curve-legend {
+  gap: 2px 8px;
+  margin-block: var(--s2);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.curve-legend li {
+  min-width: 0;
+}
+
+.curve-legend li > button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 3px 5px;
+  border-radius: var(--radius);
+  color: inherit;
+}
+
+.curve-legend li > button:is(:hover, :focus-visible) {
+  color: var(--fg);
+  background: var(--surface-raised);
+}
+
+.curve-legend svg {
+  width: 28px;
+  flex-basis: 28px;
+}
+
+.main-problem-legend-pill {
+  flex-basis: 100%;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--fg);
+}
+
+.main-problem-legend-pill strong {
+  font-weight: 400;
+}
+
+.complexity-comparison > p {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.chart-details {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.chart-details > summary {
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.chart-details > summary::marker {
+  font-size: 8px;
+}
+
+.chart-details[open] > summary {
+  color: var(--fg);
+}
+
+.spotlight-card {
+  padding: var(--s4);
+  background: transparent;
+  border-left-width: 1px;
+}
+
+.spotlight-badge.tc-badge,
+.spotlight-badge.sc-badge {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+html[data-theme='light'] .tc-badge,
+html[data-theme='light'] .sc-badge {
+  color: var(--muted) !important;
+  background: none;
+  border: 0;
+}
+
+.spotlight-header {
+  gap: var(--s3);
+}
+
+.spotlight-desc {
+  line-height: 1.6;
+}
+
+.complexity-sources {
+  font-size: var(--text-sm);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .custom-cursor {
+    display: none;
+  }
+}
+
+html[data-motion='reduce'] .hero-paste-badge:hover {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-paste-badge:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

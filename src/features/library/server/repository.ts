@@ -1,8 +1,9 @@
+import { limits } from '@/shared/limits';
 import { DatabaseSync } from 'node:sqlite';
 import { resolve } from 'node:path';
 import { implementationSchema } from "../contract";
 import type { Language } from "../../../shared/breakdown";
-import snapshot from '../generated/library.json';
+import snapshot from '@/generated/library.json';
 const staticCatalogEnabled = () =>
   process.env.VERCEL === '1' || process.env.CODELENS_STATIC_LIBRARY === '1';
 
@@ -11,7 +12,7 @@ function read<T>(action: (db: DatabaseSync) => T): T {
     readOnly: true,
   });
   try {
-    db.exec('PRAGMA busy_timeout = 5000;');
+    db.exec(`PRAGMA busy_timeout = ${limits.sqliteBusyMs};`);
     return action(db);
   } finally {
     db.close();

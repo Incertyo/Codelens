@@ -1,4 +1,5 @@
 'use client';
+import { hashSource } from '@/shared/identity';
 import { limits } from "@/shared/limits";
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight, LoaderCircle, Sparkles } from 'lucide-react';
@@ -43,13 +44,8 @@ export function Breakdown({ implementationId }: { implementationId?: string } = 
           ) {
             useStore.getState().setBreakdown(outline);
             if (!useStore.getState().enrichment) {
-              const encoder = new TextEncoder();
-              crypto.subtle
-                .digest('SHA-256', encoder.encode(code))
-                .then((hashBuf) => {
-                  const sHash = Array.from(new Uint8Array(hashBuf))
-                    .map((b) => b.toString(16).padStart(2, '0'))
-                    .join('');
+              hashSource(code)
+                .then((sHash) => {
                   fetch(
                     `/api/analyze?sourceHash=${sHash}&language=${language}${implementationId ? `&implementationId=${encodeURIComponent(implementationId)}` : ''}`,
                   )
