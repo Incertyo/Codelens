@@ -9,7 +9,9 @@
 - Preserve JS defaults/strict fields and Python required bounds/selected fields; no stricter validator merge.
 - Direct Pyodide test setup initializes canonical limits; golden expectations and provider fixtures unchanged.
 - 3A verification explicitly skipped; no claim of trace, deadline, production asset or conformance parity.
-- Next: commit 3B parameterized AI generation, then 3C controllers/actions, 3D domains/boundaries and 3E CSS.
+- Done: 3B notes/advice share the generation loop; provider readiness and the server handler are extracted. Prompts, errors, admission and legacy persistence remain mode-compatible by construction, unverified.
+- Next: 3C controllers/actions, 3D domains/boundaries and 3E CSS.
 - L1–L8 fixes, optional feature changes, Phase 4, full browser/security/bundle gates are not authorized.
 - Remaining Python-only browser story migration and all acceptance checks remain deferred.
+
 
