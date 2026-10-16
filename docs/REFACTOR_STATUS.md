@@ -1,6 +1,6 @@
 # Revamp status
 
-- Current phase: 0 complete; stopped for owner review. No application refactoring.
+- Current phase: 1 incomplete; stopped under AGENTS.md after the same T1 browser case failed three times.
 - Branch: refactor/revamp; never push, deploy or contact hosted services.
 - Start: 70adfb5; only pre-existing edit was the owner's AGENTS.md rules.
 - Done: clean rules/status commit 2ef477c; pre-revamp tag; baseline 698 unit / 92 browser passes, lint/typecheck/build green.
@@ -8,8 +8,16 @@
 - Done: 1,068 unit tests, lint/typecheck; original full browser suite 92/92 plus two new characterization stories 2/2; production build and local smoke pass.
 - Done: 40 local screenshots; both real workers scrub 5,000 steps with 181 rendered positions; seven new code files contain zero comments; secret scans pass.
 - Commits: 2ef477c rules/status and pre-revamp tag; 26cb902 golden traces/contracts; following commit contains local tools and baseline docs.
-- Next after continue: Phase 1, remove Java/C++ execution/simulation while preserving unsupported share source and detection notices; evaluate heuristic/model corpus.
-- Frozen: library-manifest inputs and src/generated/library.json; capture fingerprints before changes.
-- Open decisions: none in Phase 0. Java/C++ removal starts only after owner says continue.
+- Done in working tree: Java/C++ execution/simulation removal, source-only old shares, unsupported detection and strict notes/advice schemas; removal commit follows quick-tooling commit.
+- Done: quick golden selector adds 25 references/all topics, 17 JS examples and API/share contracts without rewriting baseline goldens.
+- Done: 40-case real local model evaluation; criterion not met, model/assets retained (958,550 public asset bytes).
+- T0 current tree: incremental typecheck, cached changed-file eslint and 639 related unit cases pass.
+- T1: quick goldens pass; AI-controls rechecks-exhausted-budget case fails after switching to Analysis with a Monaco disposal/error page. Privacy/quota notice case passed on retry.
+- Attempts: default dev server; temporary Next harness with reactStrictMode=false; warmed isolated failed-case retry. No application config or Monaco fix was made.
+- Next: diagnose the recorded browser blocker and rerun only that failed check, then finish affected specs/T2. Phase 2A has not started.
+- Frozen exception: removed one obsolete guard in javascript-examples.ts; deliberate export has zero new revisions and byte-identical index/implementation data. Only that manifest digest/export hash changed; proof is in REFACTOR_PHASE1.md.
+- Open decisions: no implementation questions; model removal requires measured eligibility and owner approval.
 - Findings: see REFACTOR_FINDINGS.md; no fixes in refactor commits. Baseline/methodology: REFACTOR_BASELINE.md and REFACTOR_PARITY.md.
-- Stop after Phase 0 with verified results and any unverified items.
+- Verification: owner lean tiers supersede per-commit full checks; T0 incremental/changed/related, T1 quick golden + affected e2e, T2 full unit at phase end; no build/full browser/T3 until run final gate.
+- Detection evaluation: about 40 labelled snippets; retain model unless measured removal criterion and approval are satisfied.
+- After Phase 1 is verified, continue directly to lean Phase 2A and stop for audit review. Do not run production/full-browser/T3 now.

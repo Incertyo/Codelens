@@ -21,6 +21,7 @@
     "check:env": "node scripts/check-env.mjs",
     "smoke": "node scripts/smoke.mjs",
     "test": "vitest run",
+    "test:golden:quick": "node scripts/test-golden-quick.mjs",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
     "postinstall": "node scripts/copy-runtime.mjs"
