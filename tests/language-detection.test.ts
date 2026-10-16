@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { heuristicDetection, modelDetection, canAutoSwitch } from '../src/lib/language-detection';
-import { useStore } from '../src/lib/store';
+import { heuristicDetection, modelDetection, canAutoSwitch } from "../src/features/editor/public/language-detection";
+import { useStore } from "../src/features/workspace/public/store";
 
 describe('browser language detection', () => {
   it('rejects detected TypeScript rather than assigning the JavaScript runtime', () => {

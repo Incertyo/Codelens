@@ -1,6 +1,6 @@
 import catalog from '../../src/generated/library.json';
-import { examples } from '../../src/lib/examples';
-import { exampleCode } from '../../src/lib/javascript-examples';
+import { examples } from "../../src/lib/examples";
+import { exampleCode } from "../../src/lib/javascript-examples";
 
 export type DetectionLabel = 'python' | 'javascript' | 'ts' | 'cpp' | 'java';
 export type DetectionCase = { id: string; label: DetectionLabel; code: string };

@@ -24,7 +24,7 @@
     "test:golden:quick": "node scripts/test-golden-quick.mjs",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
-    "postinstall": "node scripts/generate-worker-core.mjs && node scripts/copy-runtime.mjs"
+    "postinstall": "node scripts/copy-runtime.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.79",

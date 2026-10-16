@@ -7,11 +7,11 @@ import {
   operationCount,
   neighboringModels,
   staticComparison,
-} from '../src/lib/complexity';
-import { fitComplexity, empiricalSizes, testHarness } from '../src/lib/analysis';
-import { inspectJavaScript } from '../src/lib/javascript/analysis';
-import { instrumentJavaScript } from '../src/lib/javascript/instrument';
-import { JavaScriptTrace } from '../src/lib/javascript/runtime';
+} from "../src/shared/complexity";
+import { fitComplexity, empiricalSizes, testHarness } from "../src/features/insights/public/model/analysis";
+import { inspectJavaScript } from "../src/features/runner/public/javascript/analysis";
+import { instrumentJavaScript } from "../src/features/runner/public/javascript/instrument";
+import { JavaScriptTrace } from "../src/features/runner/public/javascript/runtime";
 
 describe('fixed Big-O references', () => {
   it('evaluates only the seven fixed growth functions', () => {

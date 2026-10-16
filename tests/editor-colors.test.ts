@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { monacoTokenColor } from '../src/lib/editor-colors';
+import { monacoTokenColor } from "../src/features/editor/public/colors";
 it.each([
   ['#111', '111111'],
   ['#abc', 'aabbcc'],

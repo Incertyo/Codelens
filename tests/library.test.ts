@@ -1,4 +1,4 @@
-import { limits } from '../src/shared/limits';
+import { limits } from "../src/shared/limits";
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadPyodide, type PyodideInterface } from 'pyodide';
 import { readFileSync, copyFileSync, mkdtempSync, unlinkSync, rmdirSync } from 'node:fs';
@@ -7,12 +7,12 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
 import { createHash } from 'node:crypto';
-import { algorithms } from '../src/lib/algorithm-catalog';
-import { getLibraryImplementation, getLibraryIndex } from '../src/lib/library-repository';
-import { GET } from '../src/app/api/library/route';
-import { instrumentJavaScript } from '../src/lib/javascript/instrument';
-import { JavaScriptTrace } from '../src/lib/javascript/runtime';
-import { traceSchema } from '../src/lib/trace';
+import { algorithms } from "../src/lib/algorithm-catalog";
+import { getLibraryImplementation, getLibraryIndex } from "../src/features/library/public/server/repository";
+import { GET } from "../src/app/api/library/route";
+import { instrumentJavaScript } from "../src/features/runner/public/javascript/instrument";
+import { JavaScriptTrace } from "../src/features/runner/public/javascript/runtime";
+import { traceSchema } from "../src/shared/trace";
 const index = getLibraryIndex();
 const records = index.implementations.map((row) =>
   getLibraryImplementation(

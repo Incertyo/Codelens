@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { algorithms } from '../../src/lib/algorithm-catalog';
+import { algorithms } from "../../src/lib/algorithm-catalog";
 
 test('database index and nonfeatured algorithms load and run through Python workers', async ({
   page,

@@ -1,11 +1,11 @@
-import { limits } from '../src/shared/limits';
+import { limits } from "../src/shared/limits";
 import { describe, it, expect, beforeAll } from 'vitest';
 import { loadPyodide, type PyodideInterface } from 'pyodide';
 import { readFileSync } from 'node:fs';
-import { analyzeJavaScript } from '../src/lib/javascript/ast';
-import { normalizePythonOutline } from '../src/lib/breakdown';
-import { examples } from '../src/lib/examples';
-import { exampleCode } from '../src/lib/javascript-examples';
+import { analyzeJavaScript } from "../src/features/runner/public/javascript/ast";
+import { normalizePythonOutline } from "../src/shared/breakdown";
+import { examples } from "../src/lib/examples";
+import { exampleCode } from "../src/lib/javascript-examples";
 let py: PyodideInterface;
 beforeAll(async () => {
   py = await loadPyodide();

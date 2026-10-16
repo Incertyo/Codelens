@@ -150,7 +150,7 @@ Local SQLite maintenance → source-verified static catalog → read-only librar
 Share hash ↔ compressed source + language + stdin (never execution state or consent)
 ```
 
-`src/lib/trace.ts` defines the common `Step`: contiguous index, 1-based source line, event, function, invocation stack/locals, globals, reference heap, cumulative output and optional explanation. Numeric display limits and reference alias behavior are documented in [DECISIONS.md](docs/DECISIONS.md).
+`src/shared/trace.ts` defines the common `Step`: contiguous index, 1-based source line, event, function, invocation stack/locals, globals, reference heap, cumulative output and optional explanation. Numeric display limits and reference alias behavior are documented in [DECISIONS.md](docs/DECISIONS.md).
 
 To add real execution for a language, implement a disposable worker and AST parser, enforce the same code/input/bootstrap/execution/snapshot caps, and validate `TraceResult` before display. Add real fixture programs, language selector/routing, share validation and production browser tests. For Analysis, add AST signature inspection, safe dependency/driver construction and documented deterministic input kinds; refuse unsupported signatures. Keep execution in workers, never a page or server route.
 

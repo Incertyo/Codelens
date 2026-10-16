@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { LIMIT_SCRIPT } from '../src/lib/ai/rate-limit';
+import { LIMIT_SCRIPT } from "../src/features/ai/public/server/rate-limit";
 
 export async function sharedStoreFixture() {
   let now = 0;

@@ -179,7 +179,7 @@ def measure_code(request_json):
     except Limit:
         state['exhausted'] = True
     except BaseException as exc:
-        error = type(exc).__name__ + ': ' + str(exc)[:500]
+        error = type(exc).__name__ + ': ' + str(exc)[:limits['errorCharacters']]
     finally:
         _measure_sys.settrace(None)
         _measure_sys.stdout, _measure_sys.stderr, _measure_sys.stdin = old_out, old_err, old_in

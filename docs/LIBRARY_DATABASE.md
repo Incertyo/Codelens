@@ -4,7 +4,7 @@ The library contains **309 runnable Python references** covering every current c
 
 ## Storage and source ownership
 
-`data/codelens.sqlite` is the local database. Node 24's built-in SQLite driver reads it through `src/lib/library-repository.ts`; no external account, credentials, native npm compilation, or paid service is required. Database requests only retrieve maintained code. User code still executes exclusively in the existing browser workers.
+`data/codelens.sqlite` is the local database. Node 24's built-in SQLite driver reads it through `src/features/library/server/repository.ts`; no external account, credentials, native npm compilation, or paid service is required. Database requests only retrieve maintained code. User code still executes exclusively in the existing browser workers.
 
 The maintained authoring sources are:
 

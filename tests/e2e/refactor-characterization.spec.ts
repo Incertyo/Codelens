@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { encodeShare } from '../../src/lib/share';
+import { encodeShare } from "../../src/features/share/public/codec";
 
 test('preferences survive reload and playback speed stays adjustable', async ({ page }) => {
   await page.goto(

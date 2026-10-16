@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { detectionCorpus } from './fixtures/language-detection-corpus';
+import { detectionCorpus } from "./fixtures/language-detection-corpus";
 
 it('labels 40 authored local cases evenly across supported and unsupported classes', () => {
   expect(detectionCorpus).toHaveLength(40);

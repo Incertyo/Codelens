@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { getLibraryIndex, getLibraryImplementation } from '../src/lib/library-repository';
-import { libraryManifest } from './library-manifest.mjs';
+import { getLibraryIndex, getLibraryImplementation } from "../src/features/library/public/server/repository";
+import { libraryManifest } from "./library-manifest.mjs";
 const db = new DatabaseSync(process.env.CODELENS_LIBRARY_DB || 'data/codelens.sqlite', {
   readOnly: true,
 });

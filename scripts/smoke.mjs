@@ -70,6 +70,7 @@ try {
   active = 'trusted execution harness assets';
   for (const [path, marker] of [
     ['/tracer.worker.js', 'measure_code'],
+    ['/worker-core.js', 'privateSender'],
     ['/tracer.py', 'run_trace'],
     ['/outline.py', 'outline_code'],
     ['/analysis.py', 'inspect_code'],

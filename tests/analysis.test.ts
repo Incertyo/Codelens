@@ -1,4 +1,4 @@
-import { limits } from '../src/shared/limits';
+import { limits } from "../src/shared/limits";
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadPyodide, type PyodideInterface } from 'pyodide';
 import { readFileSync } from 'node:fs';
@@ -11,11 +11,11 @@ import {
   executionCounts,
   sourceIdentity,
   sameIdentity,
-} from '../src/lib/analysis';
-import { inspectJavaScript } from '../src/lib/javascript/analysis';
-import { instrumentJavaScript } from '../src/lib/javascript/instrument';
-import { JavaScriptTrace } from '../src/lib/javascript/runtime';
-import { traceSchema } from '../src/lib/trace';
+} from "../src/features/insights/public/model/analysis";
+import { inspectJavaScript } from "../src/features/runner/public/javascript/analysis";
+import { instrumentJavaScript } from "../src/features/runner/public/javascript/instrument";
+import { JavaScriptTrace } from "../src/features/runner/public/javascript/runtime";
+import { traceSchema } from "../src/shared/trace";
 let py: PyodideInterface;
 beforeAll(async () => {
   py = await loadPyodide();

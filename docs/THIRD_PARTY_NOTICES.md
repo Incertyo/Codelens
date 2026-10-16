@@ -1,6 +1,6 @@
 # Bounded share decoder
 
-`src/lib/bounded-lz.ts` implements bounded decoding of the installed lz-string URI format, following its dictionary/bitstream algorithm. The relevant lz-string notice follows.
+`src/features/share/bounded-lz.ts` implements bounded decoding of the installed lz-string URI format, following its dictionary/bitstream algorithm. The relevant lz-string notice follows.
 
 MIT License
 

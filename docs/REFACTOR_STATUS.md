@@ -11,9 +11,11 @@
 - 3A verification explicitly skipped; no claim of trace, deadline, production asset or conformance parity.
 - Done: 3B notes/advice share the generation loop; provider readiness and the server handler are extracted. Prompts, errors, admission and legacy persistence remain mode-compatible by construction, unverified.
 - Done: 3C workspace hooks/dialogs, Analysis/Complexity controllers, shared inspection lifecycle and named store actions.
-- Next: 3D domain ownership/import boundaries, then 3E CSS consolidation.
+- Done: 3D shared/domain moves, public entries, server/client/worker lint boundaries and phase-name replacements; frozen/provider fixture compatibility re-exports retained.
+- Next: 3E ordered token/base/domain CSS consolidation.
 - L1–L8 fixes, optional feature changes, Phase 4, full browser/security/bundle gates are not authorized.
 - Remaining Python-only browser story migration and all acceptance checks remain deferred.
+
 
 
 

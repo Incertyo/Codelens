@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { libraryManifest } from './library-manifest.mjs';
+import { libraryManifest } from "./library-manifest.mjs";
 
 const snapshot = JSON.parse(await readFile('src/generated/library.json', 'utf8'));
 if (JSON.stringify(snapshot.manifest) !== JSON.stringify(await libraryManifest()))

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { detectStructures, buildCallTree } from '../src/lib/structures';
-import type { Step } from '../src/lib/trace';
+import { detectStructures, buildCallTree } from "../src/features/visualizer/public/structures";
+import type { Step } from "../src/shared/trace";
 const base: Step = {
   index: 0,
   line: 1,

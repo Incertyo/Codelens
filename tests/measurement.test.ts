@@ -1,8 +1,8 @@
-import { limits } from '../src/shared/limits';
+import { limits } from "../src/shared/limits";
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadPyodide, type PyodideInterface } from 'pyodide';
 import { readFileSync } from 'node:fs';
-import { executeJavaScriptMeasurement } from '../src/lib/javascript/measurement';
+import { executeJavaScriptMeasurement } from "../src/features/runner/public/javascript/measurement";
 import {
   measurementOptionsSchema,
   measurementRequestSchema,
@@ -10,8 +10,8 @@ import {
   measurementSeries,
   measurementSizes,
   type MeasurementRequest,
-} from '../src/lib/measurement';
-import { measurementPrograms, measurementArguments } from './measurement-programs';
+} from "../src/features/runner/public/measurement";
+import { measurementPrograms, measurementArguments } from "./measurement-programs";
 
 let py: PyodideInterface;
 beforeAll(async () => {

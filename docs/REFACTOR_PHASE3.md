@@ -11,7 +11,7 @@ Phase 3A.3 asks for stricter shared validation while explicitly requiring a stop
 | Otherwise valid request, options is an empty object | Completes, using Zod option defaults | Error: The measurement worker could not process this request. |
 | Full valid options plus an unexpected root field | Error: Invalid measurement request. | Completes, ignoring the extra field |
 
-Source evidence: src/lib/measurement.ts:5–14 supplies option defaults and :36–44 makes requests strict; src/workers/javascript.worker.ts:53 parses with that schema. public/tracer.worker.js:113–145 manually checks option bounds without defaults and :147–158 forwards selected request fields, ignoring extras. The parent MeasurementRunner already normalizes options/validates its own outgoing requests; the demonstrated difference is directly observable at the worker protocol boundary, not a claimed ordinary UI regression.
+Source evidence: src/features/runner/measurement.ts:5–14 supplies option defaults and :36–44 makes requests strict; src/features/runner/workers/javascript.worker.ts:53 parses with that schema. public/tracer.worker.js:113–145 manually checks option bounds without defaults and :147–158 forwards selected request fields, ignoring extras. The parent MeasurementRunner already normalizes options/validates its own outgoing requests; the demonstrated difference is directly observable at the worker protocol boundary, not a claimed ordinary UI regression.
 
 Production evidence on the unchanged application:
 

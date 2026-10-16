@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { instrumentJavaScript } from '../src/lib/javascript/instrument';
-import { JavaScriptTrace } from '../src/lib/javascript/runtime';
-import { traceSchema } from '../src/lib/trace';
-import { examples } from '../src/lib/examples';
-import { exampleCode } from '../src/lib/javascript-examples';
-import { detectVisualModels, sourceHints } from '../src/lib/visualizer/detectors';
+import { instrumentJavaScript } from "../src/features/runner/public/javascript/instrument";
+import { JavaScriptTrace } from "../src/features/runner/public/javascript/runtime";
+import { traceSchema } from "../src/shared/trace";
+import { examples } from "../src/lib/examples";
+import { exampleCode } from "../src/lib/javascript-examples";
+import { detectVisualModels, sourceHints } from "../src/features/visualizer/public/detectors";
 function run(code: string, maxSteps = 5000) {
   const engine = new JavaScriptTrace(maxSteps);
   try {

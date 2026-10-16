@@ -73,4 +73,4 @@ def inspect_code(request_json):
     module = ['' for _ in lines]
     for node in keep:
         for i in range(node.lineno - 1, node.end_lineno): module[i] = lines[i]
-    return _analysis_json.dumps(dict(entries=entries[:40], moduleCode='\n'.join(module), diagnostic=None, preparationReason=preparation))
+    return _analysis_json.dumps(dict(entries=entries[:_codelens_limits['inspectionEntries']], moduleCode='\n'.join(module), diagnostic=None, preparationReason=preparation))

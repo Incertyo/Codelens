@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { libraryManifest } from '../scripts/library-manifest.mjs';
+import { libraryManifest } from "../scripts/library-manifest.mjs";
 
 describe('revamp script characterization', () => {
   it('keeps every frozen manifest input and the catalog byte-identical', async () => {

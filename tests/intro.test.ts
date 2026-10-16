@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { introProgress, INTRO_MAX_MS, INTRO_MIN_MS, INTRO_SKIP_MS } from '../src/lib/intro';
+import { introProgress, INTRO_MAX_MS, INTRO_MIN_MS, INTRO_SKIP_MS } from "../src/features/intro/public/policy";
 it('reports 100 only when every actual readiness signal is complete', () => {
   const all = { hydration: true, fonts: true, manifest: true, editor: true };
   expect(introProgress(all)).toBe(100);

@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
-import { libraryManifest } from './library-manifest.mjs';
+import { libraryManifest } from "./library-manifest.mjs";
 if (process.env.VERCEL === '1' || process.env.CODELENS_STATIC_LIBRARY === '1') {
   const snapshot = JSON.parse(await readFile('src/generated/library.json', 'utf8'));
   if (JSON.stringify(snapshot.manifest) !== JSON.stringify(await libraryManifest()))

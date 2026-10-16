@@ -1,6 +1,6 @@
 # Supported execution languages
 
-The editor/Run boundary is Python-only, owned by src/lib/editor-language.ts. Monaco and both language selectors offer Python only; workspace runs and library/example loads are guarded to Python. Internal Language remains python | javascript for frozen catalog maintenance, existing API contracts and unchanged golden tools; internal dual-language runners are not selectable editor support. Public Python harnesses and protocol limits are unchanged by this behavior change.
+The editor/Run boundary is Python-only, owned by src/features/editor/policy.ts. Monaco and both language selectors offer Python only; workspace runs and library/example loads are guarded to Python. Internal Language remains python | javascript for frozen catalog maintenance, existing API contracts and unchanged golden tools; internal dual-language runners are not selectable editor support. Public Python harnesses and protocol limits are unchanged by this behavior change.
 
 `ShareLanguage` retains javascript/cpp/java for source-only old-link compatibility. Both compressed formats retain exact source/stdin. The workspace marks every non-Python share unsupported, disables Run, blocks analysis/cached-analysis loading and preserves its legacy language when re-sharing. New/load clears the marker; Undo New restores it. Editing alone does not reinterpret legacy source. Nothing executes automatically.
 

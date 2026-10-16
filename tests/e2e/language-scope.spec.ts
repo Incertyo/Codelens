@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { decodeShare, encodeShare, encodeShortShare } from '../../src/lib/share';
+import { decodeShare, encodeShare, encodeShortShare } from "../../src/features/share/public/codec";
 
 for (const language of ['cpp', 'java'])
   for (const compact of [false, true]) {

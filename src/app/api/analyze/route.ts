@@ -1,4 +1,4 @@
-import { getAnalysis, postAnalysis } from '@/lib/ai/server/handler';
+import { getAnalysis, postAnalysis } from "@/features/ai/public/server/handler";
 
 export const runtime = 'nodejs';
 export const maxDuration = 25;

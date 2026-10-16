@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { encodeShare } from '../../src/lib/share';
+import { encodeShare } from "../../src/features/share/public/codec";
 
 for (const asset of ['tracer.py', 'outline.py', 'analysis.py', 'measurement.py']) {
   test(`Python worker reports a missing ${asset} without executing HTML`, async ({ page }) => {

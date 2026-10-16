@@ -2,8 +2,8 @@ import { createRequire } from 'node:module';
 import type { ModelResult } from '@vscode/vscode-languagedetection';
 import { stat } from 'node:fs/promises';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { detectionCorpus } from '../tests/fixtures/language-detection-corpus';
-import { heuristicDetection, modelDetection, type Detection } from '../src/lib/language-detection';
+import { detectionCorpus } from "../tests/fixtures/language-detection-corpus";
+import { heuristicDetection, modelDetection, type Detection } from "../src/features/editor/public/language-detection";
 
 const { ModelOperations } = createRequire(import.meta.url)(
   '@vscode/vscode-languagedetection',

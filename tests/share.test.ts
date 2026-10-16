@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { encodeShare, decodeShare } from '../src/lib/share';
+import { encodeShare, decodeShare } from "../src/features/share/public/codec";
 import lz from 'lz-string';
-import { decompressBounded } from '../src/lib/bounded-lz';
+import { decompressBounded } from "../src/features/share/public/bounded-lz";
 describe('share links', () => {
   it('bounds expansion during LZ decoding and preserves valid UTF-16 payloads', () => {
     let seed = 71431;
@@ -59,7 +59,7 @@ describe('share links', () => {
     });
   });
   it('generates compact short URLs and universally decodes hashes, query params, and full URLs', async () => {
-    const { encodeShortShare, computeCodeHash } = await import('../src/lib/share');
+    const { encodeShortShare, computeCodeHash } = await import("../src/features/share/public/codec");
     const code = 'def binary_search(arr, target):\n    return 42';
     const shortHash = encodeShortShare(code, 'input\n', 'python');
     expect(shortHash.startsWith('#s=')).toBe(true);

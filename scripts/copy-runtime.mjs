@@ -1,3 +1,4 @@
+import './generate-worker-core.mjs';
 import { cp, mkdir, stat, writeFile, readFile, readdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 const hashFiles = async (directory) => {

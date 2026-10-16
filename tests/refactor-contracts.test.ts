@@ -13,14 +13,14 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { POST, GET } from '../src/app/api/analyze/route';
-import { GET as library } from '../src/app/api/library/route';
-import { analyzeJavaScript } from '../src/lib/javascript/ast';
-import { inspectJavaScript } from '../src/lib/javascript/analysis';
-import { instrumentJavaScript } from '../src/lib/javascript/instrument';
-import { JavaScriptTrace } from '../src/lib/javascript/runtime';
-import { decodeShare, encodeShare, encodeShortShare } from '../src/lib/share';
-import { sharedStoreFixture } from './shared-store-fixture';
+import { POST, GET } from "../src/app/api/analyze/route";
+import { GET as library } from "../src/app/api/library/route";
+import { analyzeJavaScript } from "../src/features/runner/public/javascript/ast";
+import { inspectJavaScript } from "../src/features/runner/public/javascript/analysis";
+import { instrumentJavaScript } from "../src/features/runner/public/javascript/instrument";
+import { JavaScriptTrace } from "../src/features/runner/public/javascript/runtime";
+import { decodeShare, encodeShare, encodeShortShare } from "../src/features/share/public/codec";
+import { sharedStoreFixture } from "./shared-store-fixture";
 
 const location = 'tests/fixtures/revamp/contracts.json';
 const updating = process.env.CODELENS_UPDATE_GOLDENS === '1';

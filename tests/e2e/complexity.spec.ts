@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { encodeShare } from '../../src/lib/share';
+import { encodeShare } from "../../src/features/share/public/codec";
 
 for (const language of ['javascript', 'python'] as const) {
   test(`Big-O comparison uses real ${language} measurements in both themes and on mobile`, async ({

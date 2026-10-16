@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { encodeShare } from '../../src/lib/share';
-import { examples } from '../../src/lib/examples';
+import { encodeShare } from "../../src/features/share/public/codec";
+import { examples } from "../../src/lib/examples";
 declare global {
   interface Window {
     introTestTimes: { exit?: number; done?: number };

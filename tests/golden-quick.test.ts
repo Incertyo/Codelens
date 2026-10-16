@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import snapshot from '../src/generated/library.json';
-import { selectQuickGoldens } from '../scripts/golden-quick-selection.mjs';
+import { selectQuickGoldens } from "../scripts/golden-quick-selection.mjs";
 
 it('selects 25 references across all topics, every JS example and all recorded detector kinds', () => {
   const goldens = JSON.parse(readFileSync('tests/fixtures/revamp/catalog.json', 'utf8'));

@@ -11,7 +11,7 @@ def outline_code(request_json):
     facts = {'names': [], 'loops': 0, 'maxLoopDepth': 0, 'branches': 0, 'arrays': False, 'hashing': False, 'linked': False, 'recursive': False}
     lines = code.splitlines()
     def segment(node):
-        return (_ast.get_source_segment(code, node) or type(node).__name__).replace('\n', ' ')[:160]
+        return (_ast.get_source_segment(code, node) or type(node).__name__).replace('\n', ' ')[:_codelens_limits['outlineSnippetCharacters']]
     def walk(node, depth=0, loop_depth=0, fn=None, parent=None):
         line, end = getattr(node, 'lineno', 1), getattr(node, 'end_lineno', 1)
         kind, label = None, ''

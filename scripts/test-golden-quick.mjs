@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
-import { selectQuickGoldens } from './golden-quick-selection.mjs';
+import { selectQuickGoldens } from "./golden-quick-selection.mjs";
 
 const selection = selectQuickGoldens(
   JSON.parse(readFileSync('src/generated/library.json')),

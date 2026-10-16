@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { examples } from '../../src/lib/examples';
+import { examples } from "../../src/lib/examples";
 async function paste(page: Page, code: string) {
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
   const editor = page.locator('.monaco-editor textarea');

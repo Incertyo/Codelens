@@ -1,16 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
 import { buildSync } from 'esbuild';
-import type { MeasurementRunner } from '../../src/lib/measurement-runner';
+import type { MeasurementRunner } from "../../src/features/runner/public/measurement-runner";
 import type {
   MeasurementSeries,
   MeasurementOptions,
   MeasurementArgument,
-} from '../../src/lib/measurement';
-import { encodeShare } from '../../src/lib/share';
-import { measurementPrograms, measurementArguments } from '../measurement-programs';
+} from "../../src/features/runner/public/measurement";
+import { encodeShare } from "../../src/features/share/public/codec";
+import { measurementPrograms, measurementArguments } from "../measurement-programs";
 
 const harness = buildSync({
-  entryPoints: ['src/lib/measurement-runner.ts'],
+  entryPoints: ['src/features/runner/measurement-runner.ts'],
   bundle: true,
   format: 'iife',
   globalName: 'MeasurementHarness',

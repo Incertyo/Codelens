@@ -4,7 +4,7 @@ The owner explicitly requested Python as the only editor/Run language, then cont
 
 ## Changes
 
-- src/lib/editor-language.ts owns the editor language, detection adaptation, source notice and unsupported share marker. Keep the internal Language/catalog types unchanged to preserve frozen export/maintenance contracts.
+- src/features/editor/policy.ts owns the editor language, detection adaptation, source notice and unsupported share marker. Keep the internal Language/catalog types unchanged to preserve frozen export/maintenance contracts.
 - workspace.tsx offers only Python, guards Run and shortcuts, loads Python examples/references, preserves old JavaScript shares as source-only, and blocks their analysis/cache hydration. New Python drafts recover normally. Undo keeps unsupported source markers.
 - Monaco uses Python syntax; library detail offers only Python and cannot request a JavaScript variant. The existing design/styles, Python runner, AST/measurement/advice/visualizer implementations and provider fixtures are unchanged.
 - Existing heuristic/model evaluation stays unchanged internally; JavaScript detections become unsupported in the editor. Detection is finite, not a universal language or validity proof. Ambiguous text always executes as Python, never JavaScript. A policy check admits all 326 frozen Python implementations.

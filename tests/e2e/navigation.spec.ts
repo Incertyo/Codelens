@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { additionalExamples } from '../../src/lib/additional-examples';
-import { algorithmTopics, algorithms } from '../../src/lib/algorithm-catalog';
+import { additionalExamples } from "../../src/lib/additional-examples";
+import { algorithmTopics, algorithms } from "../../src/lib/algorithm-catalog";
 async function ready(page: Page) {
   await page.goto('/');
   await expect(page.getByTestId('site-loading')).toHaveCount(0);

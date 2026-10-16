@@ -1,9 +1,9 @@
-import { limits } from '../src/shared/limits';
+import { limits } from "../src/shared/limits";
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadPyodide, type PyodideInterface } from 'pyodide';
 import { readFileSync } from 'node:fs';
-import { examples } from '../src/lib/examples';
-import { traceSchema, type TraceResult } from '../src/lib/trace';
+import { examples } from "../src/lib/examples";
+import { traceSchema, type TraceResult } from "../src/shared/trace";
 let py: PyodideInterface;
 beforeAll(async () => {
   py = await loadPyodide();

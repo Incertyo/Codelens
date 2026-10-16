@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { algorithmTopics, algorithms, searchAlgorithms } from '../src/lib/algorithm-catalog';
-import { examples } from '../src/lib/examples';
-import { exampleCode } from '../src/lib/javascript-examples';
+import { algorithmTopics, algorithms, searchAlgorithms } from "../src/lib/algorithm-catalog";
+import { examples } from "../src/lib/examples";
+import { exampleCode } from "../src/lib/javascript-examples";
 describe('algorithm library integrity', () => {
   it('contains a broad, linked hierarchy without duplicate IDs', () => {
     expect(algorithmTopics.length).toBeGreaterThanOrEqual(16);

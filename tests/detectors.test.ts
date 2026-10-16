@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { detectVisualModels, sourceHints, type VisualModel } from '../src/lib/visualizer/detectors';
-import type { HeapObject, Step, Value } from '../src/lib/trace';
+import { detectVisualModels, sourceHints, type VisualModel } from "../src/features/visualizer/public/detectors";
+import type { HeapObject, Step, Value } from "../src/shared/trace";
 const frame = (
   globals: Record<string, Value>,
   heap: Record<string, HeapObject> = {},

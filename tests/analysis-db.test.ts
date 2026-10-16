@@ -7,10 +7,10 @@ import {
   getStoredAnalysis,
   saveStoredAnalysis,
   ensureAnalysisTable,
-} from '../src/lib/analysis-repository';
-import { GET, POST } from '../src/app/api/analyze/route';
-import { findPresetAnalysis } from '../src/lib/preset-analyses';
-import type { GrowthFit } from '../src/lib/complexity';
+} from "../src/features/library/public/server/analysis-repository";
+import { GET, POST } from "../src/app/api/analyze/route";
+import { findPresetAnalysis } from "../src/features/library/public/preset-analyses";
+import type { GrowthFit } from "../src/shared/complexity";
 
 describe('SQLite analysis persistence and Big-O caching', () => {
   let tempDir: string;
@@ -141,7 +141,7 @@ describe('SQLite analysis persistence and Big-O caching', () => {
   });
 
   it('incorporates visualMapping into sourceHints for custom visual mapping', async () => {
-    const { sourceHints } = await import('../src/lib/visualizer/detectors');
+    const { sourceHints } = await import("../src/features/visualizer/public/detectors");
     const hints = sourceHints('data = [1, 2, 3]', 'python', {
       primaryStructure: 'data',
       keyOperations: [{ line: 1, type: 'heap_push', description: 'push element' }],
@@ -151,7 +151,7 @@ describe('SQLite analysis persistence and Big-O caching', () => {
   });
 
   it('retrieves preset analysis by sourceHash even without implementationId', async () => {
-    const { examples } = await import('../src/lib/examples');
+    const { examples } = await import("../src/lib/examples");
     const { createHash } = await import('node:crypto');
     const bubbleHash = createHash('sha256').update(examples[0].code).digest('hex');
 
@@ -163,7 +163,7 @@ describe('SQLite analysis persistence and Big-O caching', () => {
   });
 
   it('persists and restores full bigOFit mathematical parameters and predicts without error', async () => {
-    const { predictGrowth } = await import('../src/lib/complexity');
+    const { predictGrowth } = await import("../src/shared/complexity");
     const sourceHash = 'full-math-fit-hash';
     const req = new Request('http://localhost/api/analyze', {
       method: 'POST',

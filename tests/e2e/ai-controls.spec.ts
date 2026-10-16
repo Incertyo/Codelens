@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { encodeShare } from '../../src/lib/share';
+import { encodeShare } from "../../src/features/share/public/codec";
 const code = 'function size(n) { return n; }\nconsole.log(size(3));';
 
 test('rechecks an exhausted budget before uploading source from an already enabled control', async ({

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { encodeShare, encodeShortShare } from '../../src/lib/share';
+import { encodeShare, encodeShortShare } from "../../src/features/share/public/codec";
 
 async function paste(page: Page, code: string) {
   const editor = page.locator('.monaco-editor textarea');

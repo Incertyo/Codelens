@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { editorLanguage, editorSourceIssue, editorDetection, unsupportedShareLanguage } from '../src/lib/editor-language';
-import { heuristicDetection } from '../src/lib/language-detection';
-import { decodeShare, encodeShare } from '../src/lib/share';
+import { editorLanguage, editorSourceIssue, editorDetection, unsupportedShareLanguage } from "../src/features/editor/public/policy";
+import { heuristicDetection } from "../src/features/editor/public/language-detection";
+import { decodeShare, encodeShare } from "../src/features/share/public/codec";
 import catalog from '../src/generated/library.json';
 
 describe('Python-only editor boundary', () => {
