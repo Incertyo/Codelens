@@ -11,4 +11,4 @@
 | Commit | Description | LOC delta | Notes |
 | --- | --- | --- | --- |
 | 5fda10e | Stabilize Phase 3 fallout: fix architecture boundaries, limits, and hook encapsulation | +7 (+39 / -32) | Part A stabilization |
-| staged | Consolidate Python-only runtime, remove JS engine and resolve findings L1-L4 | -3595 (+390 / -3985) | Parts B & C consolidation |
+| ce8b65d | Consolidate Python-only runtime, remove JS engine and resolve findings L1-L4 | -3594 (+396 / -3990) | Parts B & C consolidation |
