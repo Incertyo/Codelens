@@ -6,10 +6,10 @@ Owner's lean tiers supersede older verification rules:
 
 - T0 per commit: incremental tsc; cached eslint on changed code files; vitest related on changed files. Keep full catalog goldens out of T0 and run them at T2. Long commands write ignored logs; inspect failures only.
 - T1 per cluster: npm run test:golden:quick plus affected browser specs. The quick selector chooses 25 Python references covering all 16 topics and all observed detector kinds together with the 17 explicit JS examples; it also runs API/share contracts. It never rewrites fixtures.
-- T2 per phase end: full unit suite including all goldens. No production build or full browser suite.
+- T2 per phase end: full unit suite including all goldens. No full browser suite.
 - T3 only after owner says run final gate in Phase 4.
 
-Targeted browser checks may use a local development server and an ignored config under artifacts/refactor/phase1; this avoids a prohibited production build. Production asset/cache/bundle parity remains for T3. The dev server appends Next's orientation block to AGENTS.md; retain it and keep the document under 80 lines without changing owner rules.
+Owner correction: browser specs are meaningful only against production. For each T1 sub-step, build once with npm run build, then invoke npx playwright test <affected specs> --workers=1 directly, reusing that build. Never use a dev server or npm run test:e2e's rebuilding pretest hook. Full production browser, asset/cache/bundle parity remains for T3. The Next-generated orientation block in AGENTS.md remains committed; keep the document under 80 lines without changing owner rules.
 
 One Phase 1 frozen-input exception is necessary: src/lib/javascript-examples.ts had an obsolete cpp/java guard that cannot typecheck with the narrowed Language type. Remove that guard without changing sample text, run library:export deliberately and compare serialized index and implementation sections with the pre-change export. There must be zero new revisions and only that file's manifest digest changes. Update only the frozen fixture's corresponding input digest/export hash, never the trace/contract golden records. Record old/new digests and the data-only digest in docs/REFACTOR_PHASE1.md.
 
