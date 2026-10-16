@@ -66,12 +66,16 @@ export function useWorkspaceRun(booting: boolean, maxSteps: number, implementati
       if (id === runId.current) document.querySelector<HTMLButtonElement>('.run-button')?.focus();
     }
   }, [booting, maxSteps, implementationId, loadRequest]);
-  const stop = () => {
+  const cancel = useCallback(() => {
     runId.current++;
     runner.current?.dispose();
+  }, []);
+
+  const stop = () => {
+    cancel();
     useStore.getState().updateRun({ status: 'idle', message: 'Run stopped.', playing: false });
     requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('.run-button')?.focus());
   };
 
-  return { run, stop, runner, runId };
+  return { run, stop, cancel };
 }

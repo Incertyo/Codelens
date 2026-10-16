@@ -25,6 +25,9 @@ export default defineConfig([
   ]),
   {
     files: ['public/*.js'],
+    rules: {
+      '@typescript-eslint/no-unused-expressions': 'off',
+    },
     languageOptions: {
       globals: {
         self: 'readonly',

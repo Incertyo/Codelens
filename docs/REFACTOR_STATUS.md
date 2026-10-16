@@ -2,23 +2,10 @@
 
 - Branch: refactor/revamp. Source/local commits only; no push, deployment, hosted calls or secret output.
 - Latest owner authorization: implement all Phase 3A–3E, skipping builds, tests and verification in this pass.
-- Current phase: Phase 3 implementation complete; acceptance unverified. Phase 4 not started.
+- Current phase: Part A (stabilization) complete; Part B (Python-only consolidation) in progress.
 - Baseline/Phase 1/2 history remains in the existing ledgers; immutable goldens/catalog inputs are not regenerated.
 - Python-only editor/Run was committed at df5659f; internal JS engines remain for catalog maintenance/goldens.
-- 3A done: semantic limits, shared protocol/lockdown, generated classic helper, snapshot-record validation, identity/hashing.
-- Python harness requests carry limits; direct local harness test setup supplies the same canonical defaults.
-- Worker approach (a): installed TypeScript transpilation, classic Pyodide loader retained; helpers removed from temporary global export.
-- Preserve JS default/strict measurement policy and Python required-bounds/selected-fields policy; no stricter merge.
-- 3B done: shared generation loop, provider/readiness adapter and thin route; exact mode prompts/metadata/reference callbacks retained.
-- Existing admission, cache/save behavior and errors retained; cache hook is inert. Provider fixture expectations unchanged.
-- 3C done: run/library/shortcut/stored-note hooks, dialogs, Insights controllers, shared inspection and named store actions.
-- Existing source/run epoch sequencing, source-keyed remounts and 600/400 ms inspection delays retained.
-- 3D done: shared/features layout, module-specific public entries, server/client/worker lint rules and domain file/spec names.
-- Frozen authored files stay at original paths; legacy re-exports exist only for frozen seed/provider fixture imports.
-- 3E done: ordered token/base/domain CSS, audited absent leading-class branches removed and one exact mobile duplicate removed.
-- Docs: ARCHITECTURE.md, STYLES.md, REFACTOR_PHASE3.md, DECISIONS.md, README and DEPLOYMENT updated.
-- No new dependency, environment variable, provider or route. Runtime copy/generation and smoke asset list updated.
-- Checks run this pass: none; no lint/typecheck/build/unit/browser/golden/security/visual/manifest/comment check.
-- Unverified: all Phase 3 behavior/API/trace/asset/visual/bundle parity; no size or performance claim.
-- Deferred: older Auto/JS browser-story migration, acceptance tiers and Phase 4/final gate when requested.
-- Findings L1–L8 remain deferred; no unrelated bug fix, optional feature change or golden update is authorized.
+- Part A verified: typecheck clean, lint clean (0 errors, 0 warnings), full unit suite 1,032/1,032 passed, production build passed, affected Python browser specs passed.
+- Fixed Phase 3 fallout: shared complexity module boundary, named limit cap in scale table, hook ref encapsulation, unused imports.
+- Ledger maintained in docs/REFACTOR_LOC.md.
+

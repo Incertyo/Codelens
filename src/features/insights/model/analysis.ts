@@ -3,7 +3,8 @@ import { limits } from "@/shared/limits";
 import { z } from 'zod';
 import type { Language } from "../../../shared/breakdown";
 import type { TraceResult } from "../../../shared/trace";
-import { fitGrowthModel, growthModels } from "../../../shared/complexity";
+import { fitGrowthModel, growthModels, type Sample } from "../../../shared/complexity";
+export type { Sample };
 
 export const inputKinds = ['int', 'list', 'string'] as const;
 export type InputKind = (typeof inputKinds)[number];
@@ -78,7 +79,6 @@ export function executionCounts(trace: TraceResult | null): Record<number, numbe
     if (step.event === 'line') counts[step.line] = (counts[step.line] ?? 0) + 1;
   return counts;
 }
-export type Sample = { n: number; steps: number };
 export function fitComplexity(samples: Sample[]) {
   if (
     samples.length < 4 ||

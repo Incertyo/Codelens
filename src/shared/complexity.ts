@@ -1,4 +1,4 @@
-import type { Sample } from "../features/insights/public/model/analysis";
+export type Sample = { n: number; steps: number };
 
 export const growthModels = [
   {

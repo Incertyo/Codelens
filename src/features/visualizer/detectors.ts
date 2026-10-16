@@ -1,4 +1,4 @@
-import type { Base, WindowModel, SequenceModel, StringModel, StackModel, QueueModel, IntervalModel, HashModel, SetModel, HeapModel, TrieModel, DSUModel, SegmentModel, BitModel, DPModel, LegacyModel, ScalarModel, VisualModel, DetectionHints } from './models';
+import type { Base, WindowModel, HashModel, HeapModel, TrieModel, SegmentModel, ScalarModel, VisualModel, DetectionHints } from './models';
 import { sourceHints } from './source-hints';
 export type { WindowModel, SequenceModel, StringModel, StackModel, QueueModel, IntervalModel, HashModel, SetModel, HeapModel, TrieModel, DSUModel, SegmentModel, BitModel, DPModel, LegacyModel, ScalarModel, VisualModel, DetectionHints } from './models';
 export { sourceHints } from './source-hints';

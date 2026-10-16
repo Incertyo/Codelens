@@ -87,7 +87,7 @@ export function Workspace() {
     workspace = useRef<HTMLDivElement>(null);
   const executing = status === 'loading' || status === 'running';
   const busy = executing || fetchingCode;
-  const { run, stop, runner, runId } = useWorkspaceRun(booting, maxSteps, implementationId, loadRequest);
+  const { run, stop, cancel } = useWorkspaceRun(booting, maxSteps, implementationId, loadRequest);
   const newCode = (name = 'Untitled') => {
     setImplementation(null);
     setLibraryError('');
@@ -109,8 +109,7 @@ export function Workspace() {
     const load = () => {
       const shared = decodeShare(window.location.hash || window.location.search);
       if (shared) {
-        runId.current++;
-        runner.current?.dispose();
+        cancel();
         useStore.getState().setCode(shared.code, 'share');
         useStore.getState().setStdin(shared.stdin);
         useStore.getState().selectSource({
@@ -138,12 +137,13 @@ export function Workspace() {
     };
     load();
     window.addEventListener('hashchange', load);
+    const abortCurrentLoad = loadRequest.current;
     return () => {
       window.removeEventListener('hashchange', load);
-      runner.current?.dispose();
-      loadRequest.current?.abort();
+      cancel();
+      abortCurrentLoad?.abort();
     };
-  }, [loadRequest, runId, runner]);
+  }, [cancel, loadRequest]);
   useStoredNotes(code, language, unsupportedLanguage, sourceIssue, implementationId);
   useWorkspaceShortcuts(run, booting, menu);
   const shareCode = async () => {

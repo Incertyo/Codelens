@@ -2,6 +2,7 @@
 import { useId, useState } from 'react';
 import type { Sample } from "@/features/insights/model/analysis";
 import { growthModels, fitGrowthModel, predictGrowth, neighboringModels, operationCount, staticComparison, type GrowthFit, type GrowthId } from "@/shared/complexity";
+import { limits } from "@/shared/limits";
 
 export function ComplexityChart({
   samples = [],
@@ -663,7 +664,7 @@ export function ComplexityComparison({
             </thead>
             <tbody>
               {neighboringModels(activeModelId).flatMap((model) =>
-                [10, 1000, 1_000_000].map((n) => {
+                [10, 1000, limits.measurementN].map((n) => {
                   const count = operationCount(model.id, n);
                   return (
                     <tr key={`${model.id}:${n}`}>

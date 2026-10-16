@@ -68,4 +68,5 @@ const limitOwner = {
   },
 };
 
-export default { rules: { boundaries, 'limit-owner': limitOwner } };
+const architecturePlugin = { rules: { boundaries, 'limit-owner': limitOwner } };
+export default architecturePlugin;
