@@ -1,3 +1,4 @@
+import { limits } from '@/shared/limits';
 import { ModelOperations } from '@vscode/vscode-languagedetection';
 import assets from '../generated/runtime-assets.json';
 import { modelDetection } from '../lib/language-detection';
@@ -17,11 +18,11 @@ self.onmessage = async ({ data }: MessageEvent<{ id: number; code: string }>) =>
         return response.arrayBuffer();
       },
       minContentSize: 32,
-      maxContentSize: 30000,
+      maxContentSize: limits.code,
     });
     self.postMessage({
       id: data.id,
-      detection: modelDetection(await model.runModel(data.code.slice(0, 30000))),
+      detection: modelDetection(await model.runModel(data.code.slice(0, limits.code))),
     });
   } catch {
     self.postMessage({

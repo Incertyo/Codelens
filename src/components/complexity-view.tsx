@@ -1,4 +1,5 @@
 'use client';
+import { limits } from '@/shared/limits';
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { CodeRunner } from '@/lib/runner';
@@ -86,7 +87,7 @@ export function ComplexityView({ implementationId }: { implementationId: string 
         .catch((e) => {
           if (current) setError(e instanceof Error ? e.message : 'Analysis failed to initialize.');
         });
-    }, 400);
+    }, limits.complexityDebounceMs);
 
     return () => {
       current = false;

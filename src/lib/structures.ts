@@ -1,3 +1,4 @@
+import { limits } from '@/shared/limits';
 import { displayValue, type HeapObject, type Step, type Value } from './trace';
 export type StructureKind =
   | 'array'
@@ -47,7 +48,7 @@ function linkedNodes(kind: StructureKind, root: string, step: Step): StructureNo
   for (const v of Object.values({ ...step.globals, ...step.callStack.at(-1)?.locals }))
     if (v && typeof v === 'object' && nodeKind(objectFields(step.heap[v.ref])) === kind)
       todo.push(v.ref);
-  while (todo.length && nodes.length < 80) {
+  while (todo.length && nodes.length < limits.graphNodes) {
     const id = todo.shift()!;
     if (seen.has(id) || !step.heap[id]) continue;
     seen.add(id);
@@ -86,7 +87,7 @@ function adjacencyNodes(object: HeapObject, step: Step): StructureNode[] | null 
     return null;
   const nodes = new Map<string, StructureNode>();
   const add = (name: string) => {
-    if (!nodes.has(name) && nodes.size < 80) nodes.set(name, { id: name, label: name, links: [] });
+    if (!nodes.has(name) && nodes.size < limits.graphNodes) nodes.set(name, { id: name, label: name, links: [] });
   };
   entries.forEach(([name]) => add(name));
   for (const [name, v] of entries) {

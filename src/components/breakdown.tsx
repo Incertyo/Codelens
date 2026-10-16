@@ -1,4 +1,5 @@
 'use client';
+import { limits } from '@/shared/limits';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight, LoaderCircle, Sparkles } from 'lucide-react';
 import { useStore } from '@/lib/store';
@@ -79,7 +80,7 @@ export function Breakdown({ implementationId }: { implementationId?: string } = 
         .finally(() => {
           if (active) setLoading(false);
         });
-    }, 300);
+    }, limits.breakdownDebounceMs);
     return () => {
       active = false;
       clearTimeout(timer);

@@ -1,3 +1,4 @@
+import { limits } from '@/shared/limits';
 import { create } from 'zustand';
 import { examples } from './examples';
 import type { TraceResult } from './trace';
@@ -46,7 +47,7 @@ export const useStore = create<State>((set, get) => ({
   code: examples[0].code,
   sourceRevision: 0,
   runEpoch: 0,
-  maxSteps: 5000,
+  maxSteps: limits.steps,
   language: 'python',
   unsupportedLanguage: null,
   languageMode: 'auto',
@@ -154,7 +155,7 @@ export const useStore = create<State>((set, get) => ({
     })),
   setMaxSteps: (maxSteps) =>
     set((previous) => ({
-      maxSteps: Math.min(5000, Math.max(100, maxSteps || 100)),
+      maxSteps: Math.min(limits.steps, Math.max(limits.editorMinSteps, maxSteps || limits.editorMinSteps)),
       runEpoch: previous.runEpoch + 1,
       result: null,
       enrichment: null,

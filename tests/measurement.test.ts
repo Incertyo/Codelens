@@ -1,3 +1,4 @@
+import { limits } from '../src/shared/limits';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadPyodide, type PyodideInterface } from 'pyodide';
 import { readFileSync } from 'node:fs';
@@ -15,6 +16,9 @@ import { measurementPrograms, measurementArguments } from './measurement-program
 let py: PyodideInterface;
 beforeAll(async () => {
   py = await loadPyodide();
+  py.globals.set('_codelens_limits_json', JSON.stringify(limits));
+  py.runPython('import json as _limits_json; _codelens_limits = _limits_json.loads(_codelens_limits_json)');
+  py.globals.delete('_codelens_limits_json');
   py.runPython(readFileSync('public/analysis.py', 'utf8'));
   py.runPython(readFileSync('public/measurement.py', 'utf8'));
 });

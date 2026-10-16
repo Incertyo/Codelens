@@ -1,3 +1,5 @@
+import { limits } from '@/shared/limits';
+import { privateSender, lockProtocol, lockCapabilities, asynchronousCapabilities } from '@/shared/worker-protocol';
 import { instrumentJavaScript } from '../lib/javascript/instrument';
 import { analyzeJavaScript } from '../lib/javascript/ast';
 import { JavaScriptTrace } from '../lib/javascript/runtime';
@@ -12,12 +14,10 @@ const trustedPost = self.postMessage.bind(self);
 self.onmessage = ({ data: bootstrap }: { data: { nonce: string; mode: string } }) => {
   if (bootstrap.mode !== 'bootstrap' || typeof bootstrap.nonce !== 'string') return;
   const nonce = bootstrap.nonce;
-  const send = (message: object) => trustedPost({ ...message, nonce });
+  const send = privateSender<object>(trustedPost, nonce);
   let currentMeasurement: JavaScriptMeasurement | null = null;
   let measurementLocked = false;
-  const blockedProtocol = () => {
-    throw new Error('Worker protocol messages are private.');
-  };
+
   const receive = ({
     data,
   }: {
@@ -34,48 +34,18 @@ self.onmessage = ({ data: bootstrap }: { data: { nonce: string; mode: string } }
   }) => {
     if (data.nonce !== nonce) return;
     self.onmessage = null;
-    for (let target: object | null = self; target; target = Object.getPrototypeOf(target)) {
-      if (Object.hasOwn(target, 'postMessage'))
-        Object.defineProperty(target, 'postMessage', {
-          value: blockedProtocol,
-          writable: false,
-          configurable: false,
-        });
-    }
+    lockProtocol(self);
     if (data.mode === 'measure') {
       if (typeof data.runNonce !== 'string') return;
       const runNonce = data.runNonce;
-      const sendMeasurement = (message: object) => trustedPost({ ...message, nonce: runNonce });
+      const sendMeasurement = privateSender<object>(trustedPost, runNonce);
       sendMeasurement({ type: 'started' });
       try {
-        if (new TextEncoder().encode(JSON.stringify(data.measurement)).length > 1_048_576)
+        if (new TextEncoder().encode(JSON.stringify(data.measurement)).length > limits.measurementRequestBytes)
           throw new Error('Measurement request is too large.');
         const request = measurementRequestSchema.parse(data.measurement);
         if (!measurementLocked) {
-          const blocked = () => {
-            throw new Error(
-              'Network access and asynchronous work are disabled in the execution sandbox.',
-            );
-          };
-          for (const key of [
-            'fetch',
-            'XMLHttpRequest',
-            'importScripts',
-            'WebSocket',
-            'WebTransport',
-            'EventSource',
-            'Worker',
-            'SharedWorker',
-            'open',
-            'setTimeout',
-            'setInterval',
-            'queueMicrotask',
-          ])
-            Object.defineProperty(self, key, {
-              value: blocked,
-              writable: false,
-              configurable: false,
-            });
+          lockCapabilities(self, asynchronousCapabilities, 'Network access and asynchronous work are disabled in the execution sandbox.');
           const output = () => currentMeasurement?.output();
           Object.defineProperty(self, 'console', {
             value: Object.freeze({ log: output, info: output, warn: output, error: output }),
@@ -120,29 +90,10 @@ self.onmessage = ({ data: bootstrap }: { data: { nonce: string; mode: string } }
       });
       return;
     }
-    const trace = new JavaScriptTrace(Math.min(5000, Math.max(10, data.maxSteps || 5000)));
+    const trace = new JavaScriptTrace(Math.min(limits.steps, Math.max(limits.workerMinSteps, data.maxSteps || limits.steps)));
     try {
       const instrumented = instrumentJavaScript(data.code);
-      const blocked = () => {
-        throw new Error(
-          'Network access and asynchronous work are disabled in the execution sandbox.',
-        );
-      };
-      for (const key of [
-        'fetch',
-        'XMLHttpRequest',
-        'importScripts',
-        'WebSocket',
-        'WebTransport',
-        'EventSource',
-        'Worker',
-        'SharedWorker',
-        'open',
-        'setTimeout',
-        'setInterval',
-        'queueMicrotask',
-      ])
-        Object.defineProperty(self, key, { value: blocked, writable: false, configurable: false });
+      lockCapabilities(self, asynchronousCapabilities, 'Network access and asynchronous work are disabled in the execution sandbox.');
       Object.defineProperty(self, 'console', {
         value: Object.freeze({
           log: trace.output,

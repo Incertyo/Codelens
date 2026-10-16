@@ -1,8 +1,9 @@
+import { limits } from '@/shared/limits';
 import { detectStructures, isSequence, objectFields, type Structure } from '../structures';
 import type { Step, Value } from '../trace';
 
-export const CELL_CAP = 80;
-export const VIEW_CAP = 6;
+export const CELL_CAP = limits.renderedCells;
+export const VIEW_CAP = limits.renderedViews;
 const pointerNames = ['left', 'right', 'i', 'j', 'lo', 'hi', 'mid', 'start', 'end', 'p1', 'p2'];
 type Base = { id: string; name: string; truncated?: boolean };
 export type WindowModel = Base & {

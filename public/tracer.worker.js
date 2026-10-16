@@ -1,10 +1,13 @@
 (() => {
   const trustedPost = self.postMessage.bind(self);
+  importScripts('/worker-core.js');
+  const { limits, measurementBounds, privateSender, lockProtocol, lockCapabilities, networkCapabilities } = self.codelensWorkerCore;
+  delete self.codelensWorkerCore;
   self.onmessage = async ({ data: bootstrap }) => {
     if (bootstrap.mode !== 'bootstrap' || typeof bootstrap.nonce !== 'string') return;
     self.onmessage = null;
     const nonce = bootstrap.nonce;
-    const send = (message) => trustedPost({ ...message, nonce });
+    const send = privateSender(trustedPost, nonce);
     try {
       const report = (progress, message) =>
         send({ type: 'progress', phase: 'loading', progress, message });
@@ -64,71 +67,42 @@
         stderr: () => {},
       });
       report(96, 'Preparing the execution tracer…');
+      pyodide.globals.set('_codelens_limits_json', JSON.stringify(limits));
+      pyodide.runPython('import json as _limits_json; _codelens_limits = _limits_json.loads(_codelens_limits_json)');
+      pyodide.globals.delete('_codelens_limits_json');
       pyodide.runPython(tracer);
       pyodide.runPython(outline);
       pyodide.runPython(analysis);
       pyodide.runPython(measurement);
-      const blocked = () => {
-        throw new Error('Network access is disabled in the execution sandbox.');
-      };
-      for (const key of [
-        'fetch',
-        'XMLHttpRequest',
-        'importScripts',
-        'WebSocket',
-        'WebTransport',
-        'EventSource',
-        'Worker',
-        'SharedWorker',
-        'open',
-      ]) {
-        Object.defineProperty(self, key, { value: blocked, writable: false, configurable: false });
-      }
-      const blockedProtocol = () => {
-        throw new Error('Worker protocol messages are private.');
-      };
-      for (let target = self; target; target = Object.getPrototypeOf(target)) {
-        if (Object.hasOwn(target, 'postMessage'))
-          Object.defineProperty(target, 'postMessage', {
-            value: blockedProtocol,
-            writable: false,
-            configurable: false,
-          });
-      }
+      lockCapabilities(self, networkCapabilities, 'Network access is disabled in the execution sandbox.');
+      lockProtocol(self);
       const receive = ({ data }) => {
         if (data.nonce !== nonce) return;
         self.onmessage = null;
         if (data.mode === 'measure') {
           if (typeof data.runNonce !== 'string') return;
           const runNonce = data.runNonce;
-          const sendMeasurement = (message) => trustedPost({ ...message, nonce: runNonce });
+          const sendMeasurement = privateSender(trustedPost, runNonce);
           sendMeasurement({ type: 'started' });
           try {
             const request = data.measurement;
             if (
               !request ||
               typeof request.code !== 'string' ||
-              request.code.length > 30000 ||
+              request.code.length > limits.code ||
               typeof request.entry !== 'string' ||
               request.entry.length < 1 ||
-              request.entry.length > 100 ||
+              request.entry.length > limits.entryName ||
               !Number.isInteger(request.n) ||
               request.n < 1 ||
-              request.n > 1000000 ||
+              request.n > limits.measurementN ||
               !Array.isArray(request.args) ||
-              request.args.length > 16 ||
-              new TextEncoder().encode(JSON.stringify(request)).length > 1048576
+              request.args.length > limits.measurementArguments ||
+              new TextEncoder().encode(JSON.stringify(request)).length > limits.measurementRequestBytes
             )
               throw new Error('Invalid measurement request.');
             const options = request.options;
-            const bounds = {
-              eventBudget: [10, 3000000],
-              timeoutMs: [50, 10000],
-              sampleEvery: [1, 16],
-              maxObjects: [1, 20000],
-              maxDepth: [1, 256],
-              maxVisits: [1, 100000],
-            };
+            const bounds = measurementBounds;
             if (
               !options ||
               Object.entries(bounds).some(
@@ -145,6 +119,7 @@
                 n: request.n,
                 args: request.args,
                 options,
+                limits: data.limits || bootstrap.limits || limits,
               }),
             );
             sendMeasurement({
@@ -164,9 +139,10 @@
         }
         try {
           const request = JSON.stringify({
-            code: String(data.code).slice(0, 30000),
-            stdin: String(data.stdin).slice(0, 10000),
-            maxSteps: Math.min(5000, Math.max(10, Number(data.maxSteps) || 5000)),
+            code: String(data.code).slice(0, limits.code),
+            stdin: String(data.stdin).slice(0, limits.stdin),
+            limits: data.limits || bootstrap.limits || limits,
+            maxSteps: Math.min(limits.steps, Math.max(limits.workerMinSteps, Number(data.maxSteps) || limits.steps)),
           });
           send({ type: 'started' });
           pyodide.globals.set('_request_json', request);

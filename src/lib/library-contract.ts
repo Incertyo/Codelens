@@ -1,3 +1,4 @@
+import { limits } from '@/shared/limits';
 import { z } from 'zod';
 export const implementationSchema = z.object({
   id: z.string(),
@@ -6,7 +7,7 @@ export const implementationSchema = z.object({
   language: z.enum(['python', 'javascript']),
   variant: z.enum(['reference', 'featured']),
   revision: z.number().int().positive(),
-  code: z.string().min(1).max(30000),
+  code: z.string().min(1).max(limits.code),
   sourceHash: z.string().regex(/^[a-f0-9]{64}$/),
   sourceFile: z.string(),
   entryPoint: z.string(),

@@ -1,3 +1,5 @@
+import { runProtocol } from '@/shared/worker-protocol';
+import { limits } from '@/shared/limits';
 import { MAX_CODE_LENGTH, RUN_TIMEOUT_MS, traceSchema, type TraceResult } from './trace';
 import {
   breakdownSchema,
@@ -26,10 +28,10 @@ export class CodeRunner {
     return this.start(code, stdin, maxSteps, progress, language, 'run') as Promise<TraceResult>;
   }
   analyze(code: string, language: Language): Promise<BreakdownData> {
-    return this.start(code, '', 5000, () => {}, language, 'analyze') as Promise<BreakdownData>;
+    return this.start(code, '', limits.steps, () => {}, language, 'analyze') as Promise<BreakdownData>;
   }
   inspect(code: string, language: Language): Promise<Inspection> {
-    return this.start(code, '', 5000, () => {}, language, 'inspect') as Promise<Inspection>;
+    return this.start(code, '', limits.steps, () => {}, language, 'inspect') as Promise<Inspection>;
   }
   private start(
     code: string,
@@ -53,11 +55,10 @@ export class CodeRunner {
           : new Worker(new URL('../workers/javascript.worker.ts', import.meta.url));
       this.worker = worker;
       const nonce = crypto.randomUUID();
-      let phase: 'loading' | 'sent' | 'started' | 'finished' = 'loading';
-      let deadline = Infinity;
+      const protocol = runProtocol(nonce);
       let timer: ReturnType<typeof setTimeout>;
       const finish = () => {
-        phase = 'finished';
+        protocol.finish();
         clearTimeout(timer);
         worker.terminate();
         if (this.worker === worker) this.worker = null;
@@ -75,37 +76,34 @@ export class CodeRunner {
             'The language runtime could not load within 90 seconds. Check runtime assets and retry.',
           ),
         );
-      }, 90000);
+      }, limits.runtimeTimeoutMs);
       worker.onerror = (e) => {
         finish();
         reject(new Error(e.message || 'The language worker could not start.'));
       };
       worker.onmessage = (e) => {
-        if (!e.data || e.data.nonce !== nonce || phase === 'finished') return;
-        if (performance.now() >= deadline) {
+        if (!protocol.accepts(e.data)) return;
+        if (protocol.expired(performance.now())) {
           timeout();
           return;
         }
         if (e.data.type === 'ready') {
-          if (phase !== 'loading') return;
-          phase = 'sent';
+          if (!protocol.send(performance.now(), RUN_TIMEOUT_MS)) return;
           clearTimeout(timer);
-          deadline = performance.now() + RUN_TIMEOUT_MS;
           timer = setTimeout(timeout, RUN_TIMEOUT_MS);
-          worker.postMessage({ code, stdin, maxSteps, mode, nonce, language });
+          worker.postMessage({ code, stdin, maxSteps, mode, nonce, language, limits });
           return;
         }
         if (e.data.type === 'progress') {
-          if (phase === 'loading') progress(e.data);
+          if (protocol.phase === 'loading') progress(e.data);
           return;
         }
         if (e.data.type === 'started') {
-          if (phase !== 'sent') return;
-          phase = 'started';
+          if (!protocol.start()) return;
           progress({ phase: 'running', progress: 100, message: 'Tracing your code…' });
           return;
         }
-        if (e.data.type !== 'error' && phase !== 'started') return;
+        if (e.data.type !== 'error' && protocol.phase !== 'started') return;
         if (e.data.type === 'inspection') {
           if (mode !== 'inspect') return;
           const parsed = inspectionSchema.safeParse(e.data.inspection);
@@ -147,7 +145,7 @@ export class CodeRunner {
           ),
         );
       };
-      worker.postMessage({ nonce, mode: 'bootstrap' });
+      worker.postMessage({ nonce, mode: 'bootstrap', limits });
     });
   }
 }

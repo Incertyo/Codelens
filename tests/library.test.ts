@@ -1,3 +1,4 @@
+import { limits } from '../src/shared/limits';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadPyodide, type PyodideInterface } from 'pyodide';
 import { readFileSync, copyFileSync, mkdtempSync, unlinkSync, rmdirSync } from 'node:fs';
@@ -23,6 +24,9 @@ const records = index.implementations.map((row) =>
 let py: PyodideInterface;
 beforeAll(async () => {
   py = await loadPyodide();
+  py.globals.set('_codelens_limits_json', JSON.stringify(limits));
+  py.runPython('import json as _limits_json; _codelens_limits = _limits_json.loads(_codelens_limits_json)');
+  py.globals.delete('_codelens_limits_json');
   py.runPython(readFileSync('public/tracer.py', 'utf8'));
 });
 describe('maintained SQLite library', () => {

@@ -1,4 +1,5 @@
 'use client';
+import { limits } from '@/shared/limits';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import { useStore } from '@/lib/store';
@@ -89,7 +90,7 @@ export function Analysis({ implementationId }: { implementationId: string }) {
         .catch((e) => {
           if (current) setError(e instanceof Error ? e.message : 'AST analysis could not load.');
         });
-    }, 600);
+    }, limits.analysisDebounceMs);
     return () => {
       current = false;
       clearTimeout(timer);
@@ -163,7 +164,7 @@ export function Analysis({ implementationId }: { implementationId: string }) {
     setBusy(true);
     setNotice(`Re-running ${test.name} in a real worker…`);
     try {
-      const result = await worker.current!.run(test.code, '', 5000, () => {}, language);
+      const result = await worker.current!.run(test.code, '', limits.steps, () => {}, language);
       if (!active.current) return;
       if (result.error || result.truncated)
         throw new Error(result.error || 'This re-run reached the step cap.');
@@ -235,7 +236,7 @@ export function Analysis({ implementationId }: { implementationId: string }) {
           );
           if (!fn) throw new Error('The suggested entry is absent from the AST.');
           testedCode = testHarness(data.inspection, fn, test.argument, language, true);
-          result = await worker.current!.run(testedCode, '', 5000, () => {}, language);
+          result = await worker.current!.run(testedCode, '', limits.steps, () => {}, language);
           result = { ...result, identity: await sourceIdentity(`draft:${language}`, testedCode) };
           if (result.error || result.truncated) {
             reason = result.error || 'The trace reached the step cap.';

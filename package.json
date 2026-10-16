@@ -9,8 +9,8 @@
   "scripts": {
     "library:seed": "tsx scripts/seed-library.ts",
     "library:export": "node scripts/prepare-library.mjs",
-    "predev": "npm run library:seed",
-    "prebuild": "node scripts/verify-library.mjs",
+    "predev": "node scripts/generate-worker-core.mjs && npm run library:seed",
+    "prebuild": "node scripts/generate-worker-core.mjs && node scripts/verify-library.mjs",
     "pretest": "npm run library:seed",
     "pretest:e2e": "npm run build",
     "dev": "next dev --webpack",
@@ -24,7 +24,7 @@
     "test:golden:quick": "node scripts/test-golden-quick.mjs",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
-    "postinstall": "node scripts/copy-runtime.mjs"
+    "postinstall": "node scripts/generate-worker-core.mjs && node scripts/copy-runtime.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.79",

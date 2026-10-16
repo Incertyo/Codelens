@@ -1,15 +1,16 @@
+import { limits } from '@/shared/limits';
 import { z } from 'zod';
 import { fitGrowthModel, growthModels, type GrowthFit } from './complexity';
 
 export const measurementSizes = [4, 8, 12, 16, 24, 32, 48, 64, 96, 128] as const;
 export const measurementOptionsSchema = z
   .object({
-    eventBudget: z.number().int().min(10).max(3_000_000).default(3_000_000),
-    timeoutMs: z.number().int().min(50).max(10_000).default(10_000),
-    sampleEvery: z.number().int().min(1).max(16).default(16),
-    maxObjects: z.number().int().min(1).max(20_000).default(20_000),
-    maxDepth: z.number().int().min(1).max(256).default(256),
-    maxVisits: z.number().int().min(1).max(100_000).default(100_000),
+    eventBudget: z.number().int().min(limits.measurementMinEvents).max(limits.measurementEvents).default(limits.measurementEvents),
+    timeoutMs: z.number().int().min(limits.measurementMinTimeoutMs).max(limits.measurementTimeoutMs).default(limits.measurementTimeoutMs),
+    sampleEvery: z.number().int().min(1).max(limits.measurementSampleEvery).default(limits.measurementSampleEvery),
+    maxObjects: z.number().int().min(1).max(limits.measurementObjects).default(limits.measurementObjects),
+    maxDepth: z.number().int().min(1).max(limits.measurementDepth).default(limits.measurementDepth),
+    maxVisits: z.number().int().min(1).max(limits.measurementVisits).default(limits.measurementVisits),
   })
   .strict();
 export type MeasurementOptions = z.infer<typeof measurementOptionsSchema>;
@@ -35,10 +36,10 @@ const argumentSchema: z.ZodType<MeasurementArgument> = z.lazy(() =>
 );
 export const measurementRequestSchema = z
   .object({
-    code: z.string().max(30_000),
-    entry: z.string().min(1).max(100),
-    n: z.number().int().positive().max(1_000_000),
-    args: z.array(argumentSchema).max(16),
+    code: z.string().max(limits.code),
+    entry: z.string().min(1).max(limits.entryName),
+    n: z.number().int().positive().max(limits.measurementN),
+    args: z.array(argumentSchema).max(limits.measurementArguments),
     options: measurementOptionsSchema,
   })
   .strict();
@@ -54,7 +55,7 @@ export const measurementSizeSchema = z
     auxiliaryPeak: counter,
     inputUnits: counter,
     samples: counter,
-    reason: z.string().max(600).nullable(),
+    reason: z.string().max(limits.measurementReason).nullable(),
   })
   .strict()
   .superRefine((value, context) => {

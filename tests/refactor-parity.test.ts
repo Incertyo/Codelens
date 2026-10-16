@@ -1,3 +1,4 @@
+import { limits } from '../src/shared/limits';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -87,6 +88,9 @@ function normalized(trace: TraceResult): Omit<TraceResult, 'elapsed'> {
 beforeAll(async () => {
   if (!updating && !baseline) return;
   python = await loadPyodide();
+  python.globals.set('_codelens_limits_json', JSON.stringify(limits));
+  python.runPython('import json as _limits_json; _codelens_limits = _limits_json.loads(_codelens_limits_json)');
+  python.globals.delete('_codelens_limits_json');
   for (const harness of ['tracer', 'outline', 'analysis'])
     python.runPython(readFileSync(`public/${harness}.py`, 'utf8'));
 });

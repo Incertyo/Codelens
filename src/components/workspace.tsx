@@ -1,4 +1,5 @@
 'use client';
+import { limits } from '@/shared/limits';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { AnimatePresence } from 'framer-motion';
@@ -170,7 +171,7 @@ export function Workspace() {
     try {
       const query = new URLSearchParams({ id: algorithm.id, language: selectedLanguage, variant });
       const response = await fetch(`/api/library?${query}`, {
-        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(limits.libraryTimeoutMs)]),
       });
       if (!response.ok)
         throw new Error('Could not load this code. Please retry. Your editor is unchanged.');
@@ -635,7 +636,7 @@ export function Workspace() {
                     value={stdin}
                     onChange={(e) => setStdin(e.target.value)}
                     disabled={busy}
-                    maxLength={10000}
+                    maxLength={limits.stdin}
                   />
                 </div>
               )}
@@ -646,13 +647,13 @@ export function Workspace() {
                     <input
                       aria-label="Maximum trace steps"
                       type="number"
-                      min="100"
-                      max="5000"
+                      min={limits.editorMinSteps}
+                      max={limits.steps}
                       step="100"
                       value={maxSteps}
                       disabled={busy}
                       onChange={(e) =>
-                        setMaxSteps(Math.min(5000, Math.max(100, Number(e.target.value) || 100)))
+                        setMaxSteps(Math.min(limits.steps, Math.max(limits.editorMinSteps, Number(e.target.value) || limits.editorMinSteps)))
                       }
                     />
                   </label>

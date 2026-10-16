@@ -10,6 +10,7 @@ import types as _measure_types
 
 def measure_code(request_json):
     request = _measure_json.loads(request_json)
+    limits = request.get('limits', _codelens_limits)
     options = request['options']
     environment = {'__name__': '__main__'}
     counters = {'events': 0, 'lines': 0, 'peak': 0, 'input': 0, 'samples': 0}
@@ -39,7 +40,7 @@ def measure_code(request_json):
             value, depth = pending.pop()
             if isinstance(value, str):
                 if value not in strings:
-                    total += min(10000, len(value))
+                    total += min(limits['measurementString'], len(value))
                 strings.add(value)
                 continue
             if value is None or isinstance(value, (bool, int, float, complex, _measure_types.ModuleType, _measure_types.FunctionType, _measure_types.BuiltinFunctionType, type)):

@@ -1,3 +1,4 @@
+import { limits } from '@/shared/limits';
 import type { HeapObject, Step, TraceResult, Value } from '../trace';
 import { MAX_TRACE_BYTES, TRACE_NOTICE_RESERVE } from '../trace';
 type Getters = Record<string, () => unknown>;
@@ -27,7 +28,7 @@ export class JavaScriptTrace {
   private serializedBytes = 2;
   private limitMessage: string | null = null;
   private encoder = new TextEncoder();
-  constructor(private maxSteps = 5000) {}
+  constructor(private maxSteps: number = limits.steps) {}
   private append(step: Step) {
     const bytes = this.encoder.encode(JSON.stringify(step)).length + 1;
     if (this.serializedBytes + bytes > MAX_TRACE_BYTES - TRACE_NOTICE_RESERVE) {
@@ -41,7 +42,7 @@ export class JavaScriptTrace {
     if (
       this.limitMessage ||
       this.steps.length >= this.maxSteps - 1 ||
-      performance.now() - this.started > 10000
+      performance.now() - this.started > limits.traceTimeoutMs
     ) {
       this.limitMessage ??=
         'Trace stopped at the safety limit. The program may contain an infinite loop.';
@@ -62,15 +63,15 @@ export class JavaScriptTrace {
         ref = `h${++this.objectCount}`;
         this.specialIds.set(key, ref);
       }
-      if (!heap[ref] && Object.keys(heap).length >= 128) return '[value truncated]';
+      if (!heap[ref] && Object.keys(heap).length >= limits.heapObjects) return '[value truncated]';
       heap[ref] = { type, fields: Object.assign(Object.create(null), { value: text }) };
       return { ref };
     };
     const value = (v: unknown, depth = 0): Value => {
       if (v === null || typeof v === 'boolean') return v;
       if (typeof v === 'number') return Number.isFinite(v) ? v : special('number', String(v));
-      if (typeof v === 'string') return v.slice(0, 200) + (v.length > 200 ? '…' : '');
-      if (typeof v === 'bigint') return special('bigint', v.toString().slice(0, 200) + 'n');
+      if (typeof v === 'string') return v.slice(0, limits.valueCharacters) + (v.length > limits.valueCharacters ? '…' : '');
+      if (typeof v === 'bigint') return special('bigint', v.toString().slice(0, limits.valueCharacters) + 'n');
       if (v === undefined) return special('undefined', 'undefined');
       if (typeof v === 'function') return '<function>';
       if (typeof v === 'symbol') return String(v);
@@ -81,7 +82,7 @@ export class JavaScriptTrace {
         this.identities.set(v, ref);
       }
       if (heap[ref]) return { ref };
-      if (Object.keys(heap).length >= 128 || depth >= 6) return '[value truncated]';
+      if (Object.keys(heap).length >= limits.heapObjects || depth >= limits.snapshotDepth) return '[value truncated]';
       const obj: HeapObject = {
         type: Array.isArray(v)
           ? 'array'
@@ -93,40 +94,40 @@ export class JavaScriptTrace {
       };
       heap[ref] = obj;
       if (Array.isArray(v)) {
-        obj.items = v.slice(0, 80).map((i) => value(i, depth + 1));
-        obj.truncated = v.length > 80;
+        obj.items = v.slice(0, limits.collectionElements).map((i) => value(i, depth + 1));
+        obj.truncated = v.length > limits.collectionElements;
       } else if (v instanceof Map) {
         obj.entries = [];
         let n = 0;
         for (const [k, item] of v) {
-          if (n++ >= 80) break;
+          if (n++ >= limits.collectionElements) break;
           obj.entries.push([value(k, depth + 1), value(item, depth + 1)]);
         }
-        obj.truncated = v.size > 80;
+        obj.truncated = v.size > limits.collectionElements;
       } else if (v instanceof Set) {
         obj.items = [];
         let n = 0;
         for (const item of v) {
-          if (n++ >= 80) break;
+          if (n++ >= limits.collectionElements) break;
           obj.items.push(value(item, depth + 1));
         }
-        obj.truncated = v.size > 80;
+        obj.truncated = v.size > limits.collectionElements;
       } else {
         const fields: Record<string, Value> = Object.create(null);
         const descriptors = Object.getOwnPropertyDescriptors(v);
         const names = Object.keys(descriptors);
-        for (const key of names.slice(0, 80)) {
+        for (const key of names.slice(0, limits.collectionElements)) {
           const descriptor = descriptors[key];
           fields[key] = 'value' in descriptor ? value(descriptor.value, depth + 1) : '[accessor]';
         }
         obj.fields = fields;
-        obj.truncated = names.length > 80;
+        obj.truncated = names.length > limits.collectionElements;
       }
       return { ref };
     };
     const vars = (getters: Getters) => {
       const result: Record<string, Value> = Object.create(null);
-      for (const [name, get] of Object.entries(getters).slice(0, 80)) {
+      for (const [name, get] of Object.entries(getters).slice(0, limits.variables)) {
         try {
           const v = get();
           if (typeof v === 'function' || (name === 'this' && (v === undefined || v === globalThis)))
@@ -136,7 +137,7 @@ export class JavaScriptTrace {
       }
       return result;
     };
-    const callStack = frames.slice(-80).map((frame) => ({
+    const callStack = frames.slice(-limits.frames).map((frame) => ({
       id: frame.id,
       func: frame.func,
       line: frame.line,
@@ -257,7 +258,7 @@ export class JavaScriptTrace {
   };
   writeOutput = (text: string) => {
     this.check();
-    this.stdout = (this.stdout + text).slice(0, 20000);
+    this.stdout = (this.stdout + text).slice(0, limits.stdout);
     this.append(this.snapshot('output'));
   };
   private format(v: unknown): string {

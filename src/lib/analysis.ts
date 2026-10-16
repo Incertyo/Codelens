@@ -1,3 +1,4 @@
+import { limits } from '@/shared/limits';
 import { z } from 'zod';
 import type { Language } from './breakdown';
 import type { TraceResult } from './trace';
@@ -20,7 +21,7 @@ export const entrySchema = z
 export const inspectionSchema = z
   .object({
     entries: z.array(entrySchema).max(40),
-    moduleCode: z.string().max(30000),
+    moduleCode: z.string().max(limits.code),
     diagnostic: z.string().nullable(),
     preparationReason: z.string().nullable(),
   })
@@ -29,7 +30,7 @@ export type Inspection = z.infer<typeof inspectionSchema>;
 export type Entry = z.infer<typeof entrySchema>;
 export const identitySchema = z
   .object({
-    implementationId: z.string().min(1).max(200),
+    implementationId: z.string().min(1).max(limits.implementationId),
     sourceHash: z.string().regex(/^[a-f0-9]{64}$/),
   })
   .strict();
@@ -59,9 +60,9 @@ export function generatedInput(kind: InputKind, n: number): number | number[] | 
   return Array.from({ length: n }, (_, i) => 'abc'[i % 3]).join('');
 }
 export const argumentSchema = z.union([
-  z.number().int().min(-10000).max(10000),
-  z.array(z.number().int().min(-10000).max(10000)).max(128),
-  z.string().max(128),
+  z.number().int().min(-limits.testArgumentInteger).max(limits.testArgumentInteger),
+  z.array(z.number().int().min(-limits.testArgumentInteger).max(limits.testArgumentInteger)).max(limits.testArgumentElements),
+  z.string().max(limits.testArgumentElements),
 ]);
 export function testHarness(
   inspection: Inspection,
@@ -85,7 +86,7 @@ export function testHarness(
       : `console.log(${invocation});`
     : invocation;
   const code = `${inspection.moduleCode}\n${driver}\n`;
-  if (code.length > 30000)
+  if (code.length > limits.code)
     throw new Error('The generated driver would exceed the source size limit.');
   return code;
 }
@@ -129,14 +130,14 @@ export const adviceSchema = z
           .object({
             line: z.number().int().positive(),
             severity: z.enum(['bug', 'edge-case', 'suggestion']),
-            message: z.string().min(1).max(600),
+            message: z.string().min(1).max(limits.aiPurposeCharacters),
           })
           .strict(),
       )
       .max(12),
     optimization: z
       .object({
-        code: z.string().min(1).max(30000),
+        code: z.string().min(1).max(limits.code),
         explanation: z.string().min(1).max(1200),
         lines: z.array(z.number().int().positive()).min(1).max(30),
       })

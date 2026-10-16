@@ -1,11 +1,12 @@
+import { limits } from '@/shared/limits';
 import lz from 'lz-string';
 const { compressToEncodedURIComponent } = lz;
 import { decompressBounded } from './bounded-lz';
 import { MAX_CODE_LENGTH } from './trace';
 import type { Language } from './breakdown';
 
-export const MAX_SHARE_FRAGMENT_LENGTH = 100000;
-export const MAX_SHARE_JSON_LENGTH = 250000;
+export const MAX_SHARE_FRAGMENT_LENGTH = limits.shareFragment;
+export const MAX_SHARE_JSON_LENGTH = limits.shareJson;
 
 export type ShareLanguage = Language | 'cpp' | 'java';
 
@@ -118,7 +119,7 @@ export function decodeShare(
       const stdin = data.length === 3 ? String(data[1]) : '';
       const code = data.length === 3 ? String(data[2]) : String(data[1]);
 
-      if (code.length > MAX_CODE_LENGTH || stdin.length > 10000) return null;
+      if (code.length > MAX_CODE_LENGTH || stdin.length > limits.stdin) return null;
       return { code, stdin, language: mappedLang };
     }
 
@@ -131,7 +132,7 @@ export function decodeShare(
         typeof d.language === 'string' ? d.language : typeof d.l === 'string' ? d.l : null;
 
       if (!code || code.length > MAX_CODE_LENGTH) return null;
-      if (typeof stdin !== 'string' || stdin.length > 10000) return null;
+      if (typeof stdin !== 'string' || stdin.length > limits.stdin) return null;
       if (!rawLang) return null;
 
       const mappedLang = LANG_CODE_MAP[rawLang] ?? (rawLang as ShareLanguage);

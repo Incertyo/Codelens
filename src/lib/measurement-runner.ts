@@ -1,3 +1,5 @@
+import { runProtocol, authenticatedMessage } from '@/shared/worker-protocol';
+import { limits } from '@/shared/limits';
 import type { Language } from './breakdown';
 import {
   deadlineMeasurement,
@@ -46,17 +48,17 @@ export class MeasurementRunner {
     this.dispose();
     if (!['python', 'javascript'].includes(plan.language))
       throw new Error('Measurement requires Python or JavaScript.');
-    if (plan.code.length > 30_000) throw new Error('Code exceeds the 30,000-character limit.');
+    if (plan.code.length > limits.code) throw new Error('Code exceeds the 30,000-character limit.');
     const options = measurementOptionsSchema.parse(plan.options ?? {});
     const sizes = [...(plan.sizes ?? measurementSizes)];
     if (
       !sizes.length ||
-      sizes.length > 10 ||
+      sizes.length > limits.measurementSizes ||
       sizes.some(
         (n, index) =>
           !Number.isSafeInteger(n) ||
           n < 1 ||
-          n > 1_000_000 ||
+          n > limits.measurementN ||
           (index > 0 && n <= sizes[index - 1]),
       )
     )
@@ -72,8 +74,7 @@ export class MeasurementRunner {
     let current: {
       nonce: string;
       n: number;
-      deadline: number;
-      phase: 'sent' | 'started';
+      protocol: ReturnType<typeof runProtocol>;
       resolve: (value: MeasurementSize) => void;
       reject: (error: Error) => void;
     } | null = null;
@@ -102,7 +103,7 @@ export class MeasurementRunner {
     this.cancel = () => fail(new Error('Measurement cancelled.'));
     timer = setTimeout(
       () => fail(new Error('The language runtime could not load within 90 seconds.')),
-      90_000,
+      limits.runtimeTimeoutMs,
     );
     const deadline = () => {
       const pending = current;
@@ -116,7 +117,7 @@ export class MeasurementRunner {
       const data = event.data;
       if (!data || finished) return;
       if (loading) {
-        if (data.nonce !== nonce) return;
+        if (!authenticatedMessage(data, nonce)) return;
         if (data.type === 'error') {
           fail(new Error('The measurement runtime could not load.'));
           return;
@@ -128,16 +129,16 @@ export class MeasurementRunner {
         }
         return;
       }
-      if (!current || data.nonce !== current.nonce) return;
-      if (performance.now() >= current.deadline) {
+      if (!current || !current.protocol.accepts(data)) return;
+      if (current.protocol.expired(performance.now())) {
         deadline();
         return;
       }
       if (data.type === 'started') {
-        if (current.phase === 'sent') current.phase = 'started';
+        current.protocol.start();
         return;
       }
-      if (current.phase !== 'started') return;
+      if (current.protocol.phase !== 'started') return;
       if (data.type === 'error') {
         fail(new Error('The worker rejected the measurement request.'));
         return;
@@ -156,7 +157,7 @@ export class MeasurementRunner {
     const results: MeasurementSize[] = [];
     try {
       progress({ phase: 'loading', index: 0, total: sizes.length, n: null });
-      worker.postMessage({ mode: 'bootstrap', nonce });
+      worker.postMessage({ mode: 'bootstrap', nonce, limits });
       await ready;
       for (const [index, n] of sizes.entries()) {
         if (finished) throw new Error('Measurement cancelled.');
@@ -167,17 +168,18 @@ export class MeasurementRunner {
           args: plan.argumentsForSize(n),
           options,
         });
-        if (new TextEncoder().encode(JSON.stringify(request)).length > 1_048_576)
+        if (new TextEncoder().encode(JSON.stringify(request)).length > limits.measurementRequestBytes)
           throw new Error('Measurement inputs exceed the 1 MiB request budget.');
         progress({ phase: 'running', index, total: sizes.length, n });
         if (finished) throw new Error('Measurement cancelled.');
         const result = await new Promise<MeasurementSize>((resolve, reject) => {
           const runNonce = crypto.randomUUID();
+          const protocol = runProtocol(runNonce);
+          protocol.send(performance.now(), options.timeoutMs);
           current = {
             nonce: runNonce,
             n,
-            phase: 'sent',
-            deadline: performance.now() + options.timeoutMs,
+            protocol,
             resolve,
             reject,
           };
@@ -188,6 +190,7 @@ export class MeasurementRunner {
             runNonce,
             measurement: request,
             language: plan.language,
+            limits,
           });
         });
         results.push(result);

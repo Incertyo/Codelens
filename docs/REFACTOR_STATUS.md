@@ -1,24 +1,15 @@
 # Revamp status
 
-- Current checkpoint: Python-only editor boundary implemented/verified; STOP at long-context commit boundary. Remaining browser migration and 3A/3B are not complete.
-- Branch: refactor/revamp. Never push, deploy, call hosted services, print secrets or add code comments.
-- Owner order: Python-only editor/Run first, then 3A shared core, then 3B AI pipeline; no 3C/3D/3E, L1–L8 fixes or optional cleanups.
-- Phase 0 complete: pre-revamp tag at 2ef477c; baseline/inventory/goldens in REFACTOR_BASELINE.md, REFACTOR_PARITY.md and REFACTOR_FEATURES.md. Do not repeat.
-- Phase 1 complete: Java/C++/simulation removal; 1,021 unit and 33 production browser passes. Blocked dev case passed production diagnosis run 1; no app fix.
-- Phase 2A report: REFACTOR_AUDIT.md. knip/depcheck/jscpd unavailable offline; limited TS/PostCSS evidence recorded. No tool downloads authorized.
-- Phase 2B complete: 27acd16 unused wrappers/alias, d825cce Lenis, 6991e07 AST predicate; final T2 1,021/1,021 and 33 targeted browser passes. Ledger: REFACTOR_PHASE2B.md.
-- Phase 3 preflight: a8e40f8; unchanged production JS/Pyodide workers disagree on empty options and extra fields. Source/reproduction/limits in REFACTOR_PHASE3.md.
-- Owner response to preflight: Python-only editor/Run, then 3A/3B. Do not silently change internal worker policies while refactoring.
-- Python-only scope/spec: PYTHON_EDITOR_CHANGE.md; docs/ai/specs/python-only-editor.md; editor policy in src/lib/editor-language.ts.
-- Done: sole Python controls/Monaco, Python library/example loads and guarded Run/shortcuts; old JS shares preserve source/stdin/language but cannot run/load analysis. Internal JS tooling/catalog/goldens retained.
-- Python-only T0: final related units 35/35, policy units 11/11, maintenance/frozen tests 7/7, incremental typecheck and scoped cached lint pass.
-- Python-only T1: quick goldens and one production build pass; 5 existing library/diagram cases plus corrected new/workspace 10/10 = 15 distinct production browser passes; local smoke passes, AI off.
-- Test notes: two new assertions corrected (absent playback; inline Python sample). No app rebuild/change during retries. Logs: artifacts/refactor/python-only. All 326 Python catalog inputs pass the policy.
-- NEXT: migrate remaining Auto/JavaScript-oriented browser stories to Python-only contract; retain internal JS runtime coverage separately. Provider fixture tests and all goldens stay unchanged.
-- Then implement 3A limits/protocol/validation and 3B pipeline, each with T0/T1, then full T2. No 3A/3B refactor code is implemented yet; classic worker approach not selected.
-- Validation differences: JS defaults empty options/rejects extra fields; Python rejects empty options/ignores extras. Preserve behavior; stop for any stricter merge that would change it.
-- T0 per commit: incremental tsc, cached changed-file lint, vitest related excluding full golden files. Manifest-only related expands to all tests; use maintenance tests instead.
-- T1 per sub-step: quick goldens, one production build, npx playwright test <affected specs> --workers=1; never dev or rebuilding test:e2e hook. Final T2 after 3A/3B is pending.
-- Frozen Phase 2B/Python-only inputs/export unchanged; prior Phase 1 manifest-only exception remains in REFACTOR_PHASE1.md. No golden regeneration.
-- Unverified: remaining browser-story migration, 3A/3B and new full T2; full browser, visual/bundle comparisons, gitleaks/T3 deferred until run final gate.
-- Findings: REFACTOR_FINDINGS.md; L1–L8 unfixed. Direct dependencies remain 36 after Lenis removal; no new env variable/route/dependency.
+- Branch refactor/revamp; local changes only. No push, deploy, hosted calls, secrets or new comments.
+- Owner now authorizes all Phase 3A–3E without builds, tests or verification in this pass.
+- Previous baseline/Phase 1/2 ledgers and immutable golden/catalog inputs remain authoritative.
+- Python-only editor boundary is committed at df5659f; internal JS engines remain for maintenance/goldens.
+- Current commit: 3A shared semantic limits, parent protocol, generated classic-worker core and snapshot record validation.
+- Classic worker approach (a): installed TypeScript transpilation; keep classic Pyodide loader.
+- Preserve JS defaults/strict fields and Python required bounds/selected fields; no stricter validator merge.
+- Direct Pyodide test setup initializes canonical limits; golden expectations and provider fixtures unchanged.
+- 3A verification explicitly skipped; no claim of trace, deadline, production asset or conformance parity.
+- Next: commit 3B parameterized AI generation, then 3C controllers/actions, 3D domains/boundaries and 3E CSS.
+- L1–L8 fixes, optional feature changes, Phase 4, full browser/security/bundle gates are not authorized.
+- Remaining Python-only browser story migration and all acceptance checks remain deferred.
+

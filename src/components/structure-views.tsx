@@ -1,4 +1,5 @@
 'use client';
+import { limits } from '@/shared/limits';
 import { useId } from 'react';
 import { useStore } from '@/lib/store';
 import { objectFields, type Structure, type StructureNode } from '@/lib/structures';
@@ -11,7 +12,7 @@ function Diagram({
   nodes,
   step,
   previous,
-  edgeCap = 300,
+  edgeCap = limits.graphEdges,
 }: {
   kind: string;
   nodes: StructureNode[];

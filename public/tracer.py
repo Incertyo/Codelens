@@ -16,7 +16,8 @@ class _TraceLimit(BaseException):
 
 def run_trace(request_json):
     request = _json.loads(request_json)
-    limit = min(5000, max(10, int(request.get('maxSteps', 5000))))
+    limits = request.get('limits', _codelens_limits)
+    limit = min(limits['steps'], max(limits['workerMinSteps'], int(request.get('maxSteps', limits['steps']))))
     steps = []
     identities = {}
     retained = []
@@ -29,7 +30,7 @@ def run_trace(request_json):
     truncated = False
     limit_hit = False
     serialized_bytes = 2
-    byte_limit = 16 * 1024 * 1024
+    byte_limit = limits['traceBytes']
     limit_message = 'Trace stopped at the safety limit. The program may contain an infinite loop.'
     environment = {'__name__': '__main__'}
 
@@ -41,13 +42,13 @@ def run_trace(request_json):
             if obj is None or isinstance(obj, bool):
                 return obj
             if isinstance(obj, int):
-                if obj.bit_length() > 660:
+                if obj.bit_length() > limits['integerBits']:
                     return '[large integer: ' + str(int(obj.bit_length() * 0.30103) + 1) + ' digits]'
-                return obj if abs(obj) <= 9007199254740991 else str(obj)[:200] + ('…' if len(str(obj)) > 200 else '')
+                return obj if abs(obj) <= limits['safeInteger'] else str(obj)[:limits['valueCharacters']] + ('…' if len(str(obj)) > limits['valueCharacters'] else '')
             if isinstance(obj, float):
                 return obj if obj == obj and abs(obj) != float('inf') else str(obj)
             if isinstance(obj, str):
-                return obj[:200] + ('…' if len(obj) > 200 else '')
+                return obj[:limits['valueCharacters']] + ('…' if len(obj) > limits['valueCharacters'] else '')
             identity = id(obj)
             if identity not in identities:
                 identities[identity] = 'h' + str(len(identities) + 1)
@@ -55,33 +56,33 @@ def run_trace(request_json):
             ref = identities[identity]
             if ref in heap:
                 return {'ref': ref}
-            if len(heap) >= 128 or depth >= 6:
+            if len(heap) >= limits['heapObjects'] or depth >= limits['snapshotDepth']:
                 return '[value truncated]'
             record = {'type': type(obj).__name__}
             heap[ref] = record
             if isinstance(obj, (list, tuple, set, frozenset, _collections.deque)):
-                items = list(_islice(obj, 80)) if not isinstance(obj, (list, tuple)) else obj[:80]
+                items = list(_islice(obj, limits['collectionElements'])) if not isinstance(obj, (list, tuple)) else obj[:limits['collectionElements']]
                 record['items'] = [value(item, depth + 1) for item in items]
-                record['truncated'] = len(obj) > 80
+                record['truncated'] = len(obj) > limits['collectionElements']
             elif isinstance(obj, _queue.Queue):
-                record['items'] = [value(item, depth + 1) for item in _islice(obj.queue, 80)]
-                record['truncated'] = len(obj.queue) > 80
+                record['items'] = [value(item, depth + 1) for item in _islice(obj.queue, limits['collectionElements'])]
+                record['truncated'] = len(obj.queue) > limits['collectionElements']
             elif isinstance(obj, dict):
                 record['entries'] = []
                 for i, (key, item) in enumerate(obj.items()):
-                    if i >= 80:
+                    if i >= limits['collectionElements']:
                         break
                     record['entries'].append([value(key, depth + 1), value(item, depth + 1)])
-                record['truncated'] = len(obj) > 80
+                record['truncated'] = len(obj) > limits['collectionElements']
             else:
                 try:
                     fields = object.__getattribute__(obj, '__dict__')
-                    record['fields'] = {str(k): value(v, depth + 1) for k, v in _islice(fields.items(), 80)}
+                    record['fields'] = {str(k): value(v, depth + 1) for k, v in _islice(fields.items(), limits['collectionElements'])}
                 except (AttributeError, TypeError):
                     slots = {}
                     for cls in type(obj).__mro__:
                         for key, descriptor in cls.__dict__.items():
-                            if len(slots) >= 80: break
+                            if len(slots) >= limits['collectionElements']: break
                             if isinstance(descriptor, _types.MemberDescriptorType) and not key.startswith('__'):
                                 try: slots[key] = value(descriptor.__get__(obj, type(obj)), depth + 1)
                                 except (AttributeError, TypeError): pass
@@ -93,7 +94,7 @@ def run_trace(request_json):
             for key, obj in mapping.copy().items():
                 if key.startswith('__') or isinstance(obj, (_types.ModuleType, _types.FunctionType, _types.BuiltinFunctionType, type)):
                     continue
-                if len(result) >= 80:
+                if len(result) >= limits['variables']:
                     result['…'] = 'Additional variables truncated'
                     break
                 result[key] = value(obj)
@@ -105,7 +106,7 @@ def run_trace(request_json):
             if cursor.f_code.co_filename == '<codelens>':
                 frames.append(cursor)
             cursor = cursor.f_back
-        stack = [{'id': frame_ids.get(id(f), 'module'), 'func': f.f_code.co_name, 'line': max(1, f.f_lineno), 'locals': variables(f.f_locals)} for f in reversed(frames[:80])]
+        stack = [{'id': frame_ids.get(id(f), 'module'), 'func': f.f_code.co_name, 'line': max(1, f.f_lineno), 'locals': variables(f.f_locals)} for f in reversed(frames[:limits['frames']])]
         if event == 'return' and stack:
             stack[-1]['locals']['↳ return'] = value(arg)
         step = {'index': len(steps), 'line': max(1, frame.f_lineno) if frame else 1,
@@ -115,7 +116,7 @@ def run_trace(request_json):
         if message:
             step['explanation'] = message
         size = len(_json.dumps(step, ensure_ascii=True).encode('utf-8')) + 1
-        if serialized_bytes + size > byte_limit - 128 * 1024:
+        if serialized_bytes + size > byte_limit - limits['traceNoticeBytes']:
             limit_hit = True
             limit_message = 'Trace stopped at the serialized-size safety limit.'
             raise _TraceLimit()
@@ -132,18 +133,18 @@ def run_trace(request_json):
         if limit_hit or len(steps) >= limit - 1:
             limit_hit = True
             raise _TraceLimit()
-        if _time.perf_counter() - started > 10:
+        if _time.perf_counter() - started > limits['traceTimeoutMs'] / 1000:
             limit_hit = True
             raise _TraceLimit()
         if event in ('line', 'call', 'return'):
             snapshot(frame, event, arg)
         elif event == 'exception':
-            snapshot(frame, event, message=type(arg[1]).__name__ + ': ' + str(arg[1])[:300])
+            snapshot(frame, event, message=type(arg[1]).__name__ + ': ' + str(arg[1])[:limits['exceptionCharacters']])
         return trace
 
     class Writer:
         def write(self, text):
-            room = max(0, 20000 - output.tell())
+            room = max(0, limits['stdout'] - output.tell())
             if room:
                 output.write(str(text)[:room])
             if len(steps) < limit - 1:
@@ -178,7 +179,7 @@ def run_trace(request_json):
         limit_hit = True
     except BaseException as exc:
         _sys.settrace(None)
-        error = type(exc).__name__ + ': ' + str(exc)[:500]
+        error = type(exc).__name__ + ': ' + str(exc)[:limits['errorCharacters']]
         tb = exc.__traceback__
         frame = None
         error_line = getattr(exc, 'lineno', None)

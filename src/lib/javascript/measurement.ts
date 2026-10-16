@@ -1,3 +1,4 @@
+import { limits } from '@/shared/limits';
 import { instrumentJavaScript } from './instrument';
 import { inspectJavaScript } from './analysis';
 import {
@@ -57,7 +58,7 @@ export class JavaScriptMeasurement {
       }
       const { value, depth } = pending.pop()!;
       if (typeof value === 'string') {
-        if (!strings.has(value)) units += Math.min(10_000, value.length);
+        if (!strings.has(value)) units += Math.min(limits.measurementString, value.length);
         strings.add(value);
         continue;
       }
@@ -203,7 +204,7 @@ export class JavaScriptMeasurement {
       reason: this.exhausted
         ? 'Measurement event or execution-time budget exceeded.'
         : failed
-          ? String(error instanceof Error ? `${error.name}: ${error.message}` : error).slice(0, 600)
+          ? String(error instanceof Error ? `${error.name}: ${error.message}` : error).slice(0, limits.measurementReason)
           : this.partial
             ? 'Memory traversal bound reached; this size is partial and excluded from fits.'
             : null,

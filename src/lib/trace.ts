@@ -1,3 +1,5 @@
+import { limits } from '@/shared/limits';
+import { snapshotRecord } from '@/shared/validation';
 import { z } from 'zod';
 
 export type Value = null | boolean | number | string | { ref: string };
@@ -26,11 +28,11 @@ export type TraceResult = {
   error: string | null;
   elapsed: number;
 };
-export const MAX_CODE_LENGTH = 30000;
-export const DEFAULT_MAX_STEPS = 5000;
-export const RUN_TIMEOUT_MS = 12000;
-export const MAX_TRACE_BYTES = 16 * 1024 * 1024;
-export const TRACE_NOTICE_RESERVE = 128 * 1024;
+export const MAX_CODE_LENGTH = limits.code;
+export const DEFAULT_MAX_STEPS = limits.steps;
+export const RUN_TIMEOUT_MS = limits.runTimeoutMs;
+export const MAX_TRACE_BYTES = limits.traceBytes;
+export const TRACE_NOTICE_RESERVE = limits.traceNoticeBytes;
 const value = z.union([
   z.null(),
   z.boolean(),
@@ -38,18 +40,7 @@ const value = z.union([
   z.string(),
   z.object({ ref: z.string() }),
 ]);
-const record = <T extends z.ZodType>(schema: T) =>
-  z
-    .preprocess(
-      (input) =>
-        input && typeof input === 'object' && !Array.isArray(input) ? Object.entries(input) : null,
-      z.array(z.tuple([z.string(), schema])),
-    )
-    .transform((entries) => {
-      const output: Record<string, z.output<T>> = Object.create(null);
-      for (const [key, entry] of entries) output[String(key)] = entry as z.output<T>;
-      return output;
-    });
+const record = snapshotRecord;
 const heap = z.object({
   type: z.string(),
   items: z.array(value).optional(),

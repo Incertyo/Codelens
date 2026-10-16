@@ -1,4 +1,5 @@
 'use client';
+import { limits } from '@/shared/limits';
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { DETECTION_MIN_CHARS, heuristicDetection, type Detection } from '@/lib/language-detection';
@@ -77,7 +78,7 @@ export function useLanguageDetection() {
         current.removeEventListener('error', failed);
       };
       timeout = setTimeout(failed, 15000);
-      current.postMessage({ id: revision, code: code.slice(0, 30000) });
+      current.postMessage({ id: revision, code: code.slice(0, limits.code) });
     }, 350);
     return () => {
       active = false;

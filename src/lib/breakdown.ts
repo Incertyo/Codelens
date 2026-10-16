@@ -1,3 +1,4 @@
+import { limits } from '@/shared/limits';
 import { z } from 'zod';
 export type Language = 'python' | 'javascript';
 export const outlineNodeSchema = z.object({
@@ -170,9 +171,9 @@ export const enrichmentSchema = z
         z
           .object({
             name: z.string().min(1).max(100),
-            line: z.number().int().positive().max(30000),
-            purpose: z.string().max(600),
-            returns: z.string().max(500),
+            line: z.number().int().positive().max(limits.code),
+            purpose: z.string().max(limits.aiPurposeCharacters),
+            returns: z.string().max(limits.aiTextCharacters),
           })
           .strict(),
       )
@@ -180,7 +181,7 @@ export const enrichmentSchema = z
     annotations: z
       .array(
         z
-          .object({ line: z.number().int().positive().max(30000), text: z.string().max(500) })
+          .object({ line: z.number().int().positive().max(limits.code), text: z.string().max(limits.aiTextCharacters) })
           .strict(),
       )
       .max(100),
@@ -198,8 +199,8 @@ export const enrichmentSchema = z
         z
           .object({
             type: z.enum(['optimization', 'bug', 'edge-case', 'style']),
-            message: z.string().max(600),
-            line: z.number().int().positive().max(30000).optional(),
+            message: z.string().max(limits.aiPurposeCharacters),
+            line: z.number().int().positive().max(limits.code).optional(),
           })
           .strict(),
       )
@@ -214,7 +215,7 @@ export const enrichmentSchema = z
               .object({
                 step: z.number().int().nonnegative().max(4999),
                 variable: z.string().max(100),
-                reason: z.string().max(200),
+                reason: z.string().max(limits.aiHintCharacters),
               })
               .strict(),
           )
@@ -224,9 +225,9 @@ export const enrichmentSchema = z
           .array(
             z
               .object({
-                line: z.number().int().positive().max(30000),
+                line: z.number().int().positive().max(limits.code),
                 type: z.string().max(50),
-                description: z.string().max(200),
+                description: z.string().max(limits.aiHintCharacters),
               })
               .strict(),
           )
