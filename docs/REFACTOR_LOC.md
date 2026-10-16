@@ -12,4 +12,4 @@
 | --- | --- | --- | --- |
 | 5fda10e | Stabilize Phase 3 fallout: fix architecture boundaries, limits, and hook encapsulation | +7 (+39 / -32) | Part A stabilization |
 | ce8b65d | Consolidate Python-only runtime, remove JS engine and resolve findings L1-L4 | -3594 (+396 / -3990) | Parts B & C consolidation |
-| staged | Part D: dead code audit and manifest validation cleanup | -87 (+4 / -91) | Part D dead code audit |
+| 6ba6f46 | Part D: dead code audit and manifest validation cleanup | -86 (+6 / -92) | Part D dead code audit |
