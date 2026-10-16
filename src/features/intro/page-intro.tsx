@@ -103,8 +103,7 @@ export function PageIntro({ children }: { children: React.ReactNode }) {
         if (
           active &&
           /^\/pyodide\/[a-f0-9]{16}$/.test(manifest.pyodide) &&
-          /^\/monaco\/[a-f0-9]{16}\/vs$/.test(manifest.monaco) &&
-          /^\/language-detection\/[a-f0-9]{16}$/.test(manifest.languageDetection)
+          /^\/monaco\/[a-f0-9]{16}\/vs$/.test(manifest.monaco)
         )
           ready.current.manifest = true;
       })

@@ -22,7 +22,6 @@ const harness = buildSync({
 type BrowserHarness = typeof window & {
   MeasurementHarness: { MeasurementRunner: typeof MeasurementRunner };
   workerUrls: string[];
-  javascriptWorkerUrl: string;
   workerMessages: { type: string; worker: number; nonce?: string }[];
   terminatedWorkers: number[];
   activeMeasurement?: MeasurementRunner;
@@ -148,9 +147,7 @@ for (const language of ['python'] as const) {
   }) => {
     await prepare(page);
     const code =
-      language === 'python'
-        ? 'calls = 0\ndef algorithm(n):\n    global calls\n    calls += 1\n    if calls != 1:\n        raise RuntimeError("stale globals")\n    value = 0\n    for i in range(n):\n        value += 1\n    return value'
-        : 'let calls=0; function algorithm(n) { calls++; if(calls!==1) throw new Error("stale globals"); let value=0; for(let i=0;i<n;i++) value++; return value; }';
+      'calls = 0\ndef algorithm(n):\n    global calls\n    calls += 1\n    if calls != 1:\n        raise RuntimeError("stale globals")\n    value = 0\n    for i in range(n):\n        value += 1\n    return value';
     const result = await measure(page, { code, language, sizes: [3000, 4000, 5000, 6000] });
     expect(
       result.sizes.every((size) => size.status === 'complete' && size.lineEvents! > 5000),
@@ -169,9 +166,7 @@ for (const language of ['python'] as const) {
     const specialKeys = await measure(page, {
       language,
       code:
-        language === 'python'
-          ? 'def algorithm(items):\n    if "__proto__" not in items or "constructor" not in items:\n        raise ValueError("input fields lost")\n    return items'
-          : 'function algorithm(items) { if(!Object.hasOwn(items,"__proto__") || !Object.hasOwn(items,"constructor") || typeof items.hasOwnProperty !== "function") throw new Error("input fields lost"); return items; }',
+        'def algorithm(items):\n    if "__proto__" not in items or "constructor" not in items:\n        raise ValueError("input fields lost")\n    return items',
       sizes: [4, 8, 12, 16],
       args: Object.fromEntries(
         [4, 8, 12, 16].map((n) => [n, [JSON.parse('{"__proto__":[1],"constructor":2}')]]),
