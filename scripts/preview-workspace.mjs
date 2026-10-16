@@ -27,9 +27,8 @@ try {
   await page.getByRole('button', { name: '/ browse all' }).click();
   await page.screenshot({ path: 'artifacts/algorithm-library-desktop.png' });
   await page.getByRole('button', { name: 'Close algorithm library' }).click();
-  await page.getByLabel('Programming language').selectOption('javascript');
   await page.getByRole('button', { name: '/ new code', exact: true }).click();
-  await page.keyboard.insertText('new Function("while(true){}")();');
+  await page.keyboard.insertText('while True:\n    pass\n');
   await page.getByRole('button', { name: '/ run code', exact: true }).click();
   const loading = page.getByRole('dialog', { name: 'Running code' });
   await loading.waitFor();

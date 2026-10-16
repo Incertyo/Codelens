@@ -281,8 +281,7 @@ export function Workspace() {
               <div className="filebar mono">
                 <span>
                   <span className="file-mark">{language.toUpperCase()}</span>{' '}
-                  {exampleName.toLowerCase().replaceAll(' ', '_')}.
-                  {language === 'python' ? 'py' : language === 'javascript' ? 'js' : language}
+                  {exampleName.toLowerCase().replaceAll(' ', '_')}.py
                 </span>
                 <span className="dim">{code.split('\n').length} LINES</span>
               </div>

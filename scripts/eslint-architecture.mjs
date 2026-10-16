@@ -30,7 +30,7 @@ const boundaries = {
       else if (ownFeature && targetFeature && ownFeature !== targetFeature && !target.includes('/public/')) messageId = 'public';
       else if ((client || ownFeature && !server && !file.includes('/public/server/')) && target.includes('/server/')) messageId = 'server';
       else if (file.includes('/workers/') && (/^(react(?:-dom)?|next)(\/|$)/.test(value) || /monaco-editor|\/components\/|\/public\/.*(?:code-editor|workspace|preferences|page-intro)/.test(target))) messageId = 'worker';
-      else if (ownFeature && /\/src\/lib\//.test(target) && !/\/(algorithm-catalog|examples|javascript-examples|additional-examples)$/.test(target)) messageId = 'legacy';
+      else if (ownFeature && /\/src\/lib\//.test(target) && !/\/(algorithm-catalog|examples|additional-examples)$/.test(target)) messageId = 'legacy';
       if (messageId) context.report({ node, messageId });
     };
     return {

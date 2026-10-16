@@ -4,7 +4,7 @@ export const implementationSchema = z.object({
   id: z.string(),
   algorithmId: z.string(),
   name: z.string(),
-  language: z.enum(['python', 'javascript']),
+  language: z.literal('python'),
   variant: z.enum(['reference', 'featured']),
   revision: z.number().int().positive(),
   code: z.string().min(1).max(limits.code),
