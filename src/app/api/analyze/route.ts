@@ -9,9 +9,7 @@ import {
 } from '@/lib/analysis-repository';
 import {
   adviceRequestSchema,
-  simulationRequestSchema,
   analyzeAdvice,
-  simulate,
   validateIdentity,
 } from '@/lib/ai/phase3';
 export const runtime = 'nodejs';
@@ -27,7 +25,8 @@ export async function GET(request: Request) {
   const sourceHash = url.searchParams.get('sourceHash');
   const implementationId = url.searchParams.get('implementationId');
   const language = url.searchParams.get('language') || 'python';
-  if (language === 'java' && (sourceHash || implementationId)) return json({ cached: false }, 404);
+  if (!['python', 'javascript'].includes(language))
+    return json({ error: 'Only Python and JavaScript analysis is supported.' }, 400);
   if (sourceHash || implementationId) {
     const stored = getStoredAnalysis({
       sourceHash: sourceHash || undefined,
@@ -70,12 +69,14 @@ export async function POST(request: Request) {
     }
     const body: unknown = JSON.parse(new TextDecoder().decode(buffer));
     const mode = body && typeof body === 'object' && 'mode' in body ? body.mode : undefined;
+    if (mode === 'simulate')
+      return json({ error: 'AI-simulated traces have been removed. Run Python or JavaScript locally.' }, 410);
     if (mode === 'save_complexity' || mode === 'save_analysis') {
       const saveBody = body as Record<string, unknown>;
       const sHash = typeof saveBody.sourceHash === 'string' ? saveBody.sourceHash : '';
       const lang = typeof saveBody.language === 'string' ? saveBody.language : 'python';
-      if (lang === 'java')
-        return json({ error: 'Java source-derived analysis stays in the browser.' }, 400);
+      if (!['python', 'javascript'].includes(lang))
+        return json({ error: 'Only Python and JavaScript analysis is supported.' }, 400);
       if (sHash) {
         saveStoredAnalysis({
           implementationId:
@@ -101,12 +102,7 @@ export async function POST(request: Request) {
       }
       return json({ error: 'Missing sourceHash' }, 400);
     }
-    const schema =
-      mode === 'analysis'
-        ? adviceRequestSchema
-        : mode === 'simulate'
-          ? simulationRequestSchema
-          : analyzeRequestSchema;
+    const schema = mode === 'analysis' ? adviceRequestSchema : analyzeRequestSchema;
     const parsed = schema.safeParse(body);
     if (!parsed.success)
       return json(
@@ -124,15 +120,10 @@ export async function POST(request: Request) {
     if (!readiness.configured) throw new AIControlError(readiness.code!, readiness.reason!);
 
     requireAllowed(await takeSharedLimit(key));
-    if ('mode' in parsed.data)
-      return json(
-        parsed.data.mode === 'analysis'
-          ? await analyzeAdvice(parsed.data, request.signal)
-          : await simulate(parsed.data, request.signal),
-      );
+    if ('mode' in parsed.data) return json(await analyzeAdvice(parsed.data, request.signal));
 
     const checkCache = (body as Record<string, unknown>)?.checkCache === true;
-    if (checkCache && parsed.data.language !== 'java') {
+    if (checkCache) {
       const sourceHash = createHash('sha256').update(parsed.data.code).digest('hex');
       const cached = getStoredAnalysis({
         implementationId: parsed.data.implementationId,
@@ -145,7 +136,7 @@ export async function POST(request: Request) {
     }
 
     const enrichmentResult = await enrichCode(parsed.data, request.signal);
-    if (enrichmentResult.source === 'ai' && parsed.data.language !== 'java') {
+    if (enrichmentResult.source === 'ai') {
       const sourceHash = createHash('sha256').update(parsed.data.code).digest('hex');
       saveStoredAnalysis({
         implementationId: parsed.data.implementationId,

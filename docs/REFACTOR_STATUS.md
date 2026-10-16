@@ -8,8 +8,9 @@
 - Done: 1,068 unit tests, lint/typecheck; original full browser suite 92/92 plus two new characterization stories 2/2; production build and local smoke pass.
 - Done: 40 local screenshots; both real workers scrub 5,000 steps with 181 rendered positions; seven new code files contain zero comments; secret scans pass.
 - Commits: 2ef477c rules/status and pre-revamp tag; 26cb902 golden traces/contracts; following commit contains local tools and baseline docs.
-- Done in working tree: Java/C++ execution/simulation removal, source-only old shares, unsupported detection and strict notes/advice schemas; removal commit follows quick-tooling commit.
+- Done: Java/C++ execution/simulation removal, source-only old shares, unsupported detection and strict notes/advice schemas; committed as the Phase 1 removal change, with T1 blocker explicit.
 - Done: quick golden selector adds 25 references/all topics, 17 JS examples and API/share contracts without rewriting baseline goldens.
+- Phase 1 commits: 308401b quick tooling; following removal commit also includes local model evaluation, module docs, frozen exception and regression tests.
 - Done: 40-case real local model evaluation; criterion not met, model/assets retained (958,550 public asset bytes).
 - T0 current tree: incremental typecheck, cached changed-file eslint and 639 related unit cases pass.
 - T1: quick goldens pass; AI-controls rechecks-exhausted-budget case fails after switching to Analysis with a Monaco disposal/error page. Privacy/quota notice case passed on retry.

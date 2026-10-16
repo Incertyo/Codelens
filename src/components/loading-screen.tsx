@@ -11,15 +11,14 @@ export function LoadingScreen({
   onCancel,
 }: {
   mode?: 'site' | 'run' | 'route';
-  language?: 'python' | 'javascript' | 'cpp' | 'java';
+  language?: 'python' | 'javascript';
   phase?: 'loading' | 'running';
   progress?: number;
   message?: string;
   reduced?: boolean;
   onCancel?: () => void;
 }) {
-  const simulated = language === 'cpp' || language === 'java';
-  const preparing = mode === 'run' && phase === 'loading' && !simulated;
+  const preparing = mode === 'run' && phase === 'loading';
   return (
     <motion.div
       className="loading-screen"
@@ -51,9 +50,7 @@ export function LoadingScreen({
       </div>
       <div className="loading-stage mono">
         {mode === 'run'
-          ? simulated
-            ? '/ REQUESTING AI SIMULATION'
-            : `/ ${preparing ? 'PREPARING' : 'TRACING'} ${language === 'python' ? 'PYTHON' : 'JAVASCRIPT'}`
+          ? `/ ${preparing ? 'PREPARING' : 'TRACING'} ${language === 'python' ? 'PYTHON' : 'JAVASCRIPT'}`
           : '/ OPENING YOUR WORKSPACE'}
       </div>
       <h2>
@@ -93,9 +90,7 @@ export function LoadingScreen({
             </div>
             <span className="mono dim">
               {mode === 'run'
-                ? simulated
-                  ? 'AI-SIMULATED, MAY BE INACCURATE'
-                  : 'CAPTURING EVERY STEP'
+                ? 'CAPTURING EVERY STEP'
                 : 'PREPARING THE EDITOR'}
             </span>
           </>

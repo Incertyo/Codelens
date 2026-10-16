@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { createServer } from 'node:http';
-import { analyzeAdvice, simulate, simulationRequestSchema } from '../src/lib/ai/phase3';
+import { analyzeAdvice } from '../src/lib/ai/phase3';
 import { sourceIdentity } from '../src/lib/analysis';
 import { inspectJavaScript } from '../src/lib/javascript/analysis';
 import { POST } from '../src/app/api/analyze/route';
@@ -154,77 +154,6 @@ describe('Phase 3 strict provider pipeline', () => {
       expect(performance.now() - started).toBeGreaterThan(17500);
       expect(performance.now() - started).toBeLessThan(20500);
       expect(fixture.calls()).toBe(1);
-    } finally {
-      await fixture.close();
-    }
-  });
-  it('rejects consent omissions, real execution languages, and mismatched hashes before calls', async () => {
-    const base = {
-      mode: 'simulate',
-      code: 'int main(){}',
-      language: 'cpp',
-      identity: await sourceIdentity('cpp', 'int main(){}'),
-      maxSteps: 100,
-    };
-    expect(simulationRequestSchema.safeParse(base).success).toBe(false);
-    expect(simulationRequestSchema.safeParse({ ...base, consent: false }).success).toBe(false);
-    for (const language of ['python', 'javascript'])
-      expect(simulationRequestSchema.safeParse({ ...base, consent: true, language }).success).toBe(
-        false,
-      );
-    const response = await POST(
-      new Request('http://localhost/api/analyze', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          ...base,
-          consent: true,
-          identity: { implementationId: 'cpp', sourceHash: '0'.repeat(64) },
-        }),
-      }),
-    );
-    expect(response.status).toBe(400);
-  });
-  it('rejects malformed simulated call stacks twice with no repaired trace', async () => {
-    const fixture = await providerFixture(() => ({
-      steps: [
-        {
-          index: 0,
-          line: 1,
-          event: 'line',
-          func: '<module>',
-          callStack: [],
-          globals: {},
-          heap: {},
-          stdout: '',
-        },
-        {
-          index: 1,
-          line: 1,
-          event: 'return',
-          func: '<module>',
-          callStack: [],
-          globals: {},
-          heap: {},
-          stdout: '',
-        },
-      ],
-      truncated: false,
-      error: null,
-      elapsed: 0,
-    }));
-    try {
-      const result = await simulate({
-        mode: 'simulate',
-        code: 'int main(){}',
-        language: 'cpp',
-        identity: await sourceIdentity('cpp', 'int main(){}'),
-        consent: true,
-        maxSteps: 100,
-      });
-      expect(result.source).toBe('static');
-      expect(result).not.toHaveProperty('trace');
-      expect(fixture.calls()).toBe(2);
     } finally {
       await fixture.close();
     }

@@ -26,13 +26,8 @@ import { LoadingScreen } from './loading-screen';
 import { ScrollStudy } from './scroll-study';
 import { algorithms, type Algorithm } from '@/lib/algorithm-catalog';
 import { implementationSchema, type LibraryImplementation } from '@/lib/library-contract';
-import { sourceIdentity, sameIdentity, identitySchema } from '@/lib/analysis';
-import { validateSimulation } from '@/lib/ai/simulation';
-import { z } from 'zod';
-import { useAIReadiness } from './use-ai-readiness';
-import { AI_SOURCE_NOTICE } from '@/lib/ai/notice';
+import { sourceIdentity } from '@/lib/analysis';
 import { LANGUAGE_LABELS, type LanguageMode } from '@/lib/language-detection';
-import { javaExample } from '@/lib/java/example';
 import { useLanguageDetection } from './use-language-detection';
 import { usePageIntro } from './page-intro';
 const Analysis = dynamic(() => import('./analysis').then((m) => m.Analysis));
@@ -76,25 +71,12 @@ export function Workspace() {
     stdin: string;
     name: string;
     language: Language;
+    unsupportedLanguage: 'cpp' | 'java' | null;
   } | null>(null);
   const [fetchingCode, setFetchingCode] = useState(false);
   const [libraryError, setLibraryError] = useState('');
   const [implementation, setImplementation] = useState<LibraryImplementation | null>(null);
-  const sourceRevision = useStore((s) => s.sourceRevision);
-  const [consentFor, setConsentFor] = useState<{ revision: number; language: Language } | null>(
-    null,
-  );
-  const simulationConsent =
-    consentFor?.revision === sourceRevision && consentFor.language === language;
-  const simulationAbort = useRef<AbortController | null>(null);
-  const simulatedLanguage = language === 'cpp';
-  const {
-    configured: aiConfigured,
-    reason: aiReason,
-    unavailable: setAIUnavailable,
-    refresh: refreshAI,
-    check: checkAI,
-  } = useAIReadiness(simulatedLanguage);
+  const unsupportedLanguage = useStore((s) => s.unsupportedLanguage);
   const implementationId =
     implementation && implementation.language === language && code === implementation.code
       ? implementation.id
@@ -118,12 +100,8 @@ export function Workspace() {
       patch({ message: 'Paste your code or load an example before running.' });
       return;
     }
-    if (state.language === 'cpp' && !aiConfigured) {
-      patch({ message: aiReason });
-      return;
-    }
-    if (state.language === 'cpp' && !simulationConsent) {
-      patch({ message: 'Choose the per-run AI simulation opt-in before requesting a trace.' });
+    if (state.unsupportedLanguage) {
+      patch({ message: 'Unsupported language. Choose Python or JavaScript before running.' });
       return;
     }
     const id = ++runId.current;
@@ -132,7 +110,7 @@ export function Workspace() {
     patch({
       status: 'loading',
       progress: 0,
-      message: `Preparing ${state.language === 'java' ? 'Java subset' : LANGUAGE_LABELS[state.language]}…`,
+      message: `Preparing ${LANGUAGE_LABELS[state.language]}…`,
       playing: false,
       edited: true,
       result: null,
@@ -143,51 +121,6 @@ export function Workspace() {
     try {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       if (id !== runId.current) return;
-      if (state.language === 'cpp') {
-        setConsentFor(null);
-        const controller = new AbortController();
-        simulationAbort.current = controller;
-        patch({ message: 'Requesting an AI-simulated trace…' });
-        const availability = await checkAI(controller.signal);
-        if (!availability.configured) throw new Error(availability.reason);
-        const identity = await sourceIdentity(implementationId, state.code);
-        const response = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(24000)]),
-          body: JSON.stringify({
-            mode: 'simulate',
-            code: state.code,
-            language: state.language,
-            identity,
-            consent: true,
-            maxSteps,
-          }),
-        });
-        const body = await response.json();
-        if (!response.ok) {
-          const reason = body.error || 'AI simulation is unavailable.';
-          if (id === runId.current && !controller.signal.aborted) setAIUnavailable(reason);
-          throw new Error(reason);
-        }
-        if (body.source !== 'ai-simulated')
-          throw new Error(body.reason || 'No valid simulated trace was available.');
-        if (!sameIdentity(identity, identitySchema.parse(body.identity)))
-          throw new Error('The simulated trace belongs to different source.');
-        const { origin, ...candidate } = z
-          .object({ origin: z.literal('ai-simulated') })
-          .passthrough()
-          .parse(body.trace);
-        if (origin !== 'ai-simulated') throw new Error('Simulation label is missing.');
-        const simulated = { ...validateSimulation(candidate, state.code, maxSteps), identity };
-        if (
-          id === runId.current &&
-          useStore.getState().code === state.code &&
-          useStore.getState().language === state.language
-        )
-          useStore.getState().setResult(simulated);
-        return;
-      }
       const trace = await runner.current.run(
         state.code,
         state.stdin,
@@ -209,31 +142,15 @@ export function Workspace() {
       if (id === runId.current)
         patch({
           status: 'error',
-          message:
-            error instanceof z.ZodError
-              ? 'The AI-simulated trace could not be validated. No trace was loaded.'
-              : error instanceof Error
-                ? error.message
-                : 'Execution failed. Try again.',
+          message: error instanceof Error ? error.message : 'Execution failed. Try again.',
         });
     } finally {
       if (id === runId.current) document.querySelector<HTMLButtonElement>('.run-button')?.focus();
     }
-  }, [
-    booting,
-    maxSteps,
-    patch,
-    simulationConsent,
-    implementationId,
-    aiConfigured,
-    aiReason,
-    setAIUnavailable,
-    checkAI,
-  ]);
+  }, [booting, maxSteps, patch, implementationId]);
   const stop = () => {
     runId.current++;
     runner.current?.dispose();
-    simulationAbort.current?.abort();
     patch({ status: 'idle', message: 'Run stopped.', playing: false });
     requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('.run-button')?.focus());
   };
@@ -312,7 +229,7 @@ export function Workspace() {
     setImplementation(null);
     setLibraryError('');
     window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    setDraft({ code, stdin, name: exampleName, language });
+    setDraft({ code, stdin, name: exampleName, language, unsupportedLanguage });
     setCode('');
     setStdin('');
     setExampleName(name);
@@ -320,6 +237,7 @@ export function Workspace() {
       languageMode: useStore.getState().languageChosenManually ? languageMode : 'auto',
       tab: 'visualizer',
       message: '',
+      unsupportedLanguage: null,
       selectedLine: null,
     });
     setFocusToken((token) => token + 1);
@@ -330,18 +248,18 @@ export function Workspace() {
       if (shared) {
         runId.current++;
         runner.current?.dispose();
-        simulationAbort.current?.abort();
         useStore.getState().setCode(shared.code, 'share');
         useStore.getState().setStdin(shared.stdin);
         useStore.getState().patch({
-          language: shared.language,
-          languageMode: shared.language,
+          language: shared.language === 'python' || shared.language === 'javascript' ? shared.language : 'python',
+          languageMode: shared.language === 'python' || shared.language === 'javascript' ? shared.language : 'auto',
+          unsupportedLanguage: shared.language === 'cpp' || shared.language === 'java' ? shared.language : null,
           autoSwitchEligible: false,
         });
         setExampleName(
           examples.find(
             (example) =>
-              ['python', 'javascript'].includes(shared.language) &&
+              (shared.language === 'python' || shared.language === 'javascript') &&
               exampleCode(example, shared.language) === shared.code,
           )?.title ?? 'Shared code',
         );
@@ -361,12 +279,11 @@ export function Workspace() {
     return () => {
       window.removeEventListener('hashchange', load);
       runner.current?.dispose();
-      simulationAbort.current?.abort();
       loadRequest.current?.abort();
     };
   }, []);
   useEffect(() => {
-    if (!['python', 'javascript', 'java'].includes(language) || !code.trim()) return;
+    if (unsupportedLanguage || !code.trim()) return;
     let active = true;
     const encoder = new TextEncoder();
     crypto.subtle
@@ -400,7 +317,7 @@ export function Workspace() {
     return () => {
       active = false;
     };
-  }, [code, language, implementationId]);
+  }, [code, language, unsupportedLanguage, implementationId]);
   useEffect(() => {
     const keys = (e: KeyboardEvent) => {
       if (booting) return;
@@ -445,7 +362,7 @@ export function Workspace() {
   }, [run, booting]);
   const shareCode = async () => {
     const url =
-      window.location.origin + window.location.pathname + encodeShortShare(code, stdin, language);
+      window.location.origin + window.location.pathname + encodeShortShare(code, stdin, unsupportedLanguage ?? language);
     setShareUrl(url);
     try {
       await navigator.clipboard.writeText(url);
@@ -590,11 +507,7 @@ export function Workspace() {
                             exampleCode(item, language) === code,
                         );
                       setCode(
-                        next === 'java' && example
-                          ? javaExample
-                          : example && ['python', 'javascript'].includes(next)
-                            ? exampleCode(example, next)
-                            : code,
+                        example ? exampleCode(example, next) : code,
                         example ? 'sample' : 'draft',
                       );
                       patch({
@@ -619,8 +532,6 @@ export function Workspace() {
                         ? ' · use New code'
                         : ''}
                     </option>
-                    <option value="cpp">C++ · AI simulation</option>
-                    <option value="java">Java · browser subset</option>
                   </select>
                   <ChevronDown size={13} />
                 </div>
@@ -643,7 +554,9 @@ export function Workspace() {
                   <span className="detection-chip mono" role="status">
                     {detection.detection.languageId === 'ts'
                       ? 'TypeScript detected — unsupported. Remove type syntax to run as JavaScript.'
-                      : 'unsupported language detected'}
+                      : ['c', 'cpp', 'java'].includes(detection.detection.languageId)
+                        ? `${({ c: 'C', cpp: 'C++', java: 'Java' } as Record<string, string>)[detection.detection.languageId]} detected — unsupported. Run Python or JavaScript.`
+                        : 'unsupported language detected'}
                   </span>
                 )}
                 {detection?.error && (
@@ -673,42 +586,15 @@ export function Workspace() {
                 <span className="dim">{code.split('\n').length} LINES</span>
               </div>
               <CodeEditor onReady={finishBoot} focusToken={focusToken} />
-              {language === 'java' && (
-                <div className="notice" role="note">
-                  Java subset → JavaScript. Compiled and traced in your browser; no JVM or AI
-                  translation.{' '}
-                  <button
-                    className="text-button"
-                    disabled={busy}
-                    onClick={() => {
-                      setCode(javaExample, 'sample');
-                      setExampleName('Java array sum');
-                    }}
-                  >
-                    Load Java example
-                  </button>
-                  <details>
-                    <summary>Supported Java</summary>
-                    <p>
-                      One class, static methods, recursion, if/else, for/while, int, boolean, String
-                      and one-dimensional arrays. Use public static void main(String[] args) to Run.
-                      Scanner input is supported with its import. Initialize locals when declaring
-                      them. Objects, collections, generics, other numeric types and threads are
-                      unsupported and rejected.
-                    </p>
-                  </details>
-                </div>
+              {unsupportedLanguage && (
+                <p className="notice" role="status">
+                  Unsupported language: {unsupportedLanguage === 'cpp' ? 'C++' : 'Java'}. Source and input were preserved. Choose Python or JavaScript before running.
+                </p>
               )}
               {!code && (
                 <p className="new-code-hint mono">
                   Paste your{' '}
-                  {language === 'python'
-                    ? 'Python'
-                    : language === 'javascript'
-                      ? 'JavaScript'
-                      : language === 'cpp'
-                        ? 'C++'
-                        : 'Java'}{' '}
+                  {LANGUAGE_LABELS[language]}{' '}
                   code into the editor above.
                 </p>
               )}
@@ -724,6 +610,7 @@ export function Workspace() {
                       setExampleName(draft.name);
                       patch({
                         language: draft.language,
+                        unsupportedLanguage: draft.unsupportedLanguage,
                         languageMode: draft.language,
                         autoSwitchEligible: false,
                       });
@@ -760,39 +647,6 @@ export function Workspace() {
                   />
                 </div>
               )}
-              {simulatedLanguage && (
-                <div className="simulation-optin">
-                  <p>
-                    <strong>AI-simulated, may be inaccurate.</strong> C++ is not executed here.
-                  </p>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={simulationConsent}
-                      disabled={busy}
-                      onChange={(e) =>
-                        setConsentFor(
-                          e.target.checked ? { revision: sourceRevision, language } : null,
-                        )
-                      }
-                    />{' '}
-                    For this run, send my source code to the configured AI provider to request a
-                    simulated trace.
-                  </label>
-                  <p>
-                    {AI_SOURCE_NOTICE} Stdin is not sent or simulated. Consent resets after each
-                    request and source change.
-                  </p>
-                  {!aiConfigured && (
-                    <>
-                      <p role="status">{aiReason}</p>
-                      <button className="text-button" onClick={refreshAI}>
-                        Check AI availability
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
               <div className="run-row">
                 <div className="run-settings">
                   <label className="mono dim">
@@ -818,8 +672,7 @@ export function Workspace() {
                     booting ||
                     fetchingCode ||
                     (!executing &&
-                      (!code.trim() ||
-                        (simulatedLanguage && (!simulationConsent || !aiConfigured))))
+                      (!code.trim() || Boolean(unsupportedLanguage)))
                   }
                   onClick={executing ? stop : () => void run()}
                   data-magnetic
@@ -832,7 +685,7 @@ export function Workspace() {
                   ) : (
                     <>
                       <Play size={13} fill="currentColor" />{' '}
-                      {simulatedLanguage ? '/ request AI simulation' : '/ run code'}
+                      {'/ run code'}
                     </>
                   )}
                   <ArrowUpRight size={17} />
@@ -930,7 +783,9 @@ export function Workspace() {
                 aria-labelledby={`tab-${tab}`}
                 tabIndex={0}
               >
-                {tab === 'visualizer' ? (
+                {unsupportedLanguage ? (
+                  <p className="empty-note">Choose Python or JavaScript to inspect and run this source.</p>
+                ) : tab === 'visualizer' ? (
                   <Visualizer />
                 ) : tab === 'breakdown' ? (
                   <Breakdown implementationId={implementationId} />
@@ -1059,11 +914,7 @@ export function Workspace() {
           ))}
         </div>
         <p className="mono dim drawer-end">
-          {language === 'cpp'
-            ? 'C++ AI SIMULATION.'
-            : language === 'java'
-              ? 'JAVA SUBSET. COMPILED LOCALLY.'
-              : `REAL ${LANGUAGE_LABELS[language].toUpperCase()}. REAL EXECUTION.`}{' '}
+          {`REAL ${LANGUAGE_LABELS[language].toUpperCase()}. REAL EXECUTION.`}{' '}
           EVERY SINGLE STEP.
         </p>
       </dialog>
@@ -1097,8 +948,7 @@ export function Workspace() {
             <p className="about-reveal">
               Explore real execution, linked structures, recursion, AST analysis and measured
               complexity estimates. AI notes and suggestions are optional. Requesting AI sends your
-              source to the configured provider. C++ uses a separate per-run opt-in and is always
-              labelled as AI-simulated, may be inaccurate.
+              source to the configured provider only when requesting notes or advice.
             </p>
             <p className="mono dim about-reveal">
               Snapshots capture user-code events, not the internals of library functions. Huge

@@ -22,8 +22,8 @@ export function retryFeedback(error: unknown) {
       )
       .join('; ')}. Keep every field concise.`;
   if (NoObjectGeneratedError.isInstance(error) && error.finishReason === 'length')
-    return 'The response exceeded the output budget. Return much shorter JSON, fewer annotations/tests/steps, and mark an incomplete simulation truncated.';
-  return 'Return compact JSON matching the schema exactly. Check every source line, entry name and call-stack transition.';
+    return 'The response exceeded the output budget. Return much shorter JSON and fewer annotations/tests/step notes.';
+  return 'Return compact JSON matching the schema exactly. Check every source line, entry name and sampled step reference.';
 }
 
 export function throwProviderFailure(error: unknown) {

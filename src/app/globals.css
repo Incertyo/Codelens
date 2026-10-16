@@ -2171,39 +2171,6 @@ html[data-motion='reduce'] .marquee-static {
   padding: 12px;
   margin: 14px 0;
 }
-.simulation-optin,
-.simulation-notice {
-  padding: 14px;
-  border: 2px dashed var(--accent);
-  margin: 12px;
-  font-size: 12px;
-  line-height: 1.6;
-}
-.simulation-optin label {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  cursor: pointer;
-}
-.simulation-optin input {
-  min-width: 20px;
-  min-height: 20px;
-  accent-color: var(--accent);
-  margin-top: 3px;
-}
-.simulation-notice strong,
-.simulation-notice span {
-  display: block;
-}
-.simulation-notice {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--bg);
-}
-.simulated-visualizer .data-panel {
-  border-left: 3px dashed var(--accent);
-}
 .heat-1 {
   background: color-mix(in srgb, var(--accent) 8%, transparent);
 }

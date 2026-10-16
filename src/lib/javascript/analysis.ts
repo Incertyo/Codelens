@@ -5,9 +5,9 @@ const literal = (n: AstNode | null): boolean =>
   (n.type === 'Literal' ||
     (n.type === 'UnaryExpression' && literal(n.argument as AstNode)) ||
     (n.type === 'ArrayExpression' && (n.elements as AstNode[]).every(literal)));
-export function inspectJavaScript(code: string, prepared?: AstNode): Inspection {
+export function inspectJavaScript(code: string): Inspection {
   try {
-    const root = prepared ?? parseProgram(code),
+    const root = parseProgram(code),
       entries: Entry[] = [],
       keep: AstNode[] = [];
     let preparationReason: string | null = null;

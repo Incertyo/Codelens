@@ -50,9 +50,9 @@ export function functionName(node: AstNode, parent?: AstNode): string {
         : undefined;
   return isNode(named) && named.name ? String(named.name) : '<anonymous>';
 }
-export function analyzeJavaScript(code: string, prepared?: AstNode): BreakdownData {
+export function analyzeJavaScript(code: string): BreakdownData {
   try {
-    const root = prepared ?? parseProgram(code);
+    const root = parseProgram(code);
     const outline: BreakdownData['outline'] = [],
       functions: BreakdownData['functions'] = [],
       annotations = new Map<number, { line: number; text: string; code: string }>();

@@ -41,7 +41,7 @@ export function Analysis({ implementationId }: { implementationId: string }) {
   const code = useStore((s) => s.code),
     language = useStore((s) => s.language),
     trace = useStore((s) => s.result);
-  const readiness = useAIReadiness(['python', 'javascript', 'java'].includes(language));
+  const readiness = useAIReadiness();
   const [data, setData] = useState<{ identity: SourceIdentity; inspection: Inspection } | null>(
     null,
   );
@@ -62,7 +62,7 @@ export function Analysis({ implementationId }: { implementationId: string }) {
     active = useRef(true);
   useEffect(() => {
     active.current = true;
-    if (!['python', 'javascript', 'java'].includes(language)) return;
+
     let current = true;
     const timer = setTimeout(() => {
       worker.current = new CodeRunner();
@@ -267,16 +267,6 @@ export function Analysis({ implementationId }: { implementationId: string }) {
       if (active.current) setBusy(false);
     }
   };
-  if (!['python', 'javascript', 'java'].includes(language))
-    return (
-      <div className="analysis-pane">
-        <h2>Analysis needs a real trace.</h2>
-        <p>
-          AST inspection and empirical measurement support Python, JavaScript and the Java subset.
-          AI-simulated traces cannot provide measured complexity or execution heatmaps.
-        </p>
-      </div>
-    );
   return (
     <div
       className="analysis-pane"

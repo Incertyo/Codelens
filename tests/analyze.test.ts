@@ -4,8 +4,6 @@ import { enrichCode, type AnalyzeRequest } from '../src/lib/ai/analyze';
 import { takeSharedLimit, reserveProviderCall } from '../src/lib/ai/rate-limit';
 import { sharedStoreFixture } from './shared-store-fixture';
 import { POST, GET } from '../src/app/api/analyze/route';
-import { analyzeJavaSubset } from '../src/lib/java/analysis';
-import { javaExample } from '../src/lib/java/example';
 const input: AnalyzeRequest = {
   code: 'function f(n){return n+1;}\nf(2);',
   language: 'javascript',
@@ -36,105 +34,6 @@ afterEach(async () => {
   vi.unstubAllEnvs();
 });
 describe('single analysis route and provider contract', () => {
-  it('accepts original Java notes through the local provider fixture without saving source-derived analysis', async () => {
-    const outline = analyzeJavaSubset(javaExample);
-    const responseData = {
-      ...valid,
-      functions: outline.functions.map((fn) => ({
-        name: fn.name,
-        line: fn.line,
-        purpose: 'Describes the supplied static method.',
-        returns: 'A source-derived result description.',
-      })),
-      annotations: [{ line: 2, text: 'Declare a static method.' }],
-      stepNotes: [],
-    };
-    const providerRequests: string[] = [];
-    const server = createServer((request, response) => {
-      let content = '';
-      request.setEncoding('utf8');
-      request.on('data', (part) => {
-        content += part;
-      });
-      request.on('end', () => {
-        providerRequests.push(content);
-        response.setHeader('content-type', 'application/json');
-        response.end(
-          JSON.stringify({
-            id: 'fixture',
-            object: 'chat.completion',
-            created: 0,
-            model: 'fixture-model',
-            choices: [
-              {
-                index: 0,
-                message: { role: 'assistant', content: JSON.stringify(responseData) },
-                finish_reason: 'stop',
-              },
-            ],
-            usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
-          }),
-        );
-      });
-    });
-    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-    const address = server.address();
-    if (!address || typeof address === 'string') throw new Error('No fixture address.');
-    vi.stubEnv('LLM_PROVIDER', 'openai-compatible');
-    vi.stubEnv('LLM_BASE_URL', `http://127.0.0.1:${address.port}/v1`);
-    try {
-      const response = await POST(
-        new Request('http://localhost/api/analyze', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', 'x-forwarded-for': 'java-fixture' },
-          body: JSON.stringify({
-            code: javaExample,
-            language: 'java',
-            functions: outline.functions.map(({ name, line, endLine, parameters }) => ({
-              name,
-              line,
-              endLine,
-              parameters,
-            })),
-            steps: [],
-          }),
-        }),
-      );
-      expect(response.status).toBe(200);
-      expect(await response.json()).toMatchObject({ source: 'ai', enrichment: responseData });
-      expect(providerRequests).toHaveLength(1);
-      const prompt = JSON.parse(providerRequests[0])
-        .messages.map((message: { content: string }) => message.content)
-        .join('');
-      expect(prompt).toContain('public class Main');
-      expect(prompt).toContain('java');
-      expect(prompt).not.toContain('private-stdin-marker');
-      const cached = await GET(
-        new Request('http://localhost/api/analyze?language=java&implementationId=draft:java'),
-      );
-      expect(cached.status).toBe(404);
-    } finally {
-      await new Promise<void>((resolve) => server.close(() => resolve()));
-    }
-  });
-  it('rejects Java persistence requests before touching the analysis store', async () => {
-    const response = await POST(
-      new Request('http://localhost/api/analyze', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'save_analysis',
-          language: 'java',
-          sourceHash: 'a'.repeat(64),
-          data: { summary: 'Source-derived data' },
-        }),
-      }),
-    );
-    expect(response.status).toBe(400);
-    expect(await response.json()).toMatchObject({
-      error: 'Java source-derived analysis stays in the browser.',
-    });
-  });
   it('enforces the API client ceiling and rejects streamed oversized bodies', async () => {
     for (let i = 0; i < 5; i++) expect((await takeSharedLimit('rate-fixture')).allowed).toBe(true);
     const limited = await POST(

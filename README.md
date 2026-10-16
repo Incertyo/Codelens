@@ -13,7 +13,7 @@ npm run build
 npm start -- --port 3001
 ```
 
-Open http://localhost:3001. `npm ci` uses the committed lockfile and its postinstall copies Pyodide, Monaco and the language-detection model into content-addressed local asset folders, recreates runtime manifests, and keeps fonts local. Do not disable install scripts. Python, JavaScript and the documented Java subset support execution, AST inspection and empirical measurements without AI credentials. Offline means the local server and its installed assets are available; this is not an offline-installable PWA.
+Open http://localhost:3001. `npm ci` uses the committed lockfile and its postinstall copies Pyodide, Monaco and the language-detection model into content-addressed local asset folders, recreates runtime manifests, and keeps fonts local. Do not disable install scripts. Python and JavaScript support execution, AST inspection and empirical measurements without AI credentials. Offline means the local server and its installed assets are available; this is not an offline-installable PWA.
 
 Copy the env template with `cp .env.example .env.local` on macOS/Linux or `Copy-Item .env.example .env.local` in PowerShell. The template contains no credentials; keep private values in ignored `.env.local`. Optional AI setup is below.
 
@@ -32,15 +32,13 @@ Open http://localhost:3000. Development/tests seed local SQLite; production buil
 ## Features and boundaries
 
 - Real Python and synchronous JavaScript traces in disposable browser workers; stepping, playback, breakpoints, stdin, output, aliases and recursion.
-- Browser-only Java subset compiled deterministically to JavaScript, with original-line traces, playback, arrays, recursion, stdin, AST breakdown, heatmaps and measured growth. It is labelled as a subset, not a JVM or arbitrary Java support. See [supported Java and limitations](docs/JAVA_SUBSET.md).
 - 309 catalog algorithms, 343 current implementations: 309 maintained Python references plus 17 highlighted examples in both Python and JavaScript. SQLite preserves revisions, exact source hashes, assumptions and expected-output fixtures.
 - Source-driven structure detection, theme-aware highlights, responsive graph/tree viewports and reduced-motion loading transitions.
 - Offline AST breakdown and conservative static time/auxiliary-space candidates. Unresolved calls, recursion, bounds or allocation yield Unknown; best/average cases are not inferred from a single trace.
 - Empirical time estimates from real user-function line events and sampled total/auxiliary memory units without retaining snapshots; editor heatmaps still come from real trace line events.
 - Explicit AI requests for optional breakdown notes, potential bugs, optimization proposals with a diff, and suggested tests. Proposed optimizations are not correctness-verified. Every offered test first completes in the real tracer; clicking Run this test runs it again. AI expected outputs always remain labelled unverified.
-- C++ has per-run opt-in AI simulation only. No native compiler/interpreter is supplied for it. Accepted simulated traces are visibly and persistently labelled **AI-simulated, may be inaccurate**. They are excluded from empirical measurement and heatmaps. Unsupported Java is rejected locally and never silently sent for simulation.
 
-For Java, select **Java · browser subset**, choose **Load Java example**, then Run. Auto detection can also recognize a pasted Java draft; a manual language choice remains authoritative. The original Java stays in the editor, with its supported subset visible in a disclosure. The existing catalog continues to contain its maintained Python/JavaScript implementations; the standalone Java example does not change its export.
+Python and JavaScript are the only supported execution languages. Legacy C++ and Java shares retain their exact source and stdin and show an unsupported-language notice. They do not execute or request AI; explicitly choose Python or JavaScript before running. Re-sharing preserves the original language until that choice.
 
 ## Empirical measurements
 
@@ -91,11 +89,11 @@ Copy `.env.example` to `.env.local` and configure credentials directly there or 
 | `CODELENS_STATIC_LIBRARY`  | Set `1` to use/verify the deployment catalog locally; set 1 in Vercel project settings (the exposed VERCEL system flag also enables it) |
 | `PYTHON`                   | Optional local Python executable for seeding                                                                                            |
 
-Only an explicit AI button or the checked per-run simulation request uploads source. Breakdown sends bounded function/event metadata, Analysis sends AST entry metadata, and simulation sends source/language/cap/identity/consent. **Stdin, stdout and runtime variable values are not sent.** Simulation does not model private stdin. Only the server contacts the configured provider. Code and credentials are not logged by the application.
+Only explicit notes and advice actions send source to the configured provider. Notes include bounded function/event descriptors; advice includes AST entry metadata. **Stdin, stdout and runtime variable values are not sent.** Only the server contacts the configured provider. Code and credentials are not logged by the application.
 
 When enabled and configured, all valid `/api/analyze` POST modes share **5 requests/client/minute**, **10 provider calls/environment/minute**, and **100 provider calls/environment/UTC day** by default. Redis Lua EVAL atomically admits clients and reserves each provider attempt, including the validation retry. Client identities are HMAC hashes; source and trace values are not stored in Redis. Disabled or incomplete configuration and missing/unreachable/malformed storage fail closed with 503. Exhausted minute/daily limits return 429 with Retry-After; the daily response says **AI notes are paused for today**. Static breakdowns, real traces and empirical measurements remain available. No process-memory fallback is provided.
 
-The AI SDK pipeline uses strict Zod output validation, actual source-line bounds, entry/step references, **one validation retry** (never on provider quota errors) and **one total 18-second provider deadline** and the existing 3,500-output-token ceiling, with static fallback. SDK schema compatibility does not replace server validation. AI-simulated traces additionally check exact indices, line/frame bounds, unique invocation ids, balanced push/pop, cumulative stdout, heap references and all snapshot/step caps. Invalid traces are rejected, not repaired. Simulation is rejected for Python and JavaScript even if called directly.
+The AI SDK pipeline uses strict Zod output validation, actual source-line bounds, entry/step references, **one validation retry** (never on provider quota errors) and **one total 18-second provider deadline** and the existing 3,500-output-token ceiling, with static fallback. SDK schema compatibility does not replace server validation. Requests for the removed simulate mode receive HTTP 410 before provider configuration, shared-store admission or generation.
 
 ## Production AI controls
 
@@ -135,7 +133,7 @@ Security headers include CSP, nosniff, frame restrictions, referrer policy and d
 2. On the preview URL, verify CSP/cache headers and no browser CSP/console errors. Open a share link and confirm the editor fills while timeline controls stay disabled; no execution worker or AI POST starts until requested.
 3. Run Python and JavaScript, test an exception/timeout/recovery, and measure a supported entry. Verify a source edit clears the estimate/heatmap and a pending AI response cannot return stale suggestions.
 4. With AI_ENABLED=true and provider/shared-store credentials configured, request notes/suggestions, verify tests run locally and expected outputs remain unverified. Verify a sixth request for one client returns 429, provider calls hit the global 10-call/minute ceiling, and the UTC daily budget includes validation retries. Remove/unavailable storage must yield 503 with no provider call.
-5. Request C++/Java simulation only after opting in. Verify label, malformed-trace rejection and unchecked consent after each run. Reopen its share link: no execution or consent.
+5. Reopen old C++/Java share links and verify preserved source/input, a clear unsupported-language notice, disabled Run and no AI upload. Explicitly select a supported language to recover.
 6. Check mobile keyboard/touch navigation, both themes and reduced motion. Production cloud deployment, live provider and live shared-store checks must be recorded separately from local fixture tests.
 
 ## Architecture and adding a language
@@ -144,23 +142,19 @@ Security headers include CSP, nosniff, frame restrictions, referrer policy and d
 Editor/library/share → Zustand source → disposable CodeRunner workers
   Python: local Pyodide → sys.settrace → validated Step snapshots
   JavaScript: Acorn AST → instrumentation → guarded worker → Step snapshots
-  Java subset: typed compiler AST → JavaScript instrumentation → original-line Step snapshots
   AST inspect → isolated entry driver → fresh real worker traces → estimated fit
   Real line events → editor heatmap
 Explicit AI action → /api/analyze → shared Redis limit → provider → strict validation
   Suggestions → local real tracer checks → optional re-run in visualizer
-  C++ opt-in → structurally validated, labelled simulated Step snapshots
 Local SQLite maintenance → source-verified static catalog → read-only library API
 Share hash ↔ compressed source + language + stdin (never execution state or consent)
 ```
 
 `src/lib/trace.ts` defines the common `Step`: contiguous index, 1-based source line, event, function, invocation stack/locals, globals, reference heap, cumulative output and optional explanation. Numeric display limits and reference alias behavior are documented in [DECISIONS.md](docs/DECISIONS.md).
 
-To add real execution for a language, implement a disposable worker and AST parser, enforce the same code/input/bootstrap/execution/snapshot caps, and validate `TraceResult` before display. Add real fixture programs, language selector/routing, share validation and production browser tests. For Analysis, add AST signature inspection, safe dependency/driver construction and documented deterministic input kinds; refuse unsupported signatures. Keep execution in workers, never a page or server route. For simulation-only languages, explicitly extend the server whitelist, notice/consent UI and structural validation tests; never silently substitute AI for a real runtime.
+To add real execution for a language, implement a disposable worker and AST parser, enforce the same code/input/bootstrap/execution/snapshot caps, and validate `TraceResult` before display. Add real fixture programs, language selector/routing, share validation and production browser tests. For Analysis, add AST signature inspection, safe dependency/driver construction and documented deterministic input kinds; refuse unsupported signatures. Keep execution in workers, never a page or server route.
 
 ## Safety and verification
-
-Java support is the [documented browser subset](docs/JAVA_SUBSET.md), not a universal compiler or a JVM. Unsupported features are refused before execution. Its original-line event counts and sampled memory units describe the compiled JavaScript runtime; they do not establish native Java performance, JVM memory use or full Java conformance. No compiler service, hosted runtime, new environment variable or JDK installation is needed to use it. Optional Java AI notes/advice remain explicit and are not persisted by the analysis route.
 
 Limits: 30,000 source characters, 10,000 stdin characters, at most 5,000 steps (UI 100–5,000), and a 12-second parent execution deadline starting when the execution request is sent after a separate 90-second runtime bootstrap. A single authenticated started transition cannot reset that deadline. Snapshots cap 80 variables, 128 heap objects, 80 collection items, depth 6, 80 frames, 200-character values and 20,000-character output. Python and JavaScript traces have a 16 MiB serialized-size budget, with 128 KiB reserved for a compact final truncation notice and result metadata. Python counts its ASCII-escaped serialization conservatively. This limits retained trace data, not total interpreter/browser memory or peak allocation. API request bodies are bounded to 200,000 bytes. Workers are disposed after runs and analysis operations; named network APIs are closed after trusted asset bootstrap, with JavaScript asynchronous APIs additionally blocked.
 
@@ -211,10 +205,14 @@ The notice before any AI upload explains that source goes to the configured prov
 
 ## Local language detection and page opening
 
-Auto is the initial language selector mode. A local syntax/shebang heuristic runs after a 350 ms debounce on at least 32 non-whitespace characters. Ambiguous drafts lazy-load Microsoft's `@vscode/vscode-languagedetection` CPU model in a Web Worker. Its model/weights are served from hashed same-origin URLs with immutable caching; neither code nor detection results are uploaded. Confident results (at least 0.65 with a 0.15 lead) map only Python, JavaScript, C/C++ and Java to the supported languages. TypeScript is unsupported and shows a message to remove type syntax before running as JavaScript; it is never mapped to the JavaScript runtime. Other languages show **unsupported language detected**.
+Auto is the initial language selector mode. A local syntax/shebang heuristic runs after a 350 ms debounce on at least 32 non-whitespace characters. Ambiguous drafts lazy-load Microsoft's `@vscode/vscode-languagedetection` CPU model in a Web Worker. Its model/weights are served from hashed same-origin URLs with immutable caching; neither code nor detection results are uploaded. Confident results (at least 0.65 with a 0.15 lead) map only Python and JavaScript to supported execution. C, C++ and Java remain identified as unsupported. TypeScript is unsupported and shows a message to remove type syntax before running as JavaScript; it is never mapped to the JavaScript runtime. Other languages show **unsupported language detected**.
 
-A draft originating from an empty or untouched editor can switch automatically only before any manual language choice. Library/sample/share loads never trigger a switch. Subsequent manual choices stay authoritative even after selecting Auto again; a detected language becomes a **Switch** suggestion. Switching changes interpretation and never source text. C++/Java still require separate per-run AI simulation consent.
+A draft originating from an empty or untouched editor can switch automatically only before any manual language choice. Library/sample/share loads never trigger a switch. Subsequent manual choices stay authoritative even after selecting Auto again; a detected language becomes a **Switch** suggestion. Switching changes interpretation and never source text. Legacy C++/Java shares remain source-only until an explicit supported-language choice.
 
 Every full page load, refresh and new tab renders the opening intro on the server, with an inert background and no app flash. The dot-matrix counter follows hydration, font readiness, Monaco mount and the runtime manifest. It stays visible for at least 1.4 seconds, supports click/Enter/Escape skipping after 600 ms, and releases after at most 10 seconds plus the wipe. Reduced motion uses a brief static fade; a separate inline watchdog handles stalled hydration. The per-run loading screen is unchanged.
 
 Add to the deployment checklist: verify the chosen Gemini quota and privacy notice, provider-quota fallback without retries, detection model/weight cache headers and CSP, manual/share/library ownership, intro refresh/new-tab/skip/reduced-motion/fallback behavior, and the full production Playwright suite. Do not publish changes until these checks pass.
+
+## Local revamp checks
+
+The supported-language contract is in docs/ai/LANGUAGES.md. Run `npm run test:golden:quick` for 25 catalog references spanning all 16 topics, all 17 JavaScript examples, observed detector kinds and local API/share contracts. The full unit command still includes every golden record. `npx tsx scripts/evaluate-language-detection.ts` evaluates only the 40 authored local cases in tests/fixtures/language-detection-corpus.ts; it reads installed model files and makes no hosted calls. Measured results and limitations are in docs/DETECTION_EVAL.md. No new runtime environment variable is required.

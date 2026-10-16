@@ -37,24 +37,7 @@ export function Visualizer() {
   const vars = { ...step?.globals, ...step?.callStack.at(-1)?.locals };
   const prevVars = { ...previous?.globals, ...previous?.callStack.at(-1)?.locals };
   return (
-    <div
-      className={`visualizer ${result?.origin === 'ai-simulated' ? 'simulated-visualizer' : ''}`}
-    >
-      {result?.origin === 'ai-simulated' && (
-        <div role="status" className="simulation-notice">
-          <strong>AI-simulated, may be inaccurate</strong>
-          <span>
-            Hypothetical steps and values from the configured provider. This source was not
-            executed.
-          </span>
-        </div>
-      )}
-      {result?.execution === 'java-subset-v1' && (
-        <div role="status" className="notice">
-          Java subset → JavaScript · real browser trace. Steps use Java source lines; memory units
-          describe the compiled runtime, not JVM bytes.
-        </div>
-      )}
+    <div className="visualizer">
       <Playback />
       {result?.truncated && (
         <div role="status" className="notice">

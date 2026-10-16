@@ -1,0 +1,21 @@
+# JavaScript and Python only
+
+- Phase: revamp 1; explicit removal of Java subset and C++/Java AI simulation.
+- Template: no docs/ai/specs/_TEMPLATE.md exists at phase start; use the contracts below.
+- Supported Language is exactly python | javascript, including workers and AI notes/advice.
+- Preserve every other feature, privacy boundary, limit, setting, route and script.
+- Old cpp/java shares still decode exact source/stdin; show unsupported notice and disable execution until an explicit supported language choice or new/load action.
+- Do not reinterpret a legacy share silently, including when re-sharing it.
+- Detect C/C++/Java/TypeScript as unsupported without promoting a supported runner-up.
+- Remove simulation UI/consent, provider generation, schema/validator, banner/styles and dedicated tests; reject mode=simulate with clear 410 before configuration/admission/provider calls.
+- Keep notes/advice modes, admission, readiness, quotas and provider schemas unchanged for Python/JavaScript.
+- Remove only Java/simulation-specific implementation files after targeted reference checks; retain historical verification documents for the later archival phase.
+- Do not change freshness inputs or catalog bytes; do not regenerate golden fixtures.
+- Golden parity compares all 360 surviving corpus records and all surviving API/share fields; document explicit simulation exclusions.
+- Add unit/browser regressions for removed-mode rejection, unsupported mappings, legacy shares, manual recovery and unchanged real execution.
+- Build about 40 labelled snippets from Python library programs, JS examples and authored TypeScript/C++/Java.
+- Compare the unchanged heuristic with the real installed model locally, reporting abstentions, per-class exact identification and supported/unsupported classification accuracy.
+- Propose model removal only if heuristic-only is within one percentage point on every class; otherwise retain it. Never remove model/assets without approval.
+- No new dependency, production route or env variable is needed. Any unused dependency removal needs direct usage evidence.
+- Checks: owner's lean T0 per commit, T1 quick golden and affected e2e, T2 full unit at phase end; no production build/full browser/T3.
+- Open questions: none. Report Phase 1 in at most 25 lines and continue directly to the lean Phase 2A audit, then stop.

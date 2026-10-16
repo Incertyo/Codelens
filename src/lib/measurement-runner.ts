@@ -44,8 +44,8 @@ export class MeasurementRunner {
     progress: (value: MeasurementProgress) => void = () => {},
   ): Promise<MeasurementSeries> {
     this.dispose();
-    if (!['python', 'javascript', 'java'].includes(plan.language))
-      throw new Error('Measurement requires Python, JavaScript or the Java subset.');
+    if (!['python', 'javascript'].includes(plan.language))
+      throw new Error('Measurement requires Python or JavaScript.');
     if (plan.code.length > 30_000) throw new Error('Code exceeds the 30,000-character limit.');
     const options = measurementOptionsSchema.parse(plan.options ?? {});
     const sizes = [...(plan.sizes ?? measurementSizes)];

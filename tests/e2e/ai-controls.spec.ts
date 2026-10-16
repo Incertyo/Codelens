@@ -56,7 +56,7 @@ test('provider quota pauses AI without retry, discloses free-tier use and keeps 
   await page.goto('/' + encodeShare(code, '', 'javascript'));
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
   await page.getByRole('tab', { name: '02 breakdown' }).click();
-  await expect(page.getByText(/Source code is sent to the configured provider/)).toContainText(
+  await expect(page.getByText(/Only explicitly requested notes and advice send source code/)).toContainText(
     'On free tiers, the provider may use it to improve its products.',
   );
   expect(posts).toBe(0);

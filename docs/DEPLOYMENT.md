@@ -224,13 +224,9 @@ before Pyodide evaluates them. The error names the asset and requests a rebuild,
 restart and reload. Keep the smoke asset checks in the local verification flow;
 this loader check does not repair a missing distribution file automatically.
 
-## Browser Java subset
+## Supported execution languages
 
-Java subset v1 compiles in the existing browser worker using repository source only. It installs no JVM, remote compiler, compiler CDN, account or new dependency, and introduces no route or environment variable. The existing `.env.example` and `check:env` configuration contract is unchanged. Keep AI disabled for local checks; Java running, breakdown, heatmaps, playback and measurement must work without provider configuration. See [the exact supported subset and exclusions](JAVA_SUBSET.md).
-
-The Java example lives outside catalog/freshness inputs; do not regenerate or translate the catalog. Existing Java share links load into the subset compiler and require Run. An unsupported old example gets a local error rather than AI simulation. C++ retains its explicit simulation path. Original Java source is only sent when the user explicitly requests an existing notes/advice action; Java source-derived analysis is neither cached nor saved by the analysis route.
-
-Smoke now selects Java, loads its local example and checks actual worker output with no automatic analyze POST. Java compiler tests also compare trusted fixed accepted programs against javac/JVM when installed; missing JDKs skip only those differential checks. This testing prerequisite is unrelated to the browser runtime. Never start a local/server JVM with pasted user code as a substitute for this compiler. There is no new hosted dashboard action and no deployment authorization.
+Only Python and synchronous JavaScript execute in browser workers. C/C++/Java/TypeScript detection reports unsupported; legacy C++/Java shares preserve source/input with a notice and require an explicit supported-language choice before Run. AI simulation is removed and its old API mode returns 410 without a provider or limiter call. Only explicit notes and advice send source. No provider, quota, kill-switch, route or environment setting was removed. The env-template simulation comment was removed; check:env retains the existing names and validation. Local smoke now asserts Auto/Python/JavaScript options and executes the existing JavaScript example without AI. Do not deploy as part of this local revamp.
 
 Run the real-engine known-answer tests, production worker/nonce/deadline tests and
 the retained Analysis/hardening stories with AI disabled. The current manual

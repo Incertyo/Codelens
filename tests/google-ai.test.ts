@@ -146,45 +146,7 @@ describe('actual Google SDK contract through the route', () => {
     expect(requests).toHaveLength(2);
     expect(JSON.stringify(requests[1].body)).toContain('argument type');
   });
-  it.each(['cpp', 'java'])(
-    'accepts a balanced Google simulation for %s after rejecting an invalid stack',
-    async (language) => {
-      const frame = { id: 'root', func: '<module>', line: 1, locals: {} };
-      const step = {
-        line: 1,
-        func: '<module>',
-        callStack: [frame],
-        globals: {},
-        heap: {},
-        stdout: '',
-      };
-      const trace = {
-        steps: [
-          { ...step, index: 0, event: 'call' },
-          { ...step, index: 1, event: 'return' },
-        ],
-        truncated: false,
-        error: null,
-        elapsed: 0,
-      };
-      const requests = googleFixture((call: number) =>
-        call === 1 ? { ...trace, steps: trace.steps.map((s) => ({ ...s, callStack: [] })) } : trace,
-      );
-      const source = language === 'cpp' ? 'int main(){}' : 'class Main {}';
-      const response = await post({
-        mode: 'simulate',
-        code: source,
-        language,
-        identity: await sourceIdentity('draft', source),
-        consent: true,
-        maxSteps: 100,
-      });
-      expect((await response.json()).trace).toMatchObject({ ...trace, origin: 'ai-simulated' });
-      expect(requests).toHaveLength(2);
-      expect(JSON.stringify(requests[1].body)).toContain('Invalid simulated frame push');
-    },
-  );
-  it.each(['notes', 'analysis', 'simulate'])(
+  it.each(['notes', 'analysis'])(
     'does not retry provider quota failures for %s',
     async (mode) => {
       const requests = googleFixture(null, 429);
@@ -196,15 +158,6 @@ describe('actual Google SDK contract through the route', () => {
           language: 'javascript',
           identity: await sourceIdentity('draft', code),
           entries: inspectJavaScript(code).entries,
-        };
-      if (mode === 'simulate')
-        body = {
-          mode,
-          code,
-          language: 'cpp',
-          identity: await sourceIdentity('draft', code),
-          consent: true,
-          maxSteps: 100,
         };
       const response = await post(body);
       expect(response.status).toBe(429);

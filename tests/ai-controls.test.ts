@@ -225,7 +225,7 @@ describe('production AI readiness and spend controls', () => {
     expect(store.commands[0][5]).toBe('{codelens:development}:day:2026-10-14');
     expect(store.commands.at(-1)![5]).toBe('{codelens:development}:day:2026-10-15');
   });
-  it.each(['notes', 'analysis', 'simulate'])(
+  it.each(['notes', 'analysis'])(
     'charges the validation retry and pauses before a second call when daily limit is one: %s',
     async (mode) => {
       vi.stubEnv('AI_DAILY_LIMIT', '1');
@@ -235,15 +235,13 @@ describe('production AI readiness and spend controls', () => {
         const body =
           mode === 'notes'
             ? input
-            : mode === 'analysis'
-              ? {
+            : {
                   mode,
                   code,
                   language: 'javascript',
                   identity,
                   entries: inspectJavaScript(code).entries,
-                }
-              : { mode, code, language: 'cpp', identity, consent: true, maxSteps: 100 };
+                };
         const response = await POST(request(body));
         expect(response.status).toBe(429);
         expect(await response.json()).toMatchObject({

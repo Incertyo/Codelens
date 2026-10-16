@@ -9,7 +9,6 @@ export const javascriptSources = [
   `const numbers = [1, 2, 4, 7, 11, 15];\nconst target = 15;\nlet i = 0, j = numbers.length - 1;\nlet pair = null;\n\nwhile (i < j) {\n  const total = numbers[i] + numbers[j];\n  if (total === target) {\n    pair = [numbers[i], numbers[j]];\n    break;\n  }\n  if (total < target) i++;\n  else j--;\n}\nconsole.log("Pair:", pair);`,
 ];
 export function exampleCode(example: Example, language: import('./breakdown').Language): string {
-  if (language === 'cpp' || language === 'java') return '';
   return language === 'python'
     ? example.code
     : (example.javascript ?? javascriptSources[Number(example.id) - 1]);

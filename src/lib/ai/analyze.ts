@@ -24,7 +24,7 @@ import { providerOutputSchema } from './output-schema';
 export const analyzeRequestSchema = z
   .object({
     code: z.string().min(1).max(MAX_CODE_LENGTH),
-    language: z.enum(['python', 'javascript', 'java']),
+    language: z.enum(['python', 'javascript']),
     runEpoch: z.number().int().nonnegative().safe().optional(),
     implementationId: z.string().max(250).optional(),
     sourceHash: z.string().max(64).optional(),

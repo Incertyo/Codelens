@@ -194,76 +194,6 @@ test('stale AI responses never display after source edits; failed tests are not 
   await expect(page.getByText(/Not runnable:.*fixture failure/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Run this test' })).toHaveCount(0);
 });
-test('simulation needs per-run opt-in, carries a persistent label, and shares never execute', async ({
-  page,
-}) => {
-  let posts = 0;
-  await page.route('**/api/analyze', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({ json: { configured: true, reason: null } });
-      return;
-    }
-    posts++;
-    const p = route.request().postDataJSON();
-    expect(p.consent).toBe(true);
-    expect(p.language).toBe('cpp');
-    expect(p).not.toHaveProperty('stdin');
-    await route.fulfill({
-      json: {
-        source: 'ai-simulated',
-        identity: p.identity,
-        trace: {
-          origin: 'ai-simulated',
-          steps: [
-            {
-              index: 0,
-              line: 1,
-              event: 'call',
-              func: '<module>',
-              callStack: [{ id: 'root', func: '<module>', line: 1, locals: {} }],
-              globals: {},
-              heap: {},
-              stdout: '',
-            },
-            {
-              index: 1,
-              line: 1,
-              event: 'return',
-              func: '<module>',
-              callStack: [{ id: 'root', func: '<module>', line: 1, locals: {} }],
-              globals: {},
-              heap: {},
-              stdout: '',
-            },
-          ],
-          truncated: false,
-          error: null,
-          elapsed: 0,
-        },
-      },
-    });
-  });
-  await openSource(page, 'int main() { return 0; }', 'cpp');
-  const request = page.getByRole('button', { name: '/ request AI simulation', exact: true });
-  await expect(request).toBeDisabled();
-  expect(posts).toBe(0);
-  const consent = page.getByRole('checkbox', { name: /For this run, send my source code/ });
-  await consent.check();
-  await request.click();
-  await expect(page.locator('.simulation-notice')).toContainText('AI-simulated, may be inaccurate');
-  await expect(consent).not.toBeChecked();
-  await expect(request).toBeDisabled();
-  expect(posts).toBe(1);
-  await page.setViewportSize({ width: 390, height: 844 });
-  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-  await page.screenshot({ path: 'artifacts/phase-three-simulation.png', fullPage: true });
-  await consent.check();
-  await paste(page, 'int main() { return 1; }');
-  await expect(consent).not.toBeChecked();
-  await expect(request).toBeDisabled();
-  await page.getByLabel('Programming language').selectOption('python');
-  await expect(page.locator('.simulation-optin')).toHaveCount(0);
-});
 test('small profile measures a quadratic entry and measurement budget failures never fit', async ({
   page,
 }) => {
@@ -291,45 +221,6 @@ test('small profile measures a quadratic entry and measurement budget failures n
     'No estimate is fitted: fewer than four complete positive sizes',
   );
   await expect(page.locator('.estimate-card')).toHaveCount(0);
-});
-test('invalid simulated traces do not reach playback', async ({ page }) => {
-  await page.route('**/api/analyze', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({ json: { configured: true, reason: null } });
-      return;
-    }
-    const p = route.request().postDataJSON();
-    await route.fulfill({
-      json: {
-        source: 'ai-simulated',
-        identity: p.identity,
-        trace: {
-          origin: 'ai-simulated',
-          steps: [
-            {
-              index: 0,
-              line: 999,
-              event: 'call',
-              func: '<module>',
-              callStack: [],
-              globals: {},
-              heap: {},
-              stdout: '',
-            },
-          ],
-          truncated: false,
-          error: null,
-          elapsed: 0,
-        },
-      },
-    });
-  });
-  await openSource(page, 'int main() { return 0; }', 'cpp');
-  await page.getByRole('checkbox', { name: /For this run, send my source code/ }).check();
-  await page.getByRole('button', { name: '/ request AI simulation', exact: true }).click();
-  await expect(page.locator('.notice[role="alert"]')).toContainText('could not be validated');
-  await expect(page.getByRole('button', { name: 'Jump to end' })).toBeDisabled();
-  await expect(page.locator('.simulation-notice')).toHaveCount(0);
 });
 test('library Analysis uses the loaded implementation id and exact source hash', async ({
   page,

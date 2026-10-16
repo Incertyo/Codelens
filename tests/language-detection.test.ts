@@ -15,11 +15,6 @@ describe('browser language detection', () => {
   it.each([
     ['python', 'def total(values):\n    return sum(values)\nprint(total([1,2,3]))'],
     ['javascript', 'function total(values) { return values.reduce((a,b)=>a+b,0); }'],
-    ['cpp', '#include <iostream>\nint main() { std::cout << 42 << std::endl; }'],
-    [
-      'java',
-      'public class Main { public static void main(String[] args) { System.out.println(42); } }',
-    ],
     ['python', '#!/usr/bin/env python3\nvalues = [1,2,3,4,5]\nprint(sum(values))'],
     ['javascript', '#!/usr/bin/env node\nvar values = [1,2,3,4,5];\nprint(values);'],
   ])('detects representative %s syntax locally', (language, code) => {
@@ -44,9 +39,6 @@ describe('browser language detection', () => {
   it.each([
     ['py', 'python'],
     ['js', 'javascript'],
-    ['c', 'cpp'],
-    ['cpp', 'cpp'],
-    ['java', 'java'],
   ])('maps %s only to the supported set', (languageId, language) => {
     expect(modelDetection([{ languageId, confidence: 0.9 }])).toMatchObject({
       kind: 'supported',
@@ -97,12 +89,12 @@ describe('source and choice ownership', () => {
     },
   );
   it('never overrides explicit language choice, even after choosing Auto again', () => {
-    useStore.getState().chooseLanguage('java');
+    useStore.getState().chooseLanguage('javascript');
     useStore.getState().chooseLanguage('auto');
     useStore.getState().setCode('def total(values):\n    return sum(values)');
     const s = useStore.getState();
     s.applyDetection('python', s.sourceRevision);
-    expect(useStore.getState().language).toBe('java');
+    expect(useStore.getState().language).toBe('javascript');
     s.applyDetection('python', s.sourceRevision, true);
     expect(useStore.getState()).toMatchObject({
       language: 'python',

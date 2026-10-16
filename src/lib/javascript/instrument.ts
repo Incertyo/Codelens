@@ -10,9 +10,8 @@ import {
 type Scope = { names: string[]; name: string };
 export function instrumentJavaScript(
   code: string,
-  prepared?: AstNode,
 ): { code: string; hookName: string } {
-  const root = prepared ?? parseProgram(code);
+  const root = parseProgram(code);
   const used = new Set<string>();
   const inspect = (node: AstNode) => {
     if (node.type === 'Identifier') used.add(String(node.name));

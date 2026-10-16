@@ -3,7 +3,6 @@ import { createHash } from 'node:crypto';
 import { generateText, Output } from 'ai';
 import { model, providerStatus } from './analyze';
 import { adviceSchema, identitySchema, entrySchema } from '../analysis';
-import { simulatedTraceSchema, validateSimulation } from './simulation';
 import { reserveProviderCall } from './rate-limit';
 import { AIControlError } from './control-error';
 import {
@@ -18,21 +17,13 @@ const source = z.object({ code: z.string().min(1).max(30000), identity: identity
 export const adviceRequestSchema = source
   .extend({
     mode: z.literal('analysis'),
-    language: z.enum(['python', 'javascript', 'java']),
+    language: z.enum(['python', 'javascript']),
     entries: z.array(entrySchema).max(40),
   })
   .strict()
   .refine((input) => input.entries.every((e) => e.line <= input.code.split('\n').length), {
     message: 'Entry lines must exist in the source.',
   });
-export const simulationRequestSchema = source
-  .extend({
-    mode: z.literal('simulate'),
-    language: z.enum(['cpp', 'java']),
-    consent: z.literal(true),
-    maxSteps: z.number().int().min(100).max(5000),
-  })
-  .strict();
 export function validateIdentity(input: z.infer<typeof source>) {
   if (createHash('sha256').update(input.code).digest('hex') !== input.identity.sourceHash)
     throw new Error('Source hash does not match.');
@@ -123,38 +114,6 @@ export async function analyzeAdvice(
   );
   return advice
     ? { source: 'ai' as const, identity: input.identity, advice }
-    : {
-        source: 'static' as const,
-        identity: input.identity,
-        reason,
-      };
-}
-export async function simulate(
-  input: z.infer<typeof simulationRequestSchema>,
-  signal?: AbortSignal,
-) {
-  validateIdentity(input);
-  const { data: trace, reason } = await validated(
-    simulatedTraceSchema,
-    input,
-    'Generate a hypothetical trace, never a claimed execution. Keep it compact enough for the output budget; if incomplete set truncated true. Begin with a call for <module> and callStack [{id:"module",func:"<module>",line:1,locals:{}}]. A call appends ONE new frame with a unique id; all existing frame ids/functions stay in order. step.func MUST equal the last frame.func, including output events. A return snapshot still includes the returning frame; remove it only for the NEXT step. Final complete step is return from <module> with only the module frame still visible. Never use an empty callStack in any step. Every step/frame line must be between 1 and the source line count. Indices start at zero and are contiguous. globals and heap are objects, stdout is cumulative, heap refs must resolve. Honor maxSteps; use truncated true when capped or shortening a longer trace to fit. elapsed must be 0. Represent unsafe integers as exact decimal strings. You receive no stdin or runtime values; do not invent input.',
-    (v) => {
-      try {
-        validateSimulation(v, input.code, input.maxSteps);
-      } catch (error) {
-        throw new AIOutputError(
-          error instanceof Error ? error.message : 'Invalid simulated trace.',
-        );
-      }
-    },
-    signal,
-  );
-  return trace
-    ? {
-        source: 'ai-simulated' as const,
-        identity: input.identity,
-        trace: validateSimulation(trace, input.code, input.maxSteps),
-      }
     : {
         source: 'static' as const,
         identity: input.identity,

@@ -131,13 +131,13 @@ try {
   assert(await page.getByLabel('Programming language').isVisible());
   assert(!pageFailed && !automaticPost);
   pass(active);
-  active = 'browser Java subset without provider calls';
-  await page.getByLabel('Programming language').selectOption('java');
-  await page.getByRole('button', { name: 'Load Java example', exact: true }).click();
+  active = 'browser JavaScript and Python options without provider calls';
+  assert(JSON.stringify(await page.getByLabel('Programming language').locator('option').evaluateAll(options => options.map(option => option.value))) === JSON.stringify(['auto', 'python', 'javascript']));
+  await page.getByLabel('Programming language').selectOption('javascript');
   await page.getByRole('button', { name: '/ run code', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled({ timeout: 15000 });
   await page.getByRole('button', { name: 'Jump to end' }).click();
-  assert((await page.getByTestId('stdout').textContent()) === '20\n');
+  assert((await page.getByTestId('stdout').textContent())?.includes('Sorted: [1,2,3,5,8]'));
   assert(!pageFailed && !automaticPost);
   pass(active);
   active = 'headless design page';

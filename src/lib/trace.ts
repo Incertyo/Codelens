@@ -20,8 +20,6 @@ export type Step = {
   explanation?: string;
 };
 export type TraceResult = {
-  origin?: 'ai-simulated';
-  execution?: 'java-subset-v1';
   identity?: { implementationId: string; sourceHash: string };
   steps: Step[];
   truncated: boolean;
@@ -78,7 +76,6 @@ export const stepSchema = z.object({
   explanation: z.string().optional(),
 });
 export const traceSchema = z.object({
-  execution: z.literal('java-subset-v1').optional(),
   steps: z.array(stepSchema).max(DEFAULT_MAX_STEPS),
   truncated: z.boolean(),
   error: z.string().nullable(),

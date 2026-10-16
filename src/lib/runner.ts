@@ -40,9 +40,9 @@ export class CodeRunner {
     mode: 'run' | 'analyze' | 'inspect',
   ): Promise<TraceResult | BreakdownData | Inspection> {
     this.dispose();
-    if (!['python', 'javascript', 'java'].includes(language))
+    if (!['python', 'javascript'].includes(language))
       return Promise.reject(
-        new Error('Real execution is available for Python, JavaScript and the Java subset.'),
+        new Error('Real execution is available for Python and JavaScript.'),
       );
     if (code.length > MAX_CODE_LENGTH)
       return Promise.reject(new Error('Code exceeds the 30,000-character limit.'));

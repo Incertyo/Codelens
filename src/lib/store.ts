@@ -9,6 +9,7 @@ type State = {
   runEpoch: number;
   maxSteps: number;
   language: Language;
+  unsupportedLanguage: 'cpp' | 'java' | null;
   languageMode: LanguageMode;
   languageChosenManually: boolean;
   sourceOrigin: SourceOrigin;
@@ -46,6 +47,7 @@ export const useStore = create<State>((set, get) => ({
   runEpoch: 0,
   maxSteps: 5000,
   language: 'python',
+  unsupportedLanguage: null,
   languageMode: 'auto',
   languageChosenManually: false,
   sourceOrigin: 'sample',
@@ -70,6 +72,7 @@ export const useStore = create<State>((set, get) => ({
     set((previous) => ({
       code,
       sourceOrigin: origin,
+      unsupportedLanguage: origin === 'sample' || origin === 'library' ? null : previous.unsupportedLanguage,
       autoSwitchEligible:
         origin === 'draft' &&
         !previous.languageChosenManually &&
@@ -98,6 +101,7 @@ export const useStore = create<State>((set, get) => ({
         ? {}
         : {
             language: mode,
+            unsupportedLanguage: null,
             result: null,
             status: 'idle' as const,
             playing: false,

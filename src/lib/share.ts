@@ -7,7 +7,9 @@ import type { Language } from './breakdown';
 export const MAX_SHARE_FRAGMENT_LENGTH = 100000;
 export const MAX_SHARE_JSON_LENGTH = 250000;
 
-const LANG_CODE_MAP: Record<string, Language> = {
+export type ShareLanguage = Language | 'cpp' | 'java';
+
+const LANG_CODE_MAP: Record<string, ShareLanguage> = {
   p: 'python',
   j: 'javascript',
   c: 'cpp',
@@ -18,7 +20,7 @@ const LANG_CODE_MAP: Record<string, Language> = {
   java: 'java',
 };
 
-const LANG_TO_CODE: Record<Language, string> = {
+const LANG_TO_CODE: Record<ShareLanguage, string> = {
   python: 'p',
   javascript: 'j',
   cpp: 'c',
@@ -56,7 +58,7 @@ export function encodeShare(code: string, stdin: string, language: string): stri
  * Packs fields into a minimal tuple [langCode, stdin?, code] without JSON field overhead.
  */
 export function encodeShortShare(code: string, stdin: string, language: string): string {
-  const langKey = (LANG_TO_CODE[language as Language] ?? language) as string;
+  const langKey = (LANG_TO_CODE[language as ShareLanguage] ?? language) as string;
   const payload = stdin ? [langKey, stdin, code] : [langKey, code];
   return '#s=' + compressToEncodedURIComponent(JSON.stringify(payload));
 }
@@ -70,7 +72,7 @@ export function encodeShortShare(code: string, stdin: string, language: string):
  */
 export function decodeShare(
   input: string,
-): { code: string; stdin: string; language: Language } | null {
+): { code: string; stdin: string; language: ShareLanguage } | null {
   try {
     if (!input || typeof input !== 'string') return null;
 
@@ -110,7 +112,7 @@ export function decodeShare(
     if (Array.isArray(data)) {
       if (data.length < 2 || data.length > 3) return null;
       const langStr = String(data[0]);
-      const mappedLang = LANG_CODE_MAP[langStr] ?? (langStr as Language);
+      const mappedLang = LANG_CODE_MAP[langStr] ?? (langStr as ShareLanguage);
       if (!['python', 'javascript', 'cpp', 'java'].includes(mappedLang)) return null;
 
       const stdin = data.length === 3 ? String(data[1]) : '';
@@ -132,7 +134,7 @@ export function decodeShare(
       if (typeof stdin !== 'string' || stdin.length > 10000) return null;
       if (!rawLang) return null;
 
-      const mappedLang = LANG_CODE_MAP[rawLang] ?? (rawLang as Language);
+      const mappedLang = LANG_CODE_MAP[rawLang] ?? (rawLang as ShareLanguage);
       if (!['python', 'javascript', 'cpp', 'java'].includes(mappedLang)) return null;
 
       return { code, stdin, language: mappedLang };

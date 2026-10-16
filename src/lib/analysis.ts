@@ -2,7 +2,6 @@ import { z } from 'zod';
 import type { Language } from './breakdown';
 import type { TraceResult } from './trace';
 import { fitGrowthModel, growthModels } from './complexity';
-import { javaTestHarness } from './java/analysis';
 
 export const inputKinds = ['int', 'list', 'string'] as const;
 export type InputKind = (typeof inputKinds)[number];
@@ -78,7 +77,6 @@ export function testHarness(
   if (!entry.kinds.includes(kind))
     throw new Error('This input type does not match the entry signature.');
   argumentSchema.parse(argument);
-  if (language === 'java') return javaTestHarness(inspection.moduleCode, entry.name, argument);
 
   const invocation = `${entry.name}(${JSON.stringify(argument)})`;
   const driver = output
@@ -92,7 +90,7 @@ export function testHarness(
   return code;
 }
 export function executionCounts(trace: TraceResult | null): Record<number, number> {
-  if (!trace || trace.origin === 'ai-simulated') return {};
+  if (!trace) return {};
   const counts: Record<number, number> = {};
   for (const step of trace.steps)
     if (step.event === 'line') counts[step.line] = (counts[step.line] ?? 0) + 1;

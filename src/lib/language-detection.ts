@@ -6,8 +6,6 @@ export const DETECTION_CONFIDENCE = 0.65;
 export const LANGUAGE_LABELS: Record<Language, string> = {
   python: 'Python',
   javascript: 'JavaScript',
-  cpp: 'C++',
-  java: 'Java',
 };
 export type Detection =
   | { kind: 'supported'; language: Language; confidence: number }
@@ -16,9 +14,6 @@ export type Detection =
 const supported: Record<string, Language> = {
   py: 'python',
   js: 'javascript',
-  cpp: 'cpp',
-  c: 'cpp',
-  java: 'java',
 };
 
 export function modelDetection(results: { languageId: string; confidence: number }[]): Detection {
@@ -59,7 +54,7 @@ export function heuristicDetection(source: string): Detection {
     )
   )
     return { kind: 'unsupported', languageId: 'ts', confidence: 0.98 };
-  const signals: [Language, boolean][] = [
+  const signals: [Language | 'cpp' | 'java', boolean][] = [
     [
       'python',
       /(^|\n)\s*(?:async\s+)?def\s+\w+\s*\([^\n]*\)\s*(?:->[^\n:]+)?\s*:/.test(code) ||
@@ -75,7 +70,12 @@ export function heuristicDetection(source: string): Detection {
     ['java', /\bSystem\.out\.|\bpublic\s+(?:static\s+)?(?:class|void|int|String)\b/.test(code)],
   ];
   const hits = signals.filter(([, present]) => present);
-  if (hits.length === 1) return { kind: 'supported', language: hits[0][0], confidence: 0.98 };
+  if (hits.length === 1) {
+    const language = hits[0][0];
+    return language === 'python' || language === 'javascript'
+      ? { kind: 'supported', language, confidence: 0.98 }
+      : { kind: 'unsupported', languageId: language, confidence: 0.98 };
+  }
   if (
     !hits.length &&
     (/\bfn\s+main\s*\(/.test(code) || /\bpackage\s+main\b/.test(code) || /<\?php/.test(code))

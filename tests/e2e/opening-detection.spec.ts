@@ -139,12 +139,6 @@ for (const [language, label, code] of [
     'JavaScript',
     'function total(values) { return values.length; }\nconsole.log(total([1,2,3]));',
   ],
-  ['cpp', 'C++', '#include <iostream>\nint main() { std::cout << 123456; return 0; }'],
-  [
-    'java',
-    'Java',
-    'public class Main { public static void main(String[] args) { System.out.println(123456); } }',
-  ],
 ])
   test(`Auto detects a ${label} draft and preserves source`, async ({ page }) => {
     await ready(page);
@@ -156,13 +150,7 @@ for (const [language, label, code] of [
     await expect(selector).toHaveValue('auto');
 
     await expect(page.locator('.filebar')).toContainText(
-      language === 'javascript'
-        ? '.js'
-        : language === 'python'
-          ? '.py'
-          : language === 'cpp'
-            ? '.cpp'
-            : '.java',
+      language === 'javascript' ? '.js' : '.py',
     );
     await expect(page.locator('.monaco-editor .view-lines')).toContainText(code.split('\n')[0]);
   });
@@ -171,15 +159,15 @@ test('manual choice remains authoritative and Auto offers an explicit Switch wit
   page,
 }) => {
   await ready(page);
-  await page.getByLabel('Programming language').selectOption('java');
+  await page.getByLabel('Programming language').selectOption('javascript');
   const code = 'def total(values):\n    return sum(values)\nprint(total([1,2,3]))';
   await paste(page, code);
-  await expect(page.getByLabel('Programming language')).toHaveValue('java');
+  await expect(page.getByLabel('Programming language')).toHaveValue('javascript');
   await expect(page.locator('.detection-chip')).toHaveCount(0);
   await page.getByLabel('Programming language').selectOption('auto');
   const chip = page.getByRole('button', { name: 'Detected: Python · Switch' });
   await expect(chip).toBeVisible();
-  await expect(page.locator('.filebar')).toContainText('.java');
+  await expect(page.locator('.filebar')).toContainText('.js');
   await chip.click();
   await expect(page.getByLabel('Programming language')).toHaveValue('python');
   await expect(page.locator('.monaco-editor .view-lines')).toContainText('return sum(values)');

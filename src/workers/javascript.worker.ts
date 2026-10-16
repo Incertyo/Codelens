@@ -7,10 +7,6 @@ import {
   type JavaScriptMeasurement,
 } from '../lib/javascript/measurement';
 import { measurementRequestSchema, type MeasurementRequest } from '../lib/measurement';
-import { compileJavaSubset } from '../lib/java/compiler';
-import { createJavaRuntime } from '../lib/java/runtime';
-import { analyzeJavaSubset, inspectJavaSubset } from '../lib/java/analysis';
-import { executeJavaSubsetMeasurement } from '../lib/java/measurement';
 const execute = Function;
 const trustedPost = self.postMessage.bind(self);
 self.onmessage = ({ data: bootstrap }: { data: { nonce: string; mode: string } }) => {
@@ -97,9 +93,7 @@ self.onmessage = ({ data: bootstrap }: { data: { nonce: string; mode: string } }
         }
         sendMeasurement({
           type: 'measurement',
-          measurement: (data.language === 'java'
-            ? executeJavaSubsetMeasurement
-            : executeJavaScriptMeasurement)(request, (engine) => {
+          measurement: executeJavaScriptMeasurement(request, (engine) => {
             currentMeasurement = engine;
           }),
         });
@@ -115,25 +109,20 @@ self.onmessage = ({ data: bootstrap }: { data: { nonce: string; mode: string } }
     if (data.mode === 'inspect') {
       send({
         type: 'inspection',
-        inspection:
-          data.language === 'java' ? inspectJavaSubset(data.code) : inspectJavaScript(data.code),
+        inspection: inspectJavaScript(data.code),
       });
       return;
     }
     if (data.mode === 'analyze') {
       send({
         type: 'outline',
-        outline:
-          data.language === 'java' ? analyzeJavaSubset(data.code) : analyzeJavaScript(data.code),
+        outline: analyzeJavaScript(data.code),
       });
       return;
     }
     const trace = new JavaScriptTrace(Math.min(5000, Math.max(10, data.maxSteps || 5000)));
     try {
-      const instrumented = instrumentJavaScript(
-        data.language === 'java' ? '' : data.code,
-        data.language === 'java' ? compileJavaSubset(data.code).root : undefined,
-      );
+      const instrumented = instrumentJavaScript(data.code);
       const blocked = () => {
         throw new Error(
           'Network access and asynchronous work are disabled in the execution sandbox.',
@@ -177,7 +166,6 @@ self.onmessage = ({ data: bootstrap }: { data: { nonce: string; mode: string } }
       });
       execute(
         instrumented.hookName,
-        ...(data.language === 'java' ? ['__java'] : []),
         `"use strict";\n${instrumented.code}`,
       )(
         Object.freeze({
@@ -192,22 +180,15 @@ self.onmessage = ({ data: bootstrap }: { data: { nonce: string; mode: string } }
           leave: trace.leave,
           end: trace.end,
         }),
-        ...(data.language === 'java' ? [createJavaRuntime(data.stdin, trace.writeOutput)] : []),
       );
       send({
         type: 'result',
-        result: {
-          ...trace.result(),
-          ...(data.language === 'java' ? { execution: 'java-subset-v1' } : {}),
-        },
+        result: trace.result(),
       });
     } catch (error) {
       send({
         type: 'result',
-        result: {
-          ...trace.result(error),
-          ...(data.language === 'java' ? { execution: 'java-subset-v1' } : {}),
-        },
+        result: trace.result(error),
       });
     }
   };

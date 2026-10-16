@@ -17,12 +17,12 @@ export function Breakdown({ implementationId }: { implementationId?: string } = 
     [error, setError] = useState(''),
     [aiStatus, setAiStatus] = useState(''),
     [aiBusy, setAiBusy] = useState(false);
-  const readiness = useAIReadiness(['python', 'javascript', 'java'].includes(language));
+  const readiness = useAIReadiness();
   const configured = readiness.configured;
   const outlineRunner = useRef<CodeRunner | null>(null),
     controller = useRef<AbortController | null>(null);
   useEffect(() => {
-    if (!['python', 'javascript', 'java'].includes(language)) return;
+
     if (data) return;
     let active = true;
     outlineRunner.current ??= new CodeRunner();
@@ -188,13 +188,6 @@ export function Breakdown({ implementationId }: { implementationId?: string } = 
           },
         ]
       : [];
-  if (!['python', 'javascript', 'java'].includes(language))
-    return (
-      <div className="analysis-pane">
-        <h2>AST breakdown supports Python, JavaScript and the Java subset.</h2>
-        <p>C++ traces are AI-simulated, may be inaccurate, and have no local AST analysis.</p>
-      </div>
-    );
   return (
     <div className="breakdown-view">
       <div className="breakdown-heading">
@@ -206,7 +199,7 @@ export function Breakdown({ implementationId }: { implementationId?: string } = 
       {loading && !data && (
         <p className="breakdown-loading mono" role="status">
           <LoaderCircle className="spinner" size={14} /> Reading the structure of your{' '}
-          {language === 'python' ? 'Python' : language === 'java' ? 'Java subset' : 'JavaScript'}{' '}
+          {language === 'python' ? 'Python' : 'JavaScript'}{' '}
           code…
         </p>
       )}

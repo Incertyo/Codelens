@@ -59,7 +59,7 @@ export function ComplexityView({ implementationId }: { implementationId: string 
 
   useEffect(() => {
     active.current = true;
-    if (!['python', 'javascript', 'java'].includes(language)) return;
+
     let current = true;
     const timer = setTimeout(() => {
       worker.current = new CodeRunner();
@@ -160,15 +160,6 @@ export function ComplexityView({ implementationId }: { implementationId: string 
       }
     }
   };
-
-  if (!['python', 'javascript', 'java'].includes(language)) {
-    return (
-      <div className="analysis-pane">
-        <h2>Measure Python, JavaScript or the Java subset.</h2>
-        <p>Other languages show a code estimate in Breakdown.</p>
-      </div>
-    );
-  }
 
   return (
     <div

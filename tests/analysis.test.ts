@@ -15,7 +15,6 @@ import { inspectJavaScript } from '../src/lib/javascript/analysis';
 import { instrumentJavaScript } from '../src/lib/javascript/instrument';
 import { JavaScriptTrace } from '../src/lib/javascript/runtime';
 import { traceSchema } from '../src/lib/trace';
-import { validateSimulation } from '../src/lib/ai/simulation';
 let py: PyodideInterface;
 beforeAll(async () => {
   py = await loadPyodide();
@@ -148,88 +147,9 @@ describe('AST inspection and real-trace estimates', () => {
     expect(Object.values(counts).reduce((a, b) => a + b, 0)).toBe(
       trace.steps.filter((s) => s.event === 'line').length,
     );
-    expect(executionCounts({ ...trace, origin: 'ai-simulated' })).toEqual({});
   });
   it('requires complete sample sets and recognizes constant step counts', () => {
     expect(() => fitComplexity([{ n: 4, steps: 3 }])).toThrow();
     expect(fitComplexity(empiricalSizes.map((n) => ({ n, steps: 3 }))).label).toBe('O(1)');
-  });
-});
-const valid = {
-  steps: [
-    {
-      index: 0,
-      line: 1,
-      event: 'call',
-      func: '<module>',
-      callStack: [{ id: 'root', func: '<module>', line: 1, locals: {} }],
-      globals: {},
-      heap: {},
-      stdout: '',
-    },
-    {
-      index: 1,
-      line: 1,
-      event: 'return',
-      func: '<module>',
-      callStack: [{ id: 'root', func: '<module>', line: 1, locals: {} }],
-      globals: {},
-      heap: {},
-      stdout: '',
-    },
-  ],
-  truncated: false,
-  error: null,
-  elapsed: 0,
-};
-describe('untrusted AI-simulated trace structural validation', () => {
-  it('rejects unsafe integer numbers and accepts exact decimal strings', () => {
-    const trace = structuredClone(valid);
-    Object.assign(trace.steps[1].globals, { large: 9007199254740992 });
-    expect(() => validateSimulation(trace, 'int main(){}', 100)).toThrow();
-    Object.assign(trace.steps[1].globals, { large: '9007199254740993' });
-    expect(validateSimulation(trace, 'int main(){}', 100).steps[1].globals.large).toBe(
-      '9007199254740993',
-    );
-  });
-  it('does not resolve inherited Object properties as declared heap objects', () => {
-    const trace = structuredClone(valid);
-    Object.assign(trace.steps[1].globals, { x: { ref: 'constructor' } });
-    expect(() => validateSimulation(trace, 'int main(){}', 100)).toThrow(
-      'Dangling simulated heap reference',
-    );
-  });
-  it('labels accepted traces and retains exact values', () => {
-    expect(validateSimulation(valid, 'int main(){}', 100)).toMatchObject({
-      ...valid,
-      origin: 'ai-simulated',
-    });
-  });
-  it.each([
-    'line',
-    'frame-line',
-    'index',
-    'pop',
-    'push',
-    'heap',
-    'cap',
-    'unknown',
-    'elapsed',
-    'stdout',
-  ] as const)('rejects, never repairs: %s', (kind) => {
-    const trace = structuredClone(valid);
-    if (kind === 'line') trace.steps[1].line = 2;
-    if (kind === 'frame-line') trace.steps[1].callStack[0].line = 2;
-    if (kind === 'index') trace.steps[1].index = 9;
-    if (kind === 'pop') trace.steps[1].callStack = [];
-    if (kind === 'push') trace.steps[1].event = 'call';
-    if (kind === 'heap') Object.assign(trace.steps[1].globals, { x: { ref: 'missing' } });
-    if (kind === 'unknown') Object.assign(trace.steps[1], { fabricated: true });
-    if (kind === 'elapsed') trace.elapsed = 10;
-    if (kind === 'stdout') {
-      trace.steps[0].stdout = 'a';
-      trace.steps[1].stdout = 'b';
-    }
-    expect(() => validateSimulation(trace, 'int main(){}', kind === 'cap' ? 1 : 100)).toThrow();
   });
 });
