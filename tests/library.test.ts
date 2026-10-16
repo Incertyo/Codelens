@@ -10,14 +10,12 @@ import { createHash } from 'node:crypto';
 import { algorithms } from "../src/lib/algorithm-catalog";
 import { getLibraryImplementation, getLibraryIndex } from "../src/features/library/public/server/repository";
 import { GET } from "../src/app/api/library/route";
-import { instrumentJavaScript } from "../src/features/runner/public/javascript/instrument";
-import { JavaScriptTrace } from "../src/features/runner/public/javascript/runtime";
 import { traceSchema } from "../src/shared/trace";
 const index = getLibraryIndex();
 const records = index.implementations.map((row) =>
   getLibraryImplementation(
     String(row.algorithm_id),
-    row.language as 'python' | 'javascript',
+    row.language as 'python',
     row.variant as 'reference' | 'featured',
   )!,
 );
@@ -101,13 +99,13 @@ describe('maintained SQLite library', () => {
     expect(index.algorithms).toHaveLength(309);
     expect(index.topics).toHaveLength(16);
     expect(index.subtopics).toHaveLength(44);
-    expect(records).toHaveLength(343);
+    expect(records).toHaveLength(326);
     for (const algorithm of algorithms) {
       const source = getLibraryImplementation(algorithm.id, 'python', 'reference')!;
       expect(source).not.toBeNull();
       expect(source.sourceHash).toBe(createHash('sha256').update(source.code).digest('hex'));
       expect(source.fixture.matchMode).toBe('exact');
-      expect(getLibraryImplementation(algorithm.id, 'javascript', 'featured') !== null).toBe(
+      expect(getLibraryImplementation(algorithm.id, 'python', 'featured') !== null).toBe(
         Boolean(algorithm.exampleId),
       );
     }
@@ -131,26 +129,11 @@ describe('maintained SQLite library', () => {
     );
   });
   it.each(records)('executes $id through the real traced runtime', (source) => {
-    let trace;
-    if (source.language === 'python') {
-      py.globals.set(
-        '_request_json',
-        JSON.stringify({ code: source.code, stdin: source.fixture.stdin, maxSteps: 5000 }),
-      );
-      trace = traceSchema.parse(JSON.parse(py.runPython('run_trace(_request_json)')));
-    } else {
-      const engine = new JavaScriptTrace(5000);
-      const instrumented = instrumentJavaScript(source.code);
-      try {
-        new Function(instrumented.hookName, 'console', `"use strict";${instrumented.code}`)(
-          engine,
-          { log: engine.output },
-        );
-        trace = traceSchema.parse(engine.result());
-      } catch (error) {
-        trace = traceSchema.parse(engine.result(error));
-      }
-    }
+    py.globals.set(
+      '_request_json',
+      JSON.stringify({ code: source.code, stdin: source.fixture.stdin, maxSteps: 5000 }),
+    );
+    const trace = traceSchema.parse(JSON.parse(py.runPython('run_trace(_request_json)')));
     expect(trace.error).toBeNull();
     expect(trace.truncated).toBe(false);
     expect(trace.steps.length).toBeGreaterThan(0);

@@ -15,8 +15,8 @@ export async function getAnalysis(request: Request) {
   const sourceHash = url.searchParams.get('sourceHash');
   const implementationId = url.searchParams.get('implementationId');
   const language = url.searchParams.get('language') || 'python';
-  if (!['python', 'javascript'].includes(language))
-    return json({ error: 'Only Python and JavaScript analysis is supported.' }, 400);
+  if (language !== 'python')
+    return json({ error: 'Only Python is supported.' }, 400);
   if (sourceHash || implementationId) {
     const stored = getStoredAnalysis({
       sourceHash: sourceHash || undefined,
@@ -60,15 +60,15 @@ export async function postAnalysis(request: Request) {
     const body: unknown = JSON.parse(new TextDecoder().decode(buffer));
     const mode = body && typeof body === 'object' && 'mode' in body ? body.mode : undefined;
     if (mode === 'simulate')
-      return json({ error: 'AI-simulated traces have been removed. Run Python or JavaScript locally.' }, 410);
+      return json({ error: 'AI-simulated traces have been removed. Run Python locally.' }, 410);
     if (mode === 'save_complexity' || mode === 'save_analysis') {
       const saveBody = body as Record<string, unknown>;
       const sHash = typeof saveBody.sourceHash === 'string' ? saveBody.sourceHash : '';
       const lang = typeof saveBody.language === 'string' ? saveBody.language : 'python';
-      if (!['python', 'javascript'].includes(lang))
-        return json({ error: 'Only Python and JavaScript analysis is supported.' }, 400);
+      if (lang !== 'python')
+        return json({ error: 'Only Python is supported.' }, 400);
       if (sHash) {
-        saveStoredAnalysis({
+        const saved = saveStoredAnalysis({
           implementationId:
             typeof saveBody.implementationId === 'string' ? saveBody.implementationId : undefined,
           sourceHash: sHash,
@@ -88,9 +88,14 @@ export async function postAnalysis(request: Request) {
               : {}),
           },
         });
+        if (!saved) return json({ error: 'Failed to persist analysis.' }, 500);
         return json({ saved: true });
       }
       return json({ error: 'Missing sourceHash' }, 400);
+    }
+    const requestedLang = body && typeof body === 'object' && 'language' in body ? (body as Record<string, unknown>).language : undefined;
+    if (requestedLang !== undefined && requestedLang !== 'python') {
+      return json({ error: 'Only Python is supported.' }, 400);
     }
     const schema = mode === 'analysis' ? adviceRequestSchema : analyzeRequestSchema;
     const parsed = schema.safeParse(body);
@@ -106,17 +111,11 @@ export async function postAnalysis(request: Request) {
         return json({ error: 'Source hash does not match the submitted code.' }, 400);
       }
     }
-    const readiness = providerStatus();
-    if (!readiness.configured) throw new AIControlError(readiness.code!, readiness.reason!);
-
-    requireAllowed(await takeSharedLimit(key));
-    if ('mode' in parsed.data) return json(await analyzeAdvice(parsed.data, request.signal));
-
-    const checkCache = (body as Record<string, unknown>)?.checkCache === true;
+    const checkCache = (parsed.data as Record<string, unknown>).checkCache === true;
     if (checkCache) {
       const sourceHash = hashText(parsed.data.code);
       const cached = getStoredAnalysis({
-        implementationId: parsed.data.implementationId,
+        implementationId: (parsed.data as Record<string, unknown>).implementationId as string | undefined,
         sourceHash,
         language: parsed.data.language,
       });
@@ -124,6 +123,12 @@ export async function postAnalysis(request: Request) {
         return json({ source: 'ai', enrichment: cached.data.enrichment, cached: true });
       }
     }
+
+    const readiness = providerStatus();
+    if (!readiness.configured) throw new AIControlError(readiness.code!, readiness.reason!);
+
+    requireAllowed(await takeSharedLimit(key));
+    if ('mode' in parsed.data) return json(await analyzeAdvice(parsed.data, request.signal));
 
     const enrichmentResult = await enrichCode(parsed.data, request.signal);
     if (enrichmentResult.source === 'ai') {

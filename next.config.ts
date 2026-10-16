@@ -1,12 +1,6 @@
 import type { NextConfig } from 'next';
 const config: NextConfig = {
-  webpack(config, { webpack, isServer }) {
-    config.plugins.push(
-      new webpack.ContextReplacementPlugin(
-        /@vscode[\\/]vscode-languagedetection[\\/]dist[\\/]lib$/,
-        /^\.\/979\.js$/,
-      ),
-    );
+  webpack(config, { isServer }) {
     config.resolve.fallback = { ...config.resolve.fallback, encoding: false };
 
     if (!isServer) config.resolve.fallback = { ...config.resolve.fallback, fs: false };
@@ -33,7 +27,6 @@ const config: NextConfig = {
       ...[
         '/pyodide/:version([a-f0-9]{16})/:path*',
         '/monaco/:version([a-f0-9]{16})/:path*',
-        '/language-detection/:version([a-f0-9]{16})/:path*',
       ].map((source) => ({
         source,
         headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],

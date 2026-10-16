@@ -12,9 +12,6 @@ import {
   sourceIdentity,
   sameIdentity,
 } from "../src/features/insights/public/model/analysis";
-import { inspectJavaScript } from "../src/features/runner/public/javascript/analysis";
-import { instrumentJavaScript } from "../src/features/runner/public/javascript/instrument";
-import { JavaScriptTrace } from "../src/features/runner/public/javascript/runtime";
 import { traceSchema } from "../src/shared/trace";
 let py: PyodideInterface;
 beforeAll(async () => {
@@ -33,18 +30,6 @@ function runPython(code: string) {
   py.globals.set('_request_json', JSON.stringify({ code, stdin: '', maxSteps: 5000 }));
   return traceSchema.parse(JSON.parse(py.runPython('run_trace(_request_json)')));
 }
-function runJS(code: string) {
-  const engine = new JavaScriptTrace(5000);
-  const instrumented = instrumentJavaScript(code);
-  try {
-    new Function(instrumented.hookName, 'console', `"use strict";${instrumented.code}`)(engine, {
-      log: engine.output,
-    });
-    return traceSchema.parse(engine.result());
-  } catch (e) {
-    return traceSchema.parse(engine.result(e));
-  }
-}
 describe('AST inspection and real-trace estimates', () => {
   it('keys source and implementation independently', async () => {
     const a = await sourceIdentity('impl-a', 'one');
@@ -52,33 +37,28 @@ describe('AST inspection and real-trace estimates', () => {
     expect(sameIdentity(a, await sourceIdentity('impl-b', 'one'))).toBe(false);
     expect(sameIdentity(a, await sourceIdentity('impl-a', 'two'))).toBe(false);
   });
-  it.each(['python', 'javascript'] as const)(
-    'fits actual linear function steps in %s, omitting demo drivers',
-    (language) => {
-      const code =
-        language === 'python'
-          ? 'def total(n: int):\n    value = 0\n    for i in range(n):\n        value += i\n    return value\nprint("demo must be omitted")'
-          : 'function total(n) {\n let value=0;\n for(let i=0;i<n;i++){value+=i;}\n return value;\n}\nconsole.log("demo must be omitted");';
-      const inspected = language === 'python' ? inspectPython(code) : inspectJavaScript(code);
-      expect(inspected.preparationReason).toBeNull();
-      expect(inspected.entries[0].time).toBe('O(n) candidate');
-      const samples = empiricalSizes.map((n) => {
-        const harness = testHarness(
-          inspected,
-          inspected.entries[0],
-          generatedInput('int', n),
-          language,
-        );
-        const result = language === 'python' ? runPython(harness) : runJS(harness);
-        expect(result.error).toBeNull();
-        expect(result.truncated).toBe(false);
-        expect(result.steps.at(-1)?.stdout).not.toContain('demo');
-        return { n, steps: result.steps.filter((s) => s.func !== '<module>').length };
-      });
-      expect(fitComplexity(samples).label).toBe('O(n)');
-      expect(samples.at(-1)!.steps).toBeGreaterThan(samples[0].steps);
-    },
-  );
+  it('fits actual linear function steps in Python, omitting demo drivers', () => {
+    const code =
+      'def total(n: int):\n    value = 0\n    for i in range(n):\n        value += i\n    return value\nprint("demo must be omitted")';
+    const inspected = inspectPython(code);
+    expect(inspected.preparationReason).toBeNull();
+    expect(inspected.entries[0].time).toBe('O(n) candidate');
+    const samples = empiricalSizes.map((n) => {
+      const harness = testHarness(
+        inspected,
+        inspected.entries[0],
+        generatedInput('int', n),
+        'python',
+      );
+      const result = runPython(harness);
+      expect(result.error).toBeNull();
+      expect(result.truncated).toBe(false);
+      expect(result.steps.at(-1)?.stdout).not.toContain('demo');
+      return { n, steps: result.steps.filter((s) => s.func !== '<module>').length };
+    });
+    expect(fitComplexity(samples).label).toBe('O(n)');
+    expect(samples.at(-1)!.steps).toBeGreaterThan(samples[0].steps);
+  });
   it('handles typed lists and strings and rejects mismatched tests', () => {
     for (const [code, arg] of [
       ['def size(items: list[int]):\n    return len(items)', [3, 2, 1]],
@@ -100,15 +80,6 @@ describe('AST inspection and real-trace estimates', () => {
     }
   });
   it.each([
-    'function f(a,b){return a+b;}',
-    'function f(n=2){return n;}',
-    'async function f(n){return n;}',
-    'function f({n}){return n;}',
-    'function* f(n){yield n;}',
-  ])('refuses unsupported JS signature: %s', (code) =>
-    expect(inspectJavaScript(code).entries[0].reason).toBeTruthy(),
-  );
-  it.each([
     'def f(a,b):\n    return a+b',
     'def f(n=2):\n    return n',
     'async def f(n):\n    return n',
@@ -123,17 +94,8 @@ describe('AST inspection and real-trace estimates', () => {
     expect(inspectPython('def f(n):\n    for i in range(n*n):\n        pass').entries[0].time).toBe(
       'Unknown',
     );
-    expect(
-      inspectJavaScript('function f(n){for(let i=0;i<n*n;i++){} return n;}').entries[0].time,
-    ).toBe('Unknown');
-    expect(inspectJavaScript('function f(items){return items.sort();}').entries[0].time).toBe(
-      'Unknown',
-    );
   });
   it('refuses executable global initialization and same-line Python drivers', () => {
-    expect(
-      inspectJavaScript('const value=sideEffect(); function f(n){return n;}').preparationReason,
-    ).toBeTruthy();
     expect(
       inspectPython('value = side_effect()\ndef f(n):\n    return n').preparationReason,
     ).toBeTruthy();
@@ -141,13 +103,13 @@ describe('AST inspection and real-trace estimates', () => {
       inspectPython('value = 3; print("driver")\ndef f(n):\n    return n').preparationReason,
     ).toBeTruthy();
   });
-  it('ignores comment/string pseudo-loops and counts only real line events', () => {
-    expect(inspectJavaScript('function f(n){/*while(true)*/return "for";}').entries[0].time).toBe(
+  it('ignores comment/string pseudo-loops and counts only real line events in Python', () => {
+    expect(inspectPython('def f(n):\n    """while True"""\n    return "for"').entries[0].time).toBe(
       'O(1) candidate',
     );
-    const trace = runJS('let n=0;\nfor(let i=0;i<5;i++){n++;}\nconsole.log(n);');
+    const trace = runPython('n = 0\nfor i in range(5):\n    n += 1\nprint(n)');
     const counts = executionCounts(trace);
-    expect(counts[2]).toBeGreaterThan(1);
+    expect(counts[3]).toBeGreaterThan(1);
     expect(Object.values(counts).reduce((a, b) => a + b, 0)).toBe(
       trace.steps.filter((s) => s.event === 'line').length,
     );

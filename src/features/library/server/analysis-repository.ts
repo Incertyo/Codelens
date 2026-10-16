@@ -6,26 +6,23 @@ import type { Enrichment } from "../../../shared/breakdown";
 import { presetAnalyses, type PresetAnalysis } from "../preset-analyses";
 import { getEnrichedAlgorithm } from "../authored-notes";
 import { examples } from "../../../lib/examples";
-import { exampleCode } from "../../../lib/javascript-examples";
 
 let presetHashMap: Map<string, PresetAnalysis> | null = null;
 
 export function findPresetBySourceHash(sourceHash: string, language: string = 'python'): PresetAnalysis | null {
+  if (language !== 'python') return null;
   if (!presetHashMap) {
     presetHashMap = new Map();
     for (const example of examples) {
       const preset = presetAnalyses[example.id];
       if (!preset) continue;
-      for (const lang of ['python', 'javascript'] as const) {
-        try {
-          const code = exampleCode(example, lang);
-          const hash = createHash('sha256').update(code).digest('hex');
-          presetHashMap.set(`${hash}:${lang}`, preset);
-        } catch {}
-      }
+      try {
+        const hash = createHash('sha256').update(example.code).digest('hex');
+        presetHashMap.set(`${hash}:python`, preset);
+      } catch {}
     }
   }
-  return presetHashMap.get(`${sourceHash}:${language}`) ?? null;
+  return presetHashMap.get(`${sourceHash}:python`) ?? null;
 }
 
 export type StoredAnalysis = {
@@ -131,11 +128,11 @@ export function getStoredAnalysis({
         }
       }
 
-      if (implementationId && !implementationId.startsWith('draft:')) {
+      if (implementationId && !sourceHash && !implementationId.startsWith('draft:')) {
         const stmt = db.prepare(
-          'SELECT * FROM analysis_results WHERE implementation_id = ? ORDER BY created_at DESC LIMIT 1',
+          'SELECT * FROM analysis_results WHERE implementation_id = ? AND language = ? ORDER BY created_at DESC LIMIT 1',
         );
-        const row = stmt.get(implementationId) as
+        const row = stmt.get(implementationId, language) as
           | {
               id: string;
               implementation_id: string | null;
@@ -196,7 +193,7 @@ export function getStoredAnalysis({
     }
   }
 
-  if (implementationId) {
+  if (implementationId && !sourceHash) {
     const parts = implementationId.split(':');
     const algoId = parts[0];
     const enriched = getEnrichedAlgorithm(algoId);

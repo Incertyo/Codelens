@@ -1,6 +1,6 @@
 import { limits } from "@/shared/limits";
 import { z } from 'zod';
-export type Language = 'python' | 'javascript';
+export type Language = 'python';
 export const outlineNodeSchema = z.object({
   id: z.string(),
   kind: z.enum(['function', 'loop', 'branch', 'class', 'try']),

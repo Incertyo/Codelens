@@ -207,7 +207,7 @@ export function Analysis({ implementationId }: { implementationId: string }) {
               captured executions.
             </p>
             {!hot.length ? (
-              <p>Run Python, JavaScript or supported Java code to populate the heatmap.</p>
+              <p>Run Python code to populate the heatmap.</p>
             ) : (
               <div className="hotspot-list">
                 {hot.map(([line, count]) => (

@@ -5,7 +5,6 @@ import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { algorithms, algorithmTopics } from '../src/lib/algorithm-catalog';
 import { examples } from '../src/lib/examples';
-import { exampleCode } from '../src/lib/javascript-examples';
 import { getEnrichedAlgorithm } from '../src/lib/enriched-catalog';
 
 const compiled = spawnSync(process.env.PYTHON ?? 'python', ['scripts/compile-library.py'], {
@@ -156,26 +155,24 @@ try {
 
     const example = examples.find((e) => e.id === a.exampleId);
     if (example) {
-      for (const language of ['python', 'javascript'] as const) {
+      for (const language of ['python'] as const) {
         const expected =
-          example.expected?.[language] ??
-          firstExpected[Number(example.id) - 1][language === 'python' ? 0 : 1];
+          example.expected?.python ??
+          firstExpected[Number(example.id) - 1][0];
         save(
           a.id,
           language,
           'featured',
-          exampleCode(example, language),
+          example.code,
           Number(example.id) > 7
             ? 'src/lib/additional-examples.ts'
-            : language === 'python'
-              ? 'src/lib/examples.ts'
-              : 'src/lib/javascript-examples.ts',
+            : 'src/lib/examples.ts',
           'Featured demonstration',
           [],
           expected,
           'contains',
         );
-        const sourceCode = exampleCode(example, language);
+        const sourceCode = example.code;
         const sHash = createHash('sha256').update(sourceCode).digest('hex');
         const analysisId = `${sHash}:${language}`;
         const syntheticEnrichment = {
@@ -208,7 +205,7 @@ try {
   }
   db.exec('COMMIT');
   console.log(
-    `Library database: ${algorithms.length} algorithms, ${programs.length} Python references, ${examples.length} bilingual featured examples. ${inserted} new revisions.`,
+    `Library database: ${algorithms.length} algorithms, ${programs.length} Python references, ${examples.length} featured examples. ${inserted} new revisions.`,
   );
 } catch (error) {
   db.exec('ROLLBACK');

@@ -4,12 +4,6 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { loadPyodide, type PyodideInterface } from 'pyodide';
 import snapshot from '../src/generated/library.json';
-import { examples } from "../src/lib/examples";
-import { exampleCode } from "../src/lib/javascript-examples";
-import { instrumentJavaScript } from "../src/features/runner/public/javascript/instrument";
-import { JavaScriptTrace } from "../src/features/runner/public/javascript/runtime";
-import { analyzeJavaScript } from "../src/features/runner/public/javascript/ast";
-import { inspectJavaScript } from "../src/features/runner/public/javascript/analysis";
 import { normalizePythonOutline } from "../src/shared/breakdown";
 import { inspectionSchema } from "../src/features/insights/public/model/analysis";
 import { traceSchema, type TraceResult } from "../src/shared/trace";
@@ -22,20 +16,14 @@ const collected: Record<string, unknown> = {};
 const latest = snapshot.index.implementations.map((row) =>
   snapshot.implementations.find((i) => i.id === row.id)!,
 );
-const corpus = [
-  ...latest.map((row) => ({
+const corpus = latest
+  .map((row) => ({
     id: row.id,
     language: row.language,
     code: row.code,
     stdin: row.fixture.stdin,
-  })),
-  ...examples.map((example) => ({
-    id: `example:${example.id}:javascript`,
-    language: 'javascript',
-    code: exampleCode(example, 'javascript'),
-    stdin: '',
-  })),
-].sort((a, b) => a.id.localeCompare(b.id));
+  }))
+  .sort((a, b) => a.id.localeCompare(b.id));
 let python: PyodideInterface;
 
 function stable(value: unknown): unknown {
@@ -104,9 +92,9 @@ afterAll(() => {
 
 describe('revamp real-runtime golden parity', () => {
   it('covers all 343 current implementations and 17 explicit JavaScript examples', () => {
-    expect(latest).toHaveLength(343);
-    expect(corpus).toHaveLength(360);
-    expect(new Set(corpus.map((row) => row.id)).size).toBe(360);
+    expect(latest).toHaveLength(326);
+    expect(corpus).toHaveLength(326);
+    expect(new Set(corpus.map((row) => row.id)).size).toBe(326);
     if (!updating)
       expect(Object.keys(baseline?.cases ?? {}).sort()).toEqual(corpus.map((row) => row.id).sort());
   });
@@ -117,42 +105,22 @@ describe('revamp real-runtime golden parity', () => {
         baseline,
         'Golden baseline must exist; updates require explicit review',
       ).not.toBeNull();
-    let trace: TraceResult;
-    let outline: unknown;
-    let inspection: unknown;
-    if (row.language === 'python') {
-      python.globals.set(
-        '_request_json',
-        JSON.stringify({ code: row.code, stdin: row.stdin, maxSteps: 5000 }),
-      );
-      trace = traceSchema.parse(JSON.parse(python.runPython('run_trace(_request_json)')));
-      outline = normalizePythonOutline(JSON.parse(python.runPython('outline_code(_request_json)')));
-      inspection = inspectionSchema.parse(
-        JSON.parse(python.runPython('inspect_code(_request_json)')),
-      );
-    } else {
-      const engine = new JavaScriptTrace(5000);
-      const code = instrumentJavaScript(row.code);
-      try {
-        new Function(code.hookName, 'console', 'input', `"use strict";${code.code}`)(
-          engine,
-          { log: engine.output },
-          () => row.stdin,
-        );
-        trace = traceSchema.parse(engine.result());
-      } catch (error) {
-        trace = traceSchema.parse(engine.result(error));
-      }
-      outline = analyzeJavaScript(row.code);
-      inspection = inspectJavaScript(row.code);
-    }
+    python.globals.set(
+      '_request_json',
+      JSON.stringify({ code: row.code, stdin: row.stdin, maxSteps: 5000 }),
+    );
+    const trace = traceSchema.parse(JSON.parse(python.runPython('run_trace(_request_json)')));
+    const outline = normalizePythonOutline(JSON.parse(python.runPython('outline_code(_request_json)')));
+    const inspection = inspectionSchema.parse(
+      JSON.parse(python.runPython('inspect_code(_request_json)')),
+    );
     expect(trace.error).toBeNull();
     expect(trace.truncated).toBe(false);
     const clean = normalized(trace);
     const indices = [
       ...new Set([0, 0.25, 0.5, 0.75, 1].map((f) => Math.floor((clean.steps.length - 1) * f))),
     ];
-    const hints = sourceHints(row.code, row.language as 'python' | 'javascript');
+    const hints = sourceHints(row.code, 'python');
     const record = stable({
       language: row.language,
       sourceHash: createHash('sha256').update(row.code).digest('hex'),

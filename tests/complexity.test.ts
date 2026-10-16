@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { loadPyodide, type PyodideInterface } from 'pyodide';
+import { readFileSync } from 'node:fs';
+import { limits } from "../src/shared/limits";
+import { traceSchema } from "../src/shared/trace";
 import {
   growthModels,
   growthValue,
@@ -8,10 +12,25 @@ import {
   neighboringModels,
   staticComparison,
 } from "../src/shared/complexity";
-import { fitComplexity, empiricalSizes, testHarness } from "../src/features/insights/public/model/analysis";
-import { inspectJavaScript } from "../src/features/runner/public/javascript/analysis";
-import { instrumentJavaScript } from "../src/features/runner/public/javascript/instrument";
-import { JavaScriptTrace } from "../src/features/runner/public/javascript/runtime";
+import { fitComplexity, empiricalSizes, testHarness, inspectionSchema, generatedInput } from "../src/features/insights/public/model/analysis";
+
+let py: PyodideInterface;
+beforeAll(async () => {
+  py = await loadPyodide();
+  py.globals.set('_codelens_limits_json', JSON.stringify(limits));
+  py.runPython('import json as _limits_json; _codelens_limits = _limits_json.loads(_codelens_limits_json)');
+  py.globals.delete('_codelens_limits_json');
+  py.runPython(readFileSync('public/tracer.py', 'utf8'));
+  py.runPython(readFileSync('public/analysis.py', 'utf8'));
+});
+function inspectPython(code: string) {
+  py.globals.set('_request_json', JSON.stringify({ code }));
+  return inspectionSchema.parse(JSON.parse(py.runPython('inspect_code(_request_json)')));
+}
+function runPython(code: string) {
+  py.globals.set('_request_json', JSON.stringify({ code, stdin: '', maxSteps: 5000 }));
+  return traceSchema.parse(JSON.parse(py.runPython('run_trace(_request_json)')));
+}
 
 describe('fixed Big-O references', () => {
   it('evaluates only the seven fixed growth functions', () => {
@@ -51,15 +70,16 @@ describe('fixed Big-O references', () => {
   });
   it('fits real instrumented function events and supplies the existing best-fit curve', () => {
     const source =
-      'function total(n) { let value=0; for(let i=0;i<n;i++){value+=i;} return value; }';
-    const inspection = inspectJavaScript(source);
+      'def total(n: int):\n    value = 0\n    for i in range(n):\n        value += i\n    return value';
+    const inspection = inspectPython(source);
     const samples = empiricalSizes.map((n) => {
-      const instrumented = instrumentJavaScript(
-        testHarness(inspection, inspection.entries[0], n, 'javascript'),
+      const harness = testHarness(
+        inspection,
+        inspection.entries[0],
+        generatedInput('int', n),
+        'python',
       );
-      const runtime = new JavaScriptTrace(5000);
-      new Function(instrumented.hookName, instrumented.code)(runtime);
-      const trace = runtime.result();
+      const trace = runPython(harness);
       expect(trace.error).toBeNull();
       expect(trace.truncated).toBe(false);
       return { n, steps: trace.steps.filter((step) => step.func !== '<module>').length };

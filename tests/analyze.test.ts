@@ -5,9 +5,9 @@ import { takeSharedLimit, reserveProviderCall } from '../src/lib/ai/rate-limit';
 import { sharedStoreFixture } from './shared-store-fixture';
 import { POST, GET } from '../src/app/api/analyze/route';
 const input: AnalyzeRequest = {
-  code: 'function f(n){return n+1;}\nf(2);',
-  language: 'javascript',
-  functions: [{ name: 'f', line: 1, endLine: 1, parameters: ['n'] }],
+  code: 'def f(n):\n    return n + 1\nf(2)',
+  language: 'python',
+  functions: [{ name: 'f', line: 1, endLine: 2, parameters: ['n'] }],
   steps: [{ index: 1, line: 1, event: 'call', func: 'f' }],
 };
 const valid = {

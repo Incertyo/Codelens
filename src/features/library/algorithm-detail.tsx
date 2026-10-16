@@ -24,16 +24,6 @@ export function AlgorithmDetail({
       </span>
       {headingLevel === 2 ? <h2>{algorithm.name}</h2> : <h3>{algorithm.name}</h3>}
       <p>{algorithm.description}</p>
-      <label className="mono library-language">
-        Implementation language
-        <select
-          aria-label="Implementation language"
-          defaultValue="python"
-          disabled={busy}
-        >
-          <option value="python">Python · available</option>
-        </select>
-      </label>
       <div className="algorithm-detail-actions">
         {algorithm.exampleId ? (
           <button

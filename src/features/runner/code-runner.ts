@@ -1,7 +1,7 @@
 import { runProtocol } from "@/shared/worker-protocol";
 import { limits } from "@/shared/limits";
 import { MAX_CODE_LENGTH, RUN_TIMEOUT_MS, traceSchema, type TraceResult } from "../../shared/trace";
-import { breakdownSchema, normalizePythonOutline, type BreakdownData, type Language } from "../../shared/breakdown";
+import { normalizePythonOutline, type BreakdownData, type Language } from "../../shared/breakdown";
 import { inspectionSchema, type Inspection } from "../insights/public/model/analysis";
 export type RunProgress = { phase: 'loading' | 'running'; progress: number; message: string };
 export class CodeRunner {
@@ -37,17 +37,14 @@ export class CodeRunner {
     mode: 'run' | 'analyze' | 'inspect',
   ): Promise<TraceResult | BreakdownData | Inspection> {
     this.dispose();
-    if (!['python', 'javascript'].includes(language))
+    if (language !== 'python')
       return Promise.reject(
-        new Error('Real execution is available for Python and JavaScript.'),
+        new Error('Real execution is available for Python only.'),
       );
     if (code.length > MAX_CODE_LENGTH)
       return Promise.reject(new Error('Code exceeds the 30,000-character limit.'));
     return new Promise((resolve, reject) => {
-      const worker =
-        language === 'python'
-          ? new Worker('/tracer.worker.js')
-          : new Worker(new URL("./workers/javascript.worker.ts", import.meta.url));
+      const worker = new Worker('/tracer.worker.js');
       this.worker = worker;
       const nonce = crypto.randomUUID();
       const protocol = runProtocol(nonce);
@@ -120,10 +117,7 @@ export class CodeRunner {
         if (e.data.type === 'outline') {
           if (mode !== 'analyze') return;
           try {
-            const data =
-              language === 'python'
-                ? normalizePythonOutline(e.data.outline)
-                : breakdownSchema.parse(e.data.outline);
+            const data = normalizePythonOutline(e.data.outline);
             finish();
             resolve(data);
           } catch {

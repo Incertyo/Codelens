@@ -8,10 +8,11 @@ export { providerStatus, aiReadiness, model } from "./provider";
 export const analyzeRequestSchema = z
   .object({
     code: z.string().min(1).max(MAX_CODE_LENGTH),
-    language: z.enum(['python', 'javascript']),
+    language: z.literal('python'),
     runEpoch: z.number().int().nonnegative().safe().optional(),
     implementationId: z.string().max(limits.requestImplementationId).optional(),
     sourceHash: z.string().max(limits.hashCharacters).optional(),
+    checkCache: z.boolean().optional(),
     functions: z
       .array(
         z

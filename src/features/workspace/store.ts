@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { examples } from "../../lib/examples";
 import type { TraceResult } from "../../shared/trace";
 import type { BreakdownData, Enrichment, Language } from "../../shared/breakdown";
-import { canAutoSwitch, type LanguageMode, type SourceOrigin } from "../editor/public/language-detection";
+import type { SourceOrigin } from "../editor/public/language-detection";
 import type { UnsupportedEditorLanguage } from "../editor/public/policy";
 export type State = {
   code: string;
@@ -12,10 +12,7 @@ export type State = {
   maxSteps: number;
   language: Language;
   unsupportedLanguage: UnsupportedEditorLanguage | null;
-  languageMode: LanguageMode;
-  languageChosenManually: boolean;
   sourceOrigin: SourceOrigin;
-  autoSwitchEligible: boolean;
   breakdown: BreakdownData | null;
   enrichment: Enrichment | null;
   selectedLine: number | null;
@@ -33,8 +30,6 @@ export type State = {
   theme: 'dark' | 'light';
   reduced: boolean;
   setCode: (code: string, origin?: SourceOrigin) => void;
-  chooseLanguage: (mode: LanguageMode) => void;
-  applyDetection: (language: Language, revision: number, explicit?: boolean) => void;
   setStdin: (stdin: string) => void;
   setMaxSteps: (maxSteps: number) => void;
   beginRun: () => void;
@@ -43,7 +38,7 @@ export type State = {
   toggleBreakpoint: (line: number) => void;
   setMessage: (message: string) => void;
   updateRun: (state: Partial<Pick<State, 'status' | 'progress' | 'message' | 'playing' | 'edited' | 'result' | 'cursor' | 'tab' | 'selectedLine'>>) => void;
-  selectSource: (state: Partial<Pick<State, 'language' | 'languageMode' | 'unsupportedLanguage' | 'autoSwitchEligible' | 'tab' | 'selectedLine' | 'enrichment' | 'breakdown' | 'message'>>) => void;
+  selectSource: (state: Partial<Pick<State, 'language' | 'unsupportedLanguage' | 'tab' | 'selectedLine' | 'enrichment' | 'breakdown' | 'message'>>) => void;
   selectLine: (line: number | null, pause?: boolean) => void;
   setPlaying: (playing: boolean) => void;
   setSpeed: (speed: number) => void;
@@ -59,10 +54,7 @@ export const useStore = create<State>((set, get) => ({
   maxSteps: limits.steps,
   language: 'python',
   unsupportedLanguage: null,
-  languageMode: 'auto',
-  languageChosenManually: false,
   sourceOrigin: 'sample',
-  autoSwitchEligible: false,
   breakdown: null,
   enrichment: null,
   selectedLine: null,
@@ -84,12 +76,6 @@ export const useStore = create<State>((set, get) => ({
       code,
       sourceOrigin: origin,
       unsupportedLanguage: origin === 'sample' || origin === 'library' ? null : previous.unsupportedLanguage,
-      autoSwitchEligible:
-        origin === 'draft' &&
-        !previous.languageChosenManually &&
-        (previous.autoSwitchEligible ||
-          !previous.code.trim() ||
-          (!previous.edited && previous.sourceOrigin === 'sample')),
       sourceRevision: previous.sourceRevision + 1,
       runEpoch: previous.runEpoch + 1,
       edited: true,
@@ -103,54 +89,6 @@ export const useStore = create<State>((set, get) => ({
       enrichment: null,
       selectedLine: null,
     })),
-  chooseLanguage: (mode) =>
-    set((previous) => ({
-      runEpoch: previous.runEpoch + 1,
-      languageMode: mode,
-      languageChosenManually: previous.languageChosenManually || mode !== 'auto',
-      ...(mode === 'auto'
-        ? {}
-        : {
-            language: mode,
-            unsupportedLanguage: null,
-            result: null,
-            status: 'idle' as const,
-            playing: false,
-            cursor: 0,
-            breakdown: null,
-            enrichment: null,
-            selectedLine: null,
-          }),
-    })),
-  applyDetection: (language, revision, explicit = false) => {
-    const state = get();
-    if (
-      state.sourceRevision !== revision ||
-      state.languageMode !== 'auto' ||
-      ['loading', 'running'].includes(state.status) ||
-      (!explicit && !canAutoSwitch(state))
-    )
-      return;
-    if (!explicit && state.language === language) {
-      set({ autoSwitchEligible: false });
-      return;
-    }
-
-    set({
-      language,
-      autoSwitchEligible: false,
-      sourceRevision: state.sourceRevision + 1,
-      runEpoch: state.runEpoch + 1,
-      ...(explicit ? { languageMode: language, languageChosenManually: true } : {}),
-      result: null,
-      status: 'idle',
-      playing: false,
-      cursor: 0,
-      breakdown: null,
-      enrichment: null,
-      selectedLine: null,
-    });
-  },
   setStdin: (stdin) =>
     set((previous) => ({
       runEpoch: previous.runEpoch + 1,

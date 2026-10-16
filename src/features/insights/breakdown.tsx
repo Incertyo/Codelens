@@ -195,9 +195,7 @@ export function Breakdown({ implementationId }: { implementationId?: string } = 
       </div>
       {loading && !data && (
         <p className="breakdown-loading mono" role="status">
-          <LoaderCircle className="spinner" size={14} /> Reading the structure of your{' '}
-          {language === 'python' ? 'Python' : 'JavaScript'}{' '}
-          code…
+          <LoaderCircle className="spinner" size={14} /> Reading the structure of your Python code…
         </p>
       )}
       {error && (

@@ -3,22 +3,13 @@ import { createHash } from 'node:crypto';
 import { POST } from '../src/app/api/analyze/route';
 import { analyzeRequestSchema } from '../src/lib/ai/analyze';
 import { adviceRequestSchema } from '../src/lib/ai/phase3';
-import { heuristicDetection, modelDetection } from '../src/lib/language-detection';
+import { heuristicDetection } from '../src/features/editor/language-detection';
 import { decodeShare, encodeShare, encodeShortShare } from '../src/lib/share';
 import type { Language } from '../src/lib/breakdown';
 
-describe('Python and JavaScript execution scope', () => {
+describe('Python execution scope', () => {
   it('narrows the execution language contract', () => {
-    expectTypeOf<Language>().toEqualTypeOf<'python' | 'javascript'>();
-  });
-
-  it.each(['c', 'cpp', 'java', 'ts'])('keeps model winner %s unsupported', (languageId) => {
-    expect(
-      modelDetection([
-        { languageId, confidence: 0.99 },
-        { languageId: 'py', confidence: 0.01 },
-      ]),
-    ).toEqual({ kind: 'unsupported', languageId, confidence: 0.99 });
+    expectTypeOf<Language>().toEqualTypeOf<'python'>();
   });
 
   it.each([
@@ -67,7 +58,7 @@ describe('Python and JavaScript execution scope', () => {
         );
         expect(response.status).toBe(410);
         expect(await response.json()).toEqual({
-          error: 'AI-simulated traces have been removed. Run Python or JavaScript locally.',
+          error: 'AI-simulated traces have been removed. Run Python locally.',
         });
         expect(fetch).not.toHaveBeenCalled();
       } finally {

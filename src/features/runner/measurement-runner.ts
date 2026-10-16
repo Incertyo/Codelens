@@ -34,8 +34,8 @@ export class MeasurementRunner {
     progress: (value: MeasurementProgress) => void = () => {},
   ): Promise<MeasurementSeries> {
     this.dispose();
-    if (!['python', 'javascript'].includes(plan.language))
-      throw new Error('Measurement requires Python or JavaScript.');
+    if (plan.language !== 'python')
+      throw new Error('Measurement requires Python.');
     if (plan.code.length > limits.code) throw new Error('Code exceeds the 30,000-character limit.');
     const options = measurementOptionsSchema.parse(plan.options ?? {});
     const sizes = [...(plan.sizes ?? measurementSizes)];
@@ -53,9 +53,7 @@ export class MeasurementRunner {
       throw new Error('Choose at most ten strictly increasing positive measurement sizes.');
     const worker =
       this.createWorker?.(plan.language) ??
-      (plan.language === 'python'
-        ? new Worker('/tracer.worker.js')
-        : new Worker(new URL("./workers/javascript.worker.ts", import.meta.url)));
+      new Worker('/tracer.worker.js');
     this.worker = worker;
     const nonce = crypto.randomUUID();
     let timer: ReturnType<typeof setTimeout> | undefined;

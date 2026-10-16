@@ -199,4 +199,74 @@ describe('SQLite analysis persistence and Big-O caching', () => {
     expect(Number.isFinite(pred)).toBe(true);
     expect(pred).toBeGreaterThan(0);
   });
+
+  it('rejects stale analysis when sourceHash does not match implementation code', () => {
+    const wrongHash = 'modified-source-hash-not-in-db';
+    const result = getStoredAnalysis({
+      implementationId: 'sorting/bubble-sort:python:reference:v1',
+      sourceHash: wrongHash,
+      language: 'python',
+    });
+    expect(result).toBeNull();
+  });
+
+  it('serves cached enrichment via POST when checkCache is true and cached data exists', async () => {
+    const code = 'x = 1\n';
+    const { hashText } = await import('@/shared/server/hashing');
+    const actualHash = hashText(code);
+
+    saveStoredAnalysis({
+      sourceHash: actualHash,
+      language: 'python',
+      data: {
+        enrichment: {
+          summary: 'Cached summary.',
+          pattern: 'Single line',
+          functions: [],
+          annotations: [],
+          stepNotes: [],
+          timeComplexity: 'O(1)',
+          spaceComplexity: 'O(1)',
+        },
+      },
+    });
+
+    const req = new Request('http://localhost/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        language: 'python',
+        checkCache: true,
+        functions: [],
+        steps: [],
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.cached).toBe(true);
+    expect(body.source).toBe('ai');
+    expect(body.enrichment.summary).toBe('Cached summary.');
+  });
+
+  it('returns 500 when saving analysis fails due to read-only database', async () => {
+    process.env.CODELENS_LIBRARY_DB = 'non-existent-dir/sub/readonly.sqlite';
+    const req = new Request('http://localhost/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode: 'save_analysis',
+        sourceHash: 'some-hash',
+        language: 'python',
+        data: {},
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toBe('Failed to persist analysis.');
+  });
 });

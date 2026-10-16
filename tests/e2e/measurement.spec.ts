@@ -54,15 +54,10 @@ async function prepare(page: Page) {
       }
     };
   });
-  await page.goto('/' + encodeShare('let value = 1;', '', 'javascript'));
+  await page.goto('/' + encodeShare('value = 1\n', '', 'python'));
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
   await page.getByRole('button', { name: '/ run code', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
-  await page.evaluate(() => {
-    const state = window as BrowserHarness;
-    const index = state.workerMessages.find((event) => event.type === 'result')!.worker;
-    state.javascriptWorkerUrl = state.workerUrls[index];
-  });
   await page.addScriptTag({ content: harness });
 }
 
@@ -70,7 +65,7 @@ async function measure(
   page: Page,
   data: {
     code: string;
-    language: 'python' | 'javascript';
+    language: 'python';
     sizes?: number[];
     args?: Record<number, MeasurementArgument[]>;
     options?: Partial<MeasurementOptions>;
@@ -80,8 +75,7 @@ async function measure(
     const request: typeof data = JSON.parse(serialized);
     const state = window as BrowserHarness;
     const runner = new state.MeasurementHarness.MeasurementRunner(
-      (language) =>
-        new Worker(language === 'python' ? '/tracer.worker.js' : state.javascriptWorkerUrl),
+      () => new Worker('/tracer.worker.js'),
     );
     state.activeMeasurement = runner;
     return runner.measure({
@@ -92,7 +86,7 @@ async function measure(
   }, JSON.stringify(data));
 }
 
-for (const language of ['javascript', 'python'] as const) {
+for (const language of ['python'] as const) {
   test(`all nine known algorithms match time and auxiliary space through real ${language} workers`, async ({
     page,
   }) => {
@@ -184,17 +178,6 @@ for (const language of ['javascript', 'python'] as const) {
       ),
     });
     expect(specialKeys.sizes.every((size) => size.status === 'complete')).toBe(true);
-    if (language === 'javascript') {
-      const aliased = await measure(page, {
-        language,
-        sizes: [4, 8, 12, 16],
-        code: 'const algorithm = function inner(n) { let value=0; for(let i=0;i<n;i++) value++; return value; };',
-      });
-      expect(aliased.time?.label).toBe('O(n)');
-      expect(
-        aliased.sizes.every((size) => size.status === 'complete' && size.lineEvents! > size.n),
-      ).toBe(true);
-    }
   });
 }
 
@@ -227,8 +210,8 @@ test('parent rejects unauthenticated real counters and replayed started cannot e
   });
   const start = Date.now();
   const result = await measure(page, {
-    language: 'javascript',
-    code: measurementPrograms[8].javascript,
+    language: 'python',
+    code: measurementPrograms[8].python,
     options: { timeoutMs: 400 },
   });
   expect(result.sizes[0].status).toBe('budget-exceeded');
@@ -243,8 +226,8 @@ test('single trusted started and casual forged protocol calls are bounded by the
   await prepare(page);
   const start = Date.now();
   const result = await measure(page, {
-    language: 'javascript',
-    code: 'function algorithm(n) { try { postMessage({type:"started"}); } catch(error) {} Function("const start=performance.now();while(performance.now()-start<14000){}")(); return n; }',
+    language: 'python',
+    code: 'def algorithm(n):\n    import time\n    start = time.time()\n    while time.time() - start < 14:\n        pass\n    return n',
   });
   expect(result.sizes[0].status).toBe('budget-exceeded');
   expect(result.sizes[0].lineEvents).toBeNull();
@@ -256,8 +239,8 @@ test('measurement cancellation terminates its real worker without completing lat
 }) => {
   await prepare(page);
   const pending = measure(page, {
-    language: 'javascript',
-    code: 'function algorithm(n) { Function("while(true){}")(); return n; }',
+    language: 'python',
+    code: 'def algorithm(n):\n    while True:\n        pass\n    return n',
   }).then(
     () => 'unexpected completion',
     (error) => String(error),

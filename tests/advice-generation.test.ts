@@ -2,7 +2,6 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { createServer } from 'node:http';
 import { analyzeAdvice } from '../src/lib/ai/phase3';
 import { sourceIdentity } from '../src/lib/analysis';
-import { inspectJavaScript } from '../src/lib/javascript/analysis';
 import { POST } from '../src/app/api/analyze/route';
 import { sharedStoreFixture } from './shared-store-fixture';
 let store: Awaited<ReturnType<typeof sharedStoreFixture>>;
@@ -14,12 +13,24 @@ beforeEach(async () => {
   vi.stubEnv('UPSTASH_REDIS_REST_URL', store.url);
   vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', 'redis-fixture-token');
 });
-const code = 'function f(n) { return n + 1; }';
+const code = 'def f(n):\n    return n + 1';
+const defaultEntries = [
+  {
+    name: 'f',
+    line: 1,
+    parameter: 'n',
+    kinds: ['int' as const],
+    reason: null,
+    time: 'O(1) candidate',
+    space: 'O(1)',
+    evidence: 'def f(n):',
+  },
+];
 const validAdvice = {
   summary: 'Possible boundary cases.',
   issues: [{ line: 1, severity: 'edge-case', message: 'Check negative values.' }],
   optimization: {
-    code: 'function f(n) { return 1 + n; }',
+    code: 'def f(n):\n    return 1 + n',
     explanation: 'A proposal, not verified.',
     lines: [1],
   },
@@ -79,9 +90,9 @@ describe('Phase 3 strict provider pipeline', () => {
     const input = {
       mode: 'analysis',
       code,
-      language: 'javascript',
+      language: 'python',
       identity: await sourceIdentity('draft', code),
-      entries: inspectJavaScript(code).entries.map((e) => ({ ...e, line: 999 })),
+      entries: defaultEntries.map((e) => ({ ...e, line: 999 })),
     };
     const response = await POST(
       new Request('http://localhost/api/analyze', {
@@ -103,9 +114,9 @@ describe('Phase 3 strict provider pipeline', () => {
       const result = await analyzeAdvice({
         mode: 'analysis',
         code,
-        language: 'javascript',
+        language: 'python',
         identity,
-        entries: inspectJavaScript(code).entries,
+        entries: defaultEntries,
       });
       expect(result).toEqual({ source: 'ai', identity, advice: validAdvice });
       expect(fixture.calls()).toBe(2);
@@ -128,9 +139,9 @@ describe('Phase 3 strict provider pipeline', () => {
         await analyzeAdvice({
           mode: 'analysis',
           code,
-          language: 'javascript',
+          language: 'python',
           identity: await sourceIdentity('draft', code),
-          entries: inspectJavaScript(code).entries,
+          entries: defaultEntries,
         }),
       ).toMatchObject({ source: 'static' });
       expect(fixture.calls()).toBe(2);
@@ -146,9 +157,9 @@ describe('Phase 3 strict provider pipeline', () => {
         await analyzeAdvice({
           mode: 'analysis',
           code,
-          language: 'javascript',
+          language: 'python',
           identity: await sourceIdentity('draft', code),
-          entries: inspectJavaScript(code).entries,
+          entries: defaultEntries,
         }),
       ).toMatchObject({ source: 'static' });
       expect(performance.now() - started).toBeGreaterThan(17500);

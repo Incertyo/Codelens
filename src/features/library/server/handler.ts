@@ -15,6 +15,11 @@ export function getLibrary(request: Request) {
     if (!parsed.success)
       return Response.json({ error: 'Invalid library selection.' }, { status: 400 });
     const { id, language, variant, revision } = parsed.data;
+    if (language !== 'python')
+      return Response.json(
+        { error: 'This implementation is unavailable in the selected language.' },
+        { status: 404 },
+      );
     const implementation = getLibraryImplementation(id, language, variant, revision);
     if (!implementation)
       return Response.json(

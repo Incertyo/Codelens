@@ -8,7 +8,7 @@ import type { Language } from "../../shared/breakdown";
 export const MAX_SHARE_FRAGMENT_LENGTH = limits.shareFragment;
 export const MAX_SHARE_JSON_LENGTH = limits.shareJson;
 
-export type ShareLanguage = Language | 'cpp' | 'java';
+export type ShareLanguage = Language | 'javascript' | 'cpp' | 'java';
 
 const LANG_CODE_MAP: Record<string, ShareLanguage> = {
   p: 'python',

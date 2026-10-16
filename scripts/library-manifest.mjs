@@ -14,7 +14,6 @@ export async function libraryManifest() {
     ...(await walk('library')),
     'src/lib/algorithm-catalog.ts',
     'src/lib/examples.ts',
-    'src/lib/javascript-examples.ts',
     'src/lib/additional-examples.ts',
     'scripts/compile-library.py',
     'scripts/seed-library.ts',

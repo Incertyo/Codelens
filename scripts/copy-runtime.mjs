@@ -17,10 +17,6 @@ const hashFiles = async (directory) => {
 };
 const pyodide = `/pyodide/${await hashFiles('node_modules/pyodide')}`,
   monaco = `/monaco/${await hashFiles('node_modules/monaco-editor/min/vs')}/vs`;
-const languageDetection = `/language-detection/${await hashFiles('node_modules/@vscode/vscode-languagedetection/model')}`;
-await cp('node_modules/@vscode/vscode-languagedetection/model', `public${languageDetection}`, {
-  recursive: true,
-});
 await mkdir(`public${pyodide}`, { recursive: true });
 for (const name of [
   'pyodide.js',
@@ -40,9 +36,9 @@ await writeFile(`public${pyodide}/manifest.json`, JSON.stringify(assets));
 await mkdir('src/generated', { recursive: true });
 await writeFile(
   'public/runtime-assets.json',
-  JSON.stringify({ pyodide, monaco, languageDetection }),
+  JSON.stringify({ pyodide, monaco }),
 );
 await writeFile(
   'src/generated/runtime-assets.json',
-  JSON.stringify({ pyodide, monaco, languageDetection }),
+  JSON.stringify({ pyodide, monaco }),
 );

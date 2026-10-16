@@ -123,7 +123,7 @@ export function WorkspaceDialogs({ menu, drawer, about, share, busy, language, s
               through its real execution, one line, one variable, one call at a time.
             </p>
             <div className="about-facts mono about-reveal">
-              <p>01 / PYTHON AND JAVASCRIPT RUN LOCALLY IN WEB WORKERS.</p>
+              <p>01 / PYTHON RUNS LOCALLY IN WEB WORKERS.</p>
               <p>02 / NO API KEY. NO SERVER EXECUTION.</p>
               <p>03 / SHARING PUTS YOUR CODE IN THE LINK.</p>
             </div>

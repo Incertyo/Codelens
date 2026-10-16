@@ -18,11 +18,10 @@
     "library/python/trees.py": "ebc86d10a3347904ac2ed0a9f0385af5b21430afa1f0c9c1480a7d81758c9991",
     "library/schema.sql": "7b3e6e6e42b1427de8de6ada4f44e723b7b5eabcd511fde61ee7dd733d0dd479",
     "scripts/compile-library.py": "487ce66fdfc6e951a8d4c3fafb3f6ef051e0e581666a543963ac033923f4e7e1",
-    "scripts/seed-library.ts": "afe6f1d5092fe517a488ff965b474e13c4a610c2331c66d82bddb8f5255cb117",
-    "src/lib/additional-examples.ts": "f4fb460b4fc076e39c520bcf118c03edaea69120b6f81128b17c4a374c1ee609",
+    "scripts/seed-library.ts": "a82738cd4636fcf379d77ac1be8e57a703dafcb9665d25716b5f7703dd5f9074",
+    "src/lib/additional-examples.ts": "1fc097ce6b8ebc6b25611c3211b2bd3238428738f39a6ed6ba3584abf1c5b295",
     "src/lib/algorithm-catalog.ts": "abbff3b26ddaf9792b7b164d8cb8f3dd8d7dd16128afa822bd19731eaf6e7009",
-    "src/lib/examples.ts": "81976ede1c25eb87c2de617f0882238054b72717e0fdcc3a4d511b8b2e9fa92b",
-    "src/lib/javascript-examples.ts": "cc36b9679563fec3862b35d316bb3c3399ca052633e412bd45db550084efc005"
+    "src/lib/examples.ts": "50d45d024d1b9cf515a3f444b575b947e695b64d20a8c6a691f4fb22422e4998"
   },
-  "exportHash": "863599fe77305f1db3ce09ea4726237fd9f7c6ea415ecfdfb417a3bbbbb03051"
+  "exportHash": "7b3438c0352e0c4478d9ae79c619cf0ab24d7249948b1d9934600c2a95776030"
 }

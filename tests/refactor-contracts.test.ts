@@ -15,10 +15,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { POST, GET } from "../src/app/api/analyze/route";
 import { GET as library } from "../src/app/api/library/route";
-import { analyzeJavaScript } from "../src/features/runner/public/javascript/ast";
-import { inspectJavaScript } from "../src/features/runner/public/javascript/analysis";
-import { instrumentJavaScript } from "../src/features/runner/public/javascript/instrument";
-import { JavaScriptTrace } from "../src/features/runner/public/javascript/runtime";
 import { decodeShare, encodeShare, encodeShortShare } from "../src/features/share/public/codec";
 import { sharedStoreFixture } from "./shared-store-fixture";
 
@@ -77,19 +73,12 @@ it('retains real SDK and route contracts using loopback provider and store fixtu
   const directory = mkdtempSync(join(tmpdir(), 'codelens-parity-'));
   const store = await sharedStoreFixture();
   const code =
-    'function total(n) {\n let value=0;\n for(let i=0;i<n;i++){value+=i;}\n return value;\n}\nconsole.log(total(4));';
-  const ast = analyzeJavaScript(code);
-  const inspection = inspectJavaScript(code);
-  const instrumented = instrumentJavaScript(code);
-  const engine = new JavaScriptTrace(5000);
-  new Function(instrumented.hookName, 'console', `"use strict";${instrumented.code}`)(engine, {
-    log: engine.output,
-  });
-  const sampled = engine
-    .result()
-    .steps.filter((step) => step.func === 'total')
-    .slice(0, 3)
-    .map(({ index, line, event, func }) => ({ index, line, event, func }));
+    'def total(n):\n    value = 0\n    for i in range(n):\n        value += i\n    return value\nprint(total(4))';
+  const sampled = [
+    { index: 2, line: 1, event: 'call' as const, func: 'total' },
+    { index: 3, line: 2, event: 'line' as const, func: 'total' },
+    { index: 4, line: 3, event: 'line' as const, func: 'total' },
+  ];
   const notes = {
     summary: 'Adds integers.',
     pattern: 'Loop',
@@ -101,7 +90,7 @@ it('retains real SDK and route contracts using loopback provider and store fixtu
     summary: 'Review the boundary.',
     issues: [{ line: 3, severity: 'edge-case', message: 'Check zero.' }],
     optimization: {
-      code: code.replace('value+=i', 'value=value+i'),
+      code: code.replace('value += i', 'value = value + i'),
       explanation: 'Unverified proposal.',
       lines: [3],
     },
@@ -176,27 +165,33 @@ it('retains real SDK and route contracts using loopback provider and store fixtu
     await capture('invalidMode', await post({ mode: 'missing' }));
     const notesRequest = {
       code,
-      language: 'javascript',
-      functions: ast.functions.map(({ name, line, endLine, parameters }) => ({
-        name,
-        line,
-        endLine,
-        parameters,
-      })),
+      language: 'python' as const,
+      functions: [{ name: 'total', line: 1, endLine: 5, parameters: ['n'] }],
       steps: sampled,
     };
     await capture('notes', await post(notesRequest));
     output = advice;
     const identity = {
-      implementationId: 'draft:javascript',
+      implementationId: 'draft:python',
       sourceHash: createHash('sha256').update(code).digest('hex'),
     };
     const adviceRequest = {
-      mode: 'analysis',
+      mode: 'analysis' as const,
       code,
-      language: 'javascript',
+      language: 'python' as const,
       identity,
-      entries: inspection.entries,
+      entries: [
+        {
+          name: 'total',
+          line: 1,
+          parameter: 'n',
+          kinds: ['int' as const, 'list' as const, 'string' as const],
+          reason: null,
+          time: 'O(n) candidate',
+          space: 'O(1)',
+          evidence: 'def total(n):',
+        },
+      ],
     };
     await capture('advice', await post(adviceRequest));
     await capture(

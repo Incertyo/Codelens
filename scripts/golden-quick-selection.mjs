@@ -1,8 +1,9 @@
 export function selectQuickGoldens(snapshot, goldens) {
   const topics = new Set(snapshot.index.topics.map((row) => row.id));
   const cases = goldens.cases;
-  const examples = Object.keys(cases)
-    .filter((id) => id.startsWith('example:'))
+  const examples = snapshot.index.implementations
+    .filter((row) => row.variant === 'featured')
+    .map((row) => row.id)
     .sort();
   const candidates = snapshot.index.implementations
     .filter((row) => row.language === 'python' && row.variant === 'reference')

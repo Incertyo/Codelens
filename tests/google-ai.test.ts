@@ -5,16 +5,27 @@ import { isProviderQuotaError } from '../src/lib/ai/provider-quota';
 import { providerOutputSchema } from '../src/lib/ai/output-schema';
 import { enrichmentSchema } from '../src/lib/breakdown';
 import { sourceIdentity } from '../src/lib/analysis';
-import { inspectJavaScript } from '../src/lib/javascript/analysis';
 
 let store: Awaited<ReturnType<typeof sharedStoreFixture>>;
-const code = 'function f(n){return n+1;}\nf(2);';
+const code = 'def f(n):\n    return n + 1\nf(2)';
 const input = {
   code,
-  language: 'javascript',
-  functions: [{ name: 'f', line: 1, endLine: 1, parameters: ['n'] }],
-  steps: [{ index: 1, line: 1, event: 'call', func: 'f' }],
+  language: 'python' as const,
+  functions: [{ name: 'f', line: 1, endLine: 2, parameters: ['n'] }],
+  steps: [{ index: 1, line: 1, event: 'call' as const, func: 'f' }],
 };
+const defaultEntries = [
+  {
+    name: 'f',
+    line: 1,
+    parameter: 'n',
+    kinds: ['int' as const],
+    reason: null,
+    time: 'O(1) candidate',
+    space: 'O(1)',
+    evidence: 'def f(n):',
+  },
+];
 const valid = {
   summary: 'Adds one.',
   pattern: 'Simple function',
@@ -138,9 +149,9 @@ describe('actual Google SDK contract through the route', () => {
     const response = await post({
       mode: 'analysis',
       code,
-      language: 'javascript',
+      language: 'python',
       identity: await sourceIdentity('draft', code),
-      entries: inspectJavaScript(code).entries,
+      entries: defaultEntries,
     });
     expect((await response.json()).advice).toEqual(advice);
     expect(requests).toHaveLength(2);
@@ -155,9 +166,9 @@ describe('actual Google SDK contract through the route', () => {
         body = {
           mode,
           code,
-          language: 'javascript',
+          language: 'python',
           identity: await sourceIdentity('draft', code),
-          entries: inspectJavaScript(code).entries,
+          entries: defaultEntries,
         };
       const response = await post(body);
       expect(response.status).toBe(429);

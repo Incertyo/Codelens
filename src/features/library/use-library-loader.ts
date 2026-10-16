@@ -66,8 +66,6 @@ export function useLibraryLoader({ executing, setExampleName, setFocusToken, cle
       setImplementation(loaded);
       useStore.getState().selectSource({
         language: editorLanguage,
-        languageMode: editorLanguage,
-        autoSwitchEligible: false,
         tab: 'visualizer',
       });
       setFocusToken((token) => token + 1);

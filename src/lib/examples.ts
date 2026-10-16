@@ -6,8 +6,7 @@ export type Example = {
   description: string;
   preview: number[];
   code: string;
-  javascript?: string;
-  expected?: { python: string; javascript: string };
+  expected?: { python: string };
 };
 export const examples: Example[] = [
   {

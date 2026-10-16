@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { algorithmTopics, algorithms, searchAlgorithms } from "../src/lib/algorithm-catalog";
 import { examples } from "../src/lib/examples";
-import { exampleCode } from "../src/lib/javascript-examples";
 describe('algorithm library integrity', () => {
   it('contains a broad, linked hierarchy without duplicate IDs', () => {
     expect(algorithmTopics.length).toBeGreaterThanOrEqual(16);
@@ -25,14 +24,13 @@ describe('algorithm library integrity', () => {
     expect(searchAlgorithms('shortest graphs').length).toBeGreaterThan(0);
     expect(searchAlgorithms('totally-unknown-algorithm')).toEqual([]);
   });
-  it('maps every runnable library entry to a real bilingual sample', () => {
+  it('maps every runnable library entry to a real sample', () => {
     const ids = algorithms.flatMap((a) => (a.exampleId ? [a.exampleId] : []));
     expect(new Set(ids).size).toBe(examples.length);
     for (const id of ids) {
       const sample = examples.find((e) => e.id === id)!;
       expect(sample).toBeDefined();
-      for (const language of ['python', 'javascript'] as const)
-        expect(exampleCode(sample, language).trim().length).toBeGreaterThan(20);
+      expect(sample.code.trim().length).toBeGreaterThan(20);
     }
     expect(new Set(examples.map((e) => e.id)).size).toBe(examples.length);
   });

@@ -78,7 +78,6 @@
 
 .algorithm-navigation select,
 .analysis-field select,
-.library-language select,
 .share-dialog input,
 .stdin-box textarea {
   border: 1px solid var(--control-border);
@@ -134,10 +133,6 @@ select option {
   gap: var(--s3);
 }
 
-.language-select select {
-  color: var(--fg);
-  min-height: var(--control-height);
-}
 
 .filebar {
   min-height: 42px;

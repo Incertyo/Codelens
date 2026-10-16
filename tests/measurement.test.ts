@@ -2,7 +2,6 @@ import { limits } from "../src/shared/limits";
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadPyodide, type PyodideInterface } from 'pyodide';
 import { readFileSync } from 'node:fs';
-import { executeJavaScriptMeasurement } from "../src/features/runner/public/javascript/measurement";
 import {
   measurementOptionsSchema,
   measurementRequestSchema,
@@ -33,19 +32,7 @@ function python(request: MeasurementRequest) {
 }
 
 describe('snapshot-free real measurement engines', () => {
-  it('measures a named JavaScript function expression selected by its binding name', () => {
-    const request = {
-      code: 'const algorithm = function inner(n) { let value=0; for(let i=0;i<n;i++) value++; return value; };',
-      entry: 'algorithm',
-      n: 16,
-      args: [16],
-      options: measurementOptionsSchema.parse({}),
-    };
-    const result = executeJavaScriptMeasurement(request);
-    expect(result.status).toBe('complete');
-    expect(result.lineEvents).toBeGreaterThan(16);
-  });
-  for (const language of ['javascript', 'python'] as const) {
+  for (const language of ['python'] as const) {
     it.each(measurementPrograms)(
       `${language}: $name matches the known time and auxiliary-space classes`,
       (program) => {
@@ -58,10 +45,7 @@ describe('snapshot-free real measurement engines', () => {
             args: measurementArguments(program.input, n),
             options: measurementOptionsSchema.parse({}),
           };
-          const result =
-            language === 'python'
-              ? python(request)
-              : measurementSizeSchema.parse(executeJavaScriptMeasurement(request));
+          const result = python(request);
           sizes.push(result);
           if (result.status !== 'complete') break;
         }
@@ -76,7 +60,7 @@ describe('snapshot-free real measurement engines', () => {
       },
     );
   }
-  for (const language of ['javascript', 'python'] as const) {
+  for (const language of ['python'] as const) {
     const run = (code: string, args: MeasurementRequest['args'], limits = {}, n = 128) => {
       const request = {
         code,
@@ -85,9 +69,7 @@ describe('snapshot-free real measurement engines', () => {
         args,
         options: measurementOptionsSchema.parse(limits),
       };
-      return language === 'python'
-        ? python(request)
-        : measurementSizeSchema.parse(executeJavaScriptMeasurement(request));
+      return python(request);
     };
     it(`${language}: exceeds the trace cap without retaining snapshots`, () => {
       const result = run(measurementPrograms[8][language], [4000]);

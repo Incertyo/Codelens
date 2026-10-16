@@ -9,11 +9,9 @@ import { WorkspaceDialogs } from "./workspace-dialogs";
 import Link from 'next/link';
 import { AnimatePresence } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowUpRight, ChevronDown, Plus, Play, Square, Share2, LoaderCircle } from 'lucide-react';
+import { ArrowUpRight, Plus, Play, Square, Share2, LoaderCircle } from 'lucide-react';
 import { useStore } from "@/features/workspace/store";
 import { examples } from "@/lib/examples";
-
-import { exampleCode } from "@/lib/javascript-examples";
 import { type Language } from "@/shared/breakdown";
 import { decodeShare, encodeShortShare } from "@/features/share/public/codec";
 import { Preferences, usePreferences } from "../preferences/public/preferences";
@@ -21,10 +19,7 @@ import { Visualizer } from "../visualizer/public/visualizer";
 import { AlgorithmBrowser } from "../library/public/algorithm-browser";
 import { LoadingScreen } from "../intro/public/loading-screen";
 import { ScrollStudy } from "../intro/public/scroll-study";
-
-import { LANGUAGE_LABELS } from "@/features/editor/public/language-detection";
 import { editorLanguage, editorSourceIssue, unsupportedShareLanguage, type UnsupportedEditorLanguage } from "@/features/editor/public/policy";
-import { useLanguageDetection } from "../editor/public/use-language-detection";
 import { usePageIntro } from "../intro/public/page-intro";
 const Analysis = dynamic(() => import("../insights/public/analysis").then((m) => m.Analysis));
 const Breakdown = dynamic(() => import("../insights/public/breakdown").then((m) => m.Breakdown), {
@@ -50,8 +45,6 @@ export function Workspace() {
   const setCode = useStore((s) => s.setCode),
     setStdin = useStore((s) => s.setStdin),
     result = useStore((s) => s.result);
-  const languageMode = useStore((s) => s.languageMode);
-  const detection = useLanguageDetection();
   const [exampleName, setExampleName] = useState('Bubble sort');
   const [showInput, setShowInput] = useState(false);
   const [shareState, setShareState] = useState('');
@@ -97,7 +90,6 @@ export function Workspace() {
     setStdin('');
     setExampleName(name);
     useStore.getState().selectSource({
-      languageMode: useStore.getState().languageChosenManually ? languageMode : 'auto',
       tab: 'visualizer',
       message: '',
       unsupportedLanguage: null,
@@ -114,15 +106,13 @@ export function Workspace() {
         useStore.getState().setStdin(shared.stdin);
         useStore.getState().selectSource({
           language: editorLanguage,
-          languageMode: shared.language === editorLanguage ? editorLanguage : 'auto',
           unsupportedLanguage: unsupportedShareLanguage(shared.language),
-          autoSwitchEligible: false,
         });
         setExampleName(
           examples.find(
             (example) =>
               shared.language === editorLanguage &&
-              exampleCode(example, shared.language) === shared.code,
+              example.code === shared.code,
           )?.title ?? 'Shared code',
         );
       } else if (
@@ -275,70 +265,6 @@ export function Workspace() {
           >
             <section className="editor-pane" aria-label="Code input">
               <div className="editor-toolbar">
-                <div className="language-select">
-                  <span className="language-dot" />
-                  <select
-                    aria-label="Programming language"
-                    value={editorLanguage}
-                    disabled={busy}
-                    onChange={() => {
-                      const next = editorLanguage;
-                      useStore.getState().chooseLanguage(next);
-                      const example =
-                        useStore.getState().sourceOrigin === 'sample' &&
-                        examples.find(
-                          (item) =>
-                            language === editorLanguage &&
-                            exampleCode(item, language) === code,
-                        );
-                      setCode(
-                        example ? exampleCode(example, next) : code,
-                        example ? 'sample' : 'draft',
-                      );
-                      useStore.getState().selectSource({
-                        language: next,
-                        tab: 'visualizer',
-                        selectedLine: null,
-                        enrichment: null,
-                        breakdown: null,
-                      });
-                    }}
-                  >
-                    <option value="python">Python</option>
-                  </select>
-                  <ChevronDown size={13} />
-                </div>
-                {detection?.detection?.kind === 'supported' && (
-                  <button
-                    className="detection-chip mono"
-                    disabled={busy || detection.detection.language === language}
-                    onClick={() =>
-                      detection.detection?.kind === 'supported' &&
-                      useStore
-                        .getState()
-                        .applyDetection(detection.detection.language, detection.revision, true)
-                    }
-                  >
-                    Detected: {LANGUAGE_LABELS[detection.detection.language]} ·{' '}
-                    {detection.detection.language === language ? 'Selected' : 'Switch'}
-                  </button>
-                )}
-                {detection?.detection?.kind === 'unsupported' && (
-                  <span className="detection-chip mono" role="status">
-                    {detection.detection.languageId === 'ts'
-                      ? 'TypeScript detected — unsupported. Only Python can run in this editor.'
-                      : ['c', 'cpp', 'java'].includes(detection.detection.languageId)
-                        ? `${({ c: 'C', cpp: 'C++', java: 'Java' } as Record<string, string>)[detection.detection.languageId]} detected — unsupported. Only Python can run in this editor.`
-                        : detection.detection.languageId === 'js'
-                          ? 'JavaScript detected — unsupported. Only Python can run in this editor.'
-                          : 'unsupported language detected'}
-                  </span>
-                )}
-                {detection?.error && (
-                  <span className="detection-chip mono" role="status">
-                    {detection.error}
-                  </span>
-                )}
                 <div className="editor-actions">
                   <button className="text-button mono" disabled={busy} onClick={() => newCode()}>
                     / new code <Plus size={13} />
@@ -369,9 +295,7 @@ export function Workspace() {
               {!unsupportedLanguage && sourceIssue && <p className="notice" role="status">{sourceIssue}</p>}
               {!code && (
                 <p className="new-code-hint mono">
-                  Paste your{' '}
-                  {LANGUAGE_LABELS[language]}{' '}
-                  code into the editor above.
+                  Paste your Python code into the editor above.
                 </p>
               )}
               {draft && (
@@ -387,8 +311,6 @@ export function Workspace() {
                       useStore.getState().selectSource({
                         language: editorLanguage,
                         unsupportedLanguage: draft.unsupportedLanguage,
-                        languageMode: editorLanguage,
-                        autoSwitchEligible: false,
                       });
                       setDraft(null);
                       setFocusToken((token) => token + 1);

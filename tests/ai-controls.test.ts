@@ -4,11 +4,10 @@ import { GET, POST } from '../src/app/api/analyze/route';
 import { enrichCode } from '../src/lib/ai/analyze';
 import { reserveProviderCall, limiterConfig, takeSharedLimit, localBuckets } from '../src/lib/ai/rate-limit';
 import { sourceIdentity } from '../src/lib/analysis';
-import { inspectJavaScript } from '../src/lib/javascript/analysis';
 import { sharedStoreFixture } from './shared-store-fixture';
 
-const code = 'function f(n) { return n + 1; }';
-const input = { code, language: 'javascript' as const, functions: [], steps: [] };
+const code = 'def f(n):\n    return n + 1';
+const input = { code, language: 'python' as const, functions: [], steps: [] };
 const request = (body: unknown = input) =>
   new Request('http://localhost/api/analyze', {
     method: 'POST',
@@ -238,9 +237,20 @@ describe('production AI readiness and spend controls', () => {
             : {
                   mode,
                   code,
-                  language: 'javascript',
+                  language: 'python',
                   identity,
-                  entries: inspectJavaScript(code).entries,
+                  entries: [
+                    {
+                      name: 'f',
+                      line: 1,
+                      parameter: 'n',
+                      kinds: ['int'],
+                      reason: null,
+                      time: 'O(1) candidate',
+                      space: 'O(1)',
+                      evidence: 'def f(n):',
+                    },
+                  ],
                 };
         const response = await POST(request(body));
         expect(response.status).toBe(429);

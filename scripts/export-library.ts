@@ -12,7 +12,7 @@ db.close();
 const implementations = revisions.map((r) =>
   getLibraryImplementation(
     String(r.algorithm_id),
-    r.language as 'python' | 'javascript',
+    r.language as 'python',
     r.variant as 'featured' | 'reference',
     Number(r.revision),
   ),

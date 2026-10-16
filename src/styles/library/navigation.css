@@ -445,19 +445,6 @@ html[data-motion='reduce'] .site-shell {
     padding: var(--s4);
   }
 }
-.library-language {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 16px 0;
-}
-.library-language select {
-  padding: 8px;
-  color: var(--fg);
-  background: var(--bg);
-  border: 1px solid var(--border);
-}
 .library-message,
 .library-provenance {
   margin: 12px 0;

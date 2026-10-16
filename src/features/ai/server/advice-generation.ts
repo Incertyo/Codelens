@@ -8,7 +8,7 @@ const source = z.object({ code: z.string().min(1).max(limits.code), identity: id
 export const adviceRequestSchema = source
   .extend({
     mode: z.literal('analysis'),
-    language: z.enum(['python', 'javascript']),
+    language: z.literal('python'),
     entries: z.array(entrySchema).max(limits.aiFunctions),
   })
   .strict()

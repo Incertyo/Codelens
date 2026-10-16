@@ -11,7 +11,7 @@ export function LoadingScreen({
   onCancel,
 }: {
   mode?: 'site' | 'run' | 'route';
-  language?: 'python' | 'javascript';
+  language?: string;
   phase?: 'loading' | 'running';
   progress?: number;
   message?: string;
@@ -50,7 +50,7 @@ export function LoadingScreen({
       </div>
       <div className="loading-stage mono">
         {mode === 'run'
-          ? `/ ${preparing ? 'PREPARING' : 'TRACING'} ${language === 'python' ? 'PYTHON' : 'JAVASCRIPT'}`
+          ? `/ ${preparing ? 'PREPARING' : 'TRACING'} ${language ? language.toUpperCase() : 'PYTHON'}`
           : '/ OPENING YOUR WORKSPACE'}
       </div>
       <h2>
@@ -78,7 +78,7 @@ export function LoadingScreen({
             <progress
               value={progress}
               max={100}
-              aria-label={`${language === 'python' ? 'Python' : 'JavaScript'} preparation progress`}
+              aria-label={`${language ? language.charAt(0).toUpperCase() + language.slice(1) : 'Python'} preparation progress`}
             />
           </>
         ) : (

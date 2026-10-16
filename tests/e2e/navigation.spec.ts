@@ -85,16 +85,15 @@ test('site loading follows real editor readiness and every repeat run has a canc
   release();
   await expect(page.getByTestId('site-loading')).toHaveCount(0);
   await page.unroute('**/monaco/**');
-  await page.getByLabel('Programming language').selectOption('javascript');
   await page.getByRole('button', { name: '/ new code', exact: true }).click();
   const editor = page.locator('.monaco-editor textarea');
   await editor.focus();
-  await page.keyboard.insertText('new Function("while(true){}")();');
+  await page.keyboard.insertText('while True:\n    pass\n');
   for (let i = 0; i < 2; i++) {
     await page.getByRole('button', { name: '/ run code', exact: true }).click();
     const loading = page.getByRole('dialog', { name: 'Running code' });
     await expect(loading).toBeVisible();
-    await expect(loading).toContainText('TRACING JAVASCRIPT');
+    await expect(loading).toContainText('TRACING PYTHON');
     await expect(loading.getByRole('button', { name: '/ cancel run' })).toBeFocused();
     if (i === 0)
       await page.screenshot({ path: 'artifacts/repeat-run-loading.png', fullPage: true });
@@ -105,22 +104,19 @@ test('site loading follows real editor readiness and every repeat run has a canc
   }
   await editor.focus();
   await page.keyboard.press('ControlOrMeta+A');
-  await page.keyboard.insertText('console.log("Recovered");');
+  await page.keyboard.insertText('print("Recovered")');
   await run(page);
   await expect(page.getByTestId('stdout')).toContainText('Recovered');
   await page.getByRole('button', { name: 'Reduce motion' }).click();
 });
-test('ten new examples execute correctly through both real browser workers', async ({ page }) => {
+test('ten new examples execute correctly through real browser worker', async ({ page }) => {
   test.setTimeout(240000);
   await ready(page);
-  for (const language of ['python', 'javascript'] as const) {
-    await page.getByLabel('Programming language').selectOption(language);
-    for (const example of additionalExamples) {
-      await page.getByRole('button', { name: '/ examples' }).click();
-      await page.getByRole('button', { name: new RegExp(`EX.${example.id}`) }).click();
-      await run(page);
-      await expect(page.getByTestId('stdout')).toContainText(example.expected![language]);
-      await expect(page.locator('.notice[role="alert"]')).toHaveCount(0);
-    }
+  for (const example of additionalExamples) {
+    await page.getByRole('button', { name: '/ examples' }).click();
+    await page.getByRole('button', { name: new RegExp(`EX.${example.id}`) }).click();
+    await run(page);
+    await expect(page.getByTestId('stdout')).toContainText(example.expected!['python']);
+    await expect(page.locator('.notice[role="alert"]')).toHaveCount(0);
   }
 });

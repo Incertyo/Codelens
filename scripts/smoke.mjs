@@ -55,7 +55,6 @@ try {
   for (const [name, prefix, file] of [
     ['pyodide', '/pyodide/', '/pyodide.js'],
     ['monaco', '/monaco/', '/loader.js'],
-    ['languageDetection', '/language-detection/', '/model.json'],
   ]) {
     const path = manifest[name];
     assert(
@@ -92,7 +91,7 @@ try {
       Array.isArray(catalog.algorithms) &&
       catalog.algorithms.length === 309 &&
       Array.isArray(catalog.implementations) &&
-      catalog.implementations.length === 343 &&
+      catalog.implementations.length === 326 &&
       catalog.implementations.every(
         (item) => typeof item.id === 'string' && /^[a-f0-9]{64}$/.test(item.source_hash),
       ),
@@ -129,11 +128,11 @@ try {
     .locator('.monaco-editor textarea')
     .first()
     .waitFor({ state: 'attached', timeout: 30000 });
-  assert(await page.getByLabel('Programming language').isVisible());
+  assert(await page.locator('.filebar .file-mark').isVisible());
   assert(!pageFailed && !automaticPost);
   pass(active);
   active = 'browser Python-only editor without provider calls';
-  assert(JSON.stringify(await page.getByLabel('Programming language').locator('option').evaluateAll(options => options.map(option => option.value))) === JSON.stringify(['python']));
+  assert((await page.locator('.filebar .file-mark').textContent())?.trim() === 'PYTHON');
   await page.getByRole('button', { name: '/ run code', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled({ timeout: 15000 });
   await page.getByRole('button', { name: 'Jump to end' }).click();
