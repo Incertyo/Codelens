@@ -1,6 +1,6 @@
 # Revamp status
 
-- Current phase: 1 verified; moving directly to report-only lean Phase 2A, then stop for audit review.
+- Current phase: 2A audit complete with tool-availability limits; STOP for owner review before Phase 2B.
 - Branch: refactor/revamp; never push, deploy or contact hosted services.
 - Start: 70adfb5; only pre-existing edit was the owner's AGENTS.md rules.
 - Done: clean rules/status commit 2ef477c; pre-revamp tag; baseline 698 unit / 92 browser passes, lint/typecheck/build green.
@@ -10,14 +10,18 @@
 - Commits: 2ef477c rules/status and pre-revamp tag; 26cb902 golden traces/contracts; following commit contains local tools and baseline docs.
 - Done: Java/C++ execution/simulation removal, source-only old shares, unsupported detection and strict notes/advice schemas; committed as the Phase 1 removal change, with T1 blocker explicit.
 - Done: quick golden selector adds 25 references/all topics, 17 JS examples and API/share contracts without rewriting baseline goldens.
-- Phase 1 commits: 308401b quick tooling; following removal commit also includes local model evaluation, module docs, frozen exception and regression tests.
+- Phase 1 commits: 308401b quick tooling; 6eabea9 removal/model evaluation/frozen exception/tests; b120f5c production verification and corrected browser rule.
 - Done: 40-case real local model evaluation; criterion not met, model/assets retained (958,550 public asset bytes).
 - T0 current tree: incremental typecheck, cached changed-file eslint and 639 related unit cases pass.
 - T1: quick goldens pass; diagnosis run 1 against current production passes (1/1, no retries, 7.94 s). Verdict: dev-server artifact; no application fix, baseline run or bisect.
 - Evidence: artifacts/refactor/phase1-production/{build.log,diagnosis.json}; earlier dev failures remain documented in REFACTOR_FINDINGS.md.
 - Done: same-build production opening-detection, ai-controls, phase-three, workspace and library pass 33/33, no retries/skips (275.82 s).
 - Done: T2 full units 1,021/1,021 in 26 files (63.30 s), including all 360 real-runtime goldens plus inventory guard and API/share contracts; no regeneration.
-- Next: lean Phase 2A audit only; no deletion, refactor or bug fix. New e2e/language-scope spec was outside the five-spec resumption list and remains unrun in this resumption.
+- Done: lean audit in REFACTOR_AUDIT.md; no application changes, deletions, dependency changes or bug fixes in this resumption.
+- Audit: noUnusedLocals/noUnusedParameters tsc passes; knip/depcheck/jscpd unavailable offline (ENOTCACHED). Limited TS/PostCSS scans and targeted review recorded; no coverage/per-dependency bundle analysis.
+- Audit commit checks: ordinary incremental tsc and diff whitespace check pass; only markdown changed, so changed-code lint/related-test scope is empty. Prior code T0 and T2 stay green.
+- Next: wait for approval of specific Phase 2B clusters. Proposed unused wrappers/internal exports/lenis/AST predicate; high-risk architecture and CSS remain later phases.
+- Unverified: new e2e/language-scope spec outside the five-spec resumption list; three unavailable audit tools; full browser/T3 deferred. No final bundle/security/visual gate claimed.
 - Frozen exception: removed one obsolete guard in javascript-examples.ts; deliberate export has zero new revisions and byte-identical index/implementation data. Only that manifest digest/export hash changed; proof is in REFACTOR_PHASE1.md.
 - Open decisions: no implementation questions; model removal requires measured eligibility and owner approval.
 - Findings: see REFACTOR_FINDINGS.md; no fixes in refactor commits. Baseline/methodology: REFACTOR_BASELINE.md and REFACTOR_PARITY.md.
