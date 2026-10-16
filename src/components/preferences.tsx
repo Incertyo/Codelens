@@ -10,14 +10,13 @@ export function usePreferences() {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const savedTheme = preferenceStorage.getItem('codelens-theme');
     const savedMotion = preferenceStorage.getItem('codelens-motion');
-    useStore.getState().patch({
+    useStore.getState().setPreferences({
       theme: savedTheme === 'light' ? 'light' : 'dark',
       reduced: media.matches || savedMotion === 'reduce',
     });
     const update = () =>
       useStore
-        .getState()
-        .patch({
+        .getState().setPreferences({
           reduced: media.matches || preferenceStorage.getItem('codelens-motion') === 'reduce',
         });
     media.addEventListener('change', update);
@@ -30,8 +29,7 @@ export function usePreferences() {
 }
 export function Preferences() {
   const theme = useStore((s) => s.theme),
-    reduced = useStore((s) => s.reduced),
-    patch = useStore((s) => s.patch);
+    reduced = useStore((s) => s.reduced);
   return (
     <div className="preferences">
       <button
@@ -39,7 +37,7 @@ export function Preferences() {
         aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
         onClick={() => {
           const next = theme === 'dark' ? 'light' : 'dark';
-          patch({ theme: next });
+          useStore.getState().setPreferences({ theme: next });
           preferenceStorage.setItem('codelens-theme', next);
         }}
       >
@@ -50,7 +48,7 @@ export function Preferences() {
         aria-label="Reduce motion"
         aria-pressed={reduced}
         onClick={() => {
-          patch({ reduced: !reduced });
+          useStore.getState().setPreferences({ reduced: !reduced });
           preferenceStorage.setItem('codelens-motion', !reduced ? 'reduce' : 'full');
         }}
       >

@@ -5,7 +5,7 @@ import type { TraceResult } from './trace';
 import type { BreakdownData, Enrichment, Language } from './breakdown';
 import { canAutoSwitch, type LanguageMode, type SourceOrigin } from './language-detection';
 import type { UnsupportedEditorLanguage } from './editor-language';
-type State = {
+export type State = {
   code: string;
   sourceRevision: number;
   runEpoch: number;
@@ -41,7 +41,16 @@ type State = {
   setResult: (result: TraceResult) => void;
   seek: (index: number) => void;
   toggleBreakpoint: (line: number) => void;
-  patch: (partial: Partial<State>) => void;
+  setMessage: (message: string) => void;
+  updateRun: (state: Partial<Pick<State, 'status' | 'progress' | 'message' | 'playing' | 'edited' | 'result' | 'cursor' | 'tab' | 'selectedLine'>>) => void;
+  selectSource: (state: Partial<Pick<State, 'language' | 'languageMode' | 'unsupportedLanguage' | 'autoSwitchEligible' | 'tab' | 'selectedLine' | 'enrichment' | 'breakdown' | 'message'>>) => void;
+  selectLine: (line: number | null, pause?: boolean) => void;
+  setPlaying: (playing: boolean) => void;
+  setSpeed: (speed: number) => void;
+  selectTab: (tab: State['tab']) => void;
+  setPreferences: (preferences: Partial<Pick<State, 'theme' | 'reduced'>>) => void;
+  setBreakdown: (breakdown: BreakdownData | null) => void;
+  setEnrichment: (enrichment: Enrichment | null) => void;
 };
 export const useStore = create<State>((set, get) => ({
   code: examples[0].code,
@@ -177,5 +186,14 @@ export const useStore = create<State>((set, get) => ({
         ? s.breakpoints.filter((l) => l !== line)
         : [...s.breakpoints, line],
     })),
-  patch: (partial) => set(partial),
+  setMessage: (message) => set({ message }),
+  updateRun: (state) => set(state),
+  selectSource: (state) => set(state),
+  selectLine: (selectedLine, pause = false) => set({ selectedLine, ...(pause ? { playing: false } : {}) }),
+  setPlaying: (playing) => set({ playing }),
+  setSpeed: (speed) => set({ speed }),
+  selectTab: (tab) => set({ tab }),
+  setPreferences: (preferences) => set(preferences),
+  setBreakdown: (breakdown) => set({ breakdown }),
+  setEnrichment: (enrichment) => set({ enrichment }),
 }));

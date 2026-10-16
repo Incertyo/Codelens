@@ -327,3 +327,9 @@ The documented JS/Python measurement validation disagreement is preserved explic
 ## Revamp Phase 3 AI pipeline
 
 Notes and advice now share generateValidated: one deadline, counted atomic reservations, one validation retry, provider schema adaptation and unchanged error classification. Mode callbacks retain the original prompts, structured-output metadata, soft removal of invalid optional note hints and strict advice references. The cache hook is an inert placeholder. Existing handler admission, legacy cache/save order and messages are preserved; findings L1–L4 are not repaired here. Provider configuration/readiness lives separately from mode generation. The Next route delegates to the server handler. No fallback provider or caching feature is introduced. Provider fixtures were not edited or run.
+
+## Revamp Phase 3 UI orchestration
+
+The workspace delegates run state/cancellation, library loading, stored notes and shortcuts to focused hooks. Dialog markup is extracted without changing its tabs, labels or focus behavior. Analysis and complexity views have separate controllers and one source-inspection lifecycle with their original 600 ms and 400 ms delays, error strings, cache callbacks and cancellation order. Source-keyed remounts remain in the workspace.
+
+The store no longer exposes unrestricted patch. Named actions restrict selection, run reporting, playback, preferences, outline and enrichment writes. Existing source-revision/run-epoch actions and caller-side race checks retain their existing ordering. This narrows the mutation API without claiming a fix for any separately recorded state/race defect. Only the existing language-detection test's setup mutation is renamed; fixture assertions and provider fixtures are untouched. This sub-step is unverified at the owner's request.

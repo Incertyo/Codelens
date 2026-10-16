@@ -107,7 +107,7 @@ describe('source and choice ownership', () => {
     useStore.getState().setCode('function total(values) { return values.length; }');
     const s = useStore.getState();
     s.applyDetection('javascript', s.sourceRevision - 1);
-    useStore.getState().patch({ status: 'running' });
+    useStore.getState().updateRun({ status: 'running' });
     s.applyDetection('javascript', s.sourceRevision);
     expect(useStore.getState().language).toBe('python');
   });

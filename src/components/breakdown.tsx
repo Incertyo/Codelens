@@ -41,7 +41,7 @@ export function Breakdown({ implementationId }: { implementationId?: string } = 
             useStore.getState().code === code &&
             useStore.getState().language === language
           ) {
-            useStore.getState().patch({ breakdown: outline });
+            useStore.getState().setBreakdown(outline);
             if (!useStore.getState().enrichment) {
               const encoder = new TextEncoder();
               crypto.subtle
@@ -64,7 +64,7 @@ export function Breakdown({ implementationId }: { implementationId?: string } = 
                       ) {
                         const parsed = enrichmentSchema.safeParse(res.analysis.enrichment);
                         if (parsed.success) {
-                          useStore.getState().patch({ enrichment: parsed.data });
+                          useStore.getState().setEnrichment(parsed.data);
                         }
                       }
                     })
@@ -102,7 +102,7 @@ export function Breakdown({ implementationId }: { implementationId?: string } = 
   }, []);
   const select = (line: number) => {
     const state = useStore.getState();
-    state.patch({ selectedLine: line, playing: false });
+    state.selectLine(line, true);
     const index = state.result?.steps.findIndex((s) => s.line === line && s.event === 'line');
     if (index !== undefined && index >= 0) state.seek(index);
   };
@@ -160,7 +160,7 @@ export function Breakdown({ implementationId }: { implementationId?: string } = 
         const parsed = enrichmentSchema.safeParse(body.enrichment);
         if (!parsed.success)
           throw new Error('AI returned invalid notes. Your static breakdown remains available.');
-        useStore.getState().patch({ enrichment: parsed.data });
+        useStore.getState().setEnrichment(parsed.data);
         setAiStatus('AI notes added. The structure outline still comes from your AST.');
       } else setAiStatus(body.reason || 'Using the offline breakdown.');
     } catch (e) {
@@ -417,7 +417,7 @@ export function Breakdown({ implementationId }: { implementationId?: string } = 
               <button
                 className="text-button mono"
                 onClick={() => {
-                  useStore.getState().patch({ enrichment: null });
+                  useStore.getState().setEnrichment(null);
                   setAiStatus('Showing the original AST notes.');
                 }}
               >

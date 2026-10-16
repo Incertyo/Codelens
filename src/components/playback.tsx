@@ -11,7 +11,6 @@ export function Playback() {
     playing = useStore((s) => s.playing),
     speed = useStore((s) => s.speed);
   const seek = useStore((s) => s.seek),
-    patch = useStore((s) => s.patch),
     breakpoints = useStore((s) => s.breakpoints);
   const count = result?.steps.length ?? 0;
   useEffect(() => {
@@ -20,18 +19,18 @@ export function Playback() {
       const state = useStore.getState();
       const next = state.cursor + 1;
       if (next >= count) {
-        state.patch({ playing: false });
+        state.setPlaying(false);
         return;
       }
       state.seek(next);
       if (state.breakpoints.includes(state.result!.steps[next].line) || next === count - 1)
-        state.patch({ playing: false });
+        state.setPlaying(false);
     }, 1000 / speed);
     return () => clearInterval(interval);
   }, [playing, speed, count, breakpoints]);
   const toggle = () => {
     if (cursor === count - 1) seek(0);
-    patch({ playing: !playing });
+    useStore.getState().setPlaying(!playing);
   };
   const step = result?.steps[cursor];
   return (
@@ -44,7 +43,7 @@ export function Playback() {
             disabled={!count}
             onClick={() => {
               seek(0);
-              patch({ playing: false });
+              useStore.getState().setPlaying(false);
             }}
           >
             <SkipBack size={15} />
@@ -55,7 +54,7 @@ export function Playback() {
             disabled={!count || cursor === 0}
             onClick={() => {
               seek(cursor - 1);
-              patch({ playing: false });
+              useStore.getState().setPlaying(false);
             }}
           >
             <ChevronLeft size={17} />
@@ -75,7 +74,7 @@ export function Playback() {
             disabled={!count || cursor === count - 1}
             onClick={() => {
               seek(cursor + 1);
-              patch({ playing: false });
+              useStore.getState().setPlaying(false);
             }}
           >
             <ChevronRight size={17} />
@@ -86,7 +85,7 @@ export function Playback() {
             disabled={!count}
             onClick={() => {
               seek(count - 1);
-              patch({ playing: false });
+              useStore.getState().setPlaying(false);
             }}
           >
             <SkipForward size={15} />
@@ -107,7 +106,7 @@ export function Playback() {
           disabled={!count}
           onChange={(e) => {
             seek(Number(e.target.value));
-            patch({ playing: false });
+            useStore.getState().setPlaying(false);
           }}
         />
         <label className="speed-label mono">
@@ -118,7 +117,7 @@ export function Playback() {
             min="1"
             max="10"
             value={speed}
-            onChange={(e) => patch({ speed: Number(e.target.value) })}
+            onChange={(e) => useStore.getState().setSpeed(Number(e.target.value))}
           />
           <span>{speed}×</span>
         </label>

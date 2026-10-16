@@ -1,3 +1,5 @@
+import { identitySchema } from '@/shared/identity';
+export { identitySchema, sourceIdentity, sameIdentity, type SourceIdentity } from '@/shared/identity';
 import { limits } from '@/shared/limits';
 import { z } from 'zod';
 import type { Language } from './breakdown';
@@ -28,26 +30,6 @@ export const inspectionSchema = z
   .strict();
 export type Inspection = z.infer<typeof inspectionSchema>;
 export type Entry = z.infer<typeof entrySchema>;
-export const identitySchema = z
-  .object({
-    implementationId: z.string().min(1).max(limits.implementationId),
-    sourceHash: z.string().regex(/^[a-f0-9]{64}$/),
-  })
-  .strict();
-export type SourceIdentity = z.infer<typeof identitySchema>;
-export async function sourceIdentity(
-  implementationId: string,
-  code: string,
-): Promise<SourceIdentity> {
-  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code));
-  return {
-    implementationId,
-    sourceHash: [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, '0')).join(''),
-  };
-}
-export const sameIdentity = (a: SourceIdentity, b: SourceIdentity) =>
-  a.implementationId === b.implementationId && a.sourceHash === b.sourceHash;
-
 export const empiricalSizes = [4, 8, 16, 32, 64];
 export const empiricalProfiles = {
   standard: empiricalSizes,

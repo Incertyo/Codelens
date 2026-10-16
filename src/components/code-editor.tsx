@@ -130,7 +130,7 @@ export function CodeEditor({
     ed.onDidChangeCursorPosition((e) => {
       const currentTab = useStore.getState().tab;
       if (currentTab === 'breakdown' || currentTab === 'analysis' || currentTab === 'complexity')
-        useStore.getState().patch({ selectedLine: e.position.lineNumber });
+        useStore.getState().selectLine(e.position.lineNumber);
     });
     applyTheme(monaco, ed, useStore.getState().theme);
     decorations.current = ed.createDecorationsCollection();

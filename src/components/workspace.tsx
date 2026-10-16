@@ -1,33 +1,27 @@
 'use client';
 import { limits } from '@/shared/limits';
 import dynamic from 'next/dynamic';
+import { useWorkspaceRun } from './use-workspace-run';
+import { useLibraryLoader } from './use-library-loader';
+import { useWorkspaceShortcuts } from './use-workspace-shortcuts';
+import { useStoredNotes } from './use-stored-notes';
+import { WorkspaceDialogs } from './workspace-dialogs';
 import Link from 'next/link';
 import { AnimatePresence } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ArrowUpRight,
-  ChevronDown,
-  Plus,
-  Play,
-  Square,
-  X,
-  Share2,
-  LoaderCircle,
-} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowUpRight, ChevronDown, Plus, Play, Square, Share2, LoaderCircle } from 'lucide-react';
 import { useStore } from '@/lib/store';
-import { examples, type Example } from '@/lib/examples';
-import { CodeRunner } from '@/lib/runner';
+import { examples } from '@/lib/examples';
+
 import { exampleCode } from '@/lib/javascript-examples';
-import { type Language, enrichmentSchema } from '@/lib/breakdown';
+import { type Language } from '@/lib/breakdown';
 import { decodeShare, encodeShortShare } from '@/lib/share';
 import { Preferences, usePreferences } from './preferences';
 import { Visualizer } from './visualizer';
 import { AlgorithmBrowser } from './algorithm-browser';
 import { LoadingScreen } from './loading-screen';
 import { ScrollStudy } from './scroll-study';
-import { algorithms, type Algorithm } from '@/lib/algorithm-catalog';
-import { implementationSchema, type LibraryImplementation } from '@/lib/library-contract';
-import { sourceIdentity } from '@/lib/analysis';
+
 import { LANGUAGE_LABELS } from '@/lib/language-detection';
 import { editorLanguage, editorSourceIssue, unsupportedShareLanguage, type UnsupportedEditorLanguage } from '@/lib/editor-language';
 import { useLanguageDetection } from './use-language-detection';
@@ -55,7 +49,6 @@ export function Workspace() {
     reduced = useStore((s) => s.reduced);
   const setCode = useStore((s) => s.setCode),
     setStdin = useStore((s) => s.setStdin),
-    patch = useStore((s) => s.patch),
     result = useStore((s) => s.result);
   const languageMode = useStore((s) => s.languageMode);
   const detection = useLanguageDetection();
@@ -75,159 +68,26 @@ export function Workspace() {
     language: Language;
     unsupportedLanguage: UnsupportedEditorLanguage | null;
   } | null>(null);
-  const [fetchingCode, setFetchingCode] = useState(false);
-  const [libraryError, setLibraryError] = useState('');
-  const [implementation, setImplementation] = useState<LibraryImplementation | null>(null);
+  const { fetchingCode, libraryError, setLibraryError, implementation, setImplementation, loadRequest, loadImplementation, loadExample } = useLibraryLoader({
+    executing: status === 'loading' || status === 'running',
+    setExampleName,
+    setFocusToken,
+    clearDraft: () => setDraft(null),
+  });
   const unsupportedLanguage = useStore((s) => s.unsupportedLanguage);
   const sourceIssue = editorSourceIssue(code);
   const implementationId =
     implementation && implementation.language === language && code === implementation.code
       ? implementation.id
       : `draft:${language}`;
-  const loadRequest = useRef<AbortController | null>(null);
   const menu = useRef<HTMLDialogElement>(null),
     drawer = useRef<HTMLDialogElement>(null),
     about = useRef<HTMLDialogElement>(null),
     share = useRef<HTMLDialogElement>(null),
-    workspace = useRef<HTMLDivElement>(null),
-    runner = useRef<CodeRunner | null>(null),
-    runId = useRef(0);
+    workspace = useRef<HTMLDivElement>(null);
   const executing = status === 'loading' || status === 'running';
   const busy = executing || fetchingCode;
-  const run = useCallback(async () => {
-    if (booting) return;
-    if (loadRequest.current) return;
-    const state = useStore.getState();
-    if (state.status === 'loading' || state.status === 'running') return;
-    if (!state.code.trim()) {
-      patch({ message: 'Paste your code or load an example before running.' });
-      return;
-    }
-    if (state.unsupportedLanguage || state.language !== editorLanguage || editorSourceIssue(state.code)) {
-      patch({ message: 'Only Python can run in this editor.' });
-      return;
-    }
-    const id = ++runId.current;
-    state.beginRun();
-    runner.current ??= new CodeRunner();
-    patch({
-      status: 'loading',
-      progress: 0,
-      message: `Preparing ${LANGUAGE_LABELS[state.language]}…`,
-      playing: false,
-      edited: true,
-      result: null,
-      cursor: 0,
-      tab: 'visualizer',
-      selectedLine: null,
-    });
-    try {
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-      if (id !== runId.current) return;
-      const trace = await runner.current.run(
-        state.code,
-        state.stdin,
-        maxSteps,
-        (p) => {
-          if (id === runId.current)
-            patch({ status: p.phase, progress: p.progress, message: p.message });
-        },
-        editorLanguage,
-      );
-      const identity = await sourceIdentity(implementationId, state.code);
-      if (
-        id === runId.current &&
-        useStore.getState().code === state.code &&
-        useStore.getState().language === state.language
-      )
-        useStore.getState().setResult({ ...trace, identity });
-    } catch (error) {
-      if (id === runId.current)
-        patch({
-          status: 'error',
-          message: error instanceof Error ? error.message : 'Execution failed. Try again.',
-        });
-    } finally {
-      if (id === runId.current) document.querySelector<HTMLButtonElement>('.run-button')?.focus();
-    }
-  }, [booting, maxSteps, patch, implementationId]);
-  const stop = () => {
-    runId.current++;
-    runner.current?.dispose();
-    patch({ status: 'idle', message: 'Run stopped.', playing: false });
-    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('.run-button')?.focus());
-  };
-  const loadImplementation = async (
-    algorithm: Algorithm,
-    selectedLanguage: Language,
-    variant: 'featured' | 'reference',
-  ) => {
-    if (busy || loadRequest.current || selectedLanguage !== editorLanguage) return false;
-    const controller = new AbortController();
-    loadRequest.current = controller;
-    setFetchingCode(true);
-    setLibraryError('');
-    const original = useStore.getState();
-    try {
-      const query = new URLSearchParams({ id: algorithm.id, language: selectedLanguage, variant });
-      const response = await fetch(`/api/library?${query}`, {
-        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(limits.libraryTimeoutMs)]),
-      });
-      if (!response.ok)
-        throw new Error('Could not load this code. Please retry. Your editor is unchanged.');
-      const parsed = implementationSchema.safeParse(await response.json());
-      if (
-        !parsed.success ||
-        parsed.data.algorithmId !== algorithm.id ||
-        parsed.data.language !== selectedLanguage ||
-        parsed.data.variant !== variant
-      )
-        throw new Error('The library code could not be verified. Please retry.');
-      const loaded = parsed.data;
-      const current = useStore.getState();
-      if (
-        current.code !== original.code ||
-        current.stdin !== original.stdin ||
-        current.language !== original.language
-      )
-        throw new Error(
-          'Your code changed while the library was loading. Select Load again when ready.',
-        );
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
-      setCode(loaded.code, variant === 'featured' ? 'sample' : 'library');
-      setStdin(loaded.fixture.stdin);
-      setExampleName(loaded.name);
-      setDraft(null);
-      setImplementation(loaded);
-      patch({
-        language: editorLanguage,
-        languageMode: editorLanguage,
-        autoSwitchEligible: false,
-        tab: 'visualizer',
-      });
-      setFocusToken((token) => token + 1);
-      return true;
-    } catch (error) {
-      if (!controller.signal.aborted)
-        setLibraryError(
-          error instanceof Error ? error.message : 'Code could not be loaded. Please retry.',
-        );
-      return false;
-    } finally {
-      if (loadRequest.current === controller) {
-        loadRequest.current = null;
-        setFetchingCode(false);
-      }
-    }
-  };
-  const loadExample = (example: Example) => {
-    const algorithm = algorithms.find((a) => a.exampleId === example.id)!;
-    void loadImplementation(
-      algorithm,
-      editorLanguage,
-      'featured',
-    );
-  };
+  const { run, stop, runner, runId } = useWorkspaceRun(booting, maxSteps, implementationId, loadRequest);
   const newCode = (name = 'Untitled') => {
     setImplementation(null);
     setLibraryError('');
@@ -236,7 +96,7 @@ export function Workspace() {
     setCode('');
     setStdin('');
     setExampleName(name);
-    patch({
+    useStore.getState().selectSource({
       languageMode: useStore.getState().languageChosenManually ? languageMode : 'auto',
       tab: 'visualizer',
       message: '',
@@ -253,7 +113,7 @@ export function Workspace() {
         runner.current?.dispose();
         useStore.getState().setCode(shared.code, 'share');
         useStore.getState().setStdin(shared.stdin);
-        useStore.getState().patch({
+        useStore.getState().selectSource({
           language: editorLanguage,
           languageMode: shared.language === editorLanguage ? editorLanguage : 'auto',
           unsupportedLanguage: unsupportedShareLanguage(shared.language),
@@ -273,8 +133,7 @@ export function Workspace() {
         window.location.search.includes('code=')
       ) {
         useStore
-          .getState()
-          .patch({ message: 'This share link is invalid or exceeds the code limit.' });
+          .getState().setMessage('This share link is invalid or exceeds the code limit.');
       }
     };
     load();
@@ -285,84 +144,8 @@ export function Workspace() {
       loadRequest.current?.abort();
     };
   }, []);
-  useEffect(() => {
-    if (unsupportedLanguage || sourceIssue || !code.trim()) return;
-    let active = true;
-    const encoder = new TextEncoder();
-    crypto.subtle
-      .digest('SHA-256', encoder.encode(code))
-      .then((hashBuf) => {
-        if (!active) return;
-        const sHash = Array.from(new Uint8Array(hashBuf))
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('');
-        fetch(
-          `/api/analyze?sourceHash=${sHash}&language=${language}&implementationId=${encodeURIComponent(implementationId)}`,
-        )
-          .then((r) => (r.ok ? r.json() : null))
-          .then((res) => {
-            if (
-              active &&
-              res?.analysis?.enrichment &&
-              useStore.getState().code === code &&
-              useStore.getState().language === language &&
-              !useStore.getState().enrichment
-            ) {
-              const parsed = enrichmentSchema.safeParse(res.analysis.enrichment);
-              if (parsed.success) {
-                useStore.getState().patch({ enrichment: parsed.data });
-              }
-            }
-          })
-          .catch(() => {});
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [code, language, unsupportedLanguage, sourceIssue, implementationId]);
-  useEffect(() => {
-    const keys = (e: KeyboardEvent) => {
-      if (booting) return;
-      const target = e.target as HTMLElement;
-      const typing = target.closest(
-        'input,textarea,select,[contenteditable="true"],.monaco-editor',
-      );
-      if (document.querySelector('dialog[open]')) return;
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        e.stopPropagation();
-        void run();
-        return;
-      }
-      if (typing || document.querySelector('dialog[open]')) return;
-      if (
-        target.closest('[data-native-scroll]') &&
-        ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)
-      )
-        return;
-      if (e.code === 'Space' && target.closest('button,a,summary')) return;
-      if (target.closest('[role="tab"],[role="separator"]') && e.key.startsWith('Arrow')) return;
-      const state = useStore.getState();
-      if (e.key.toLowerCase() === 'm') {
-        e.preventDefault();
-        menu.current?.showModal();
-      }
-      if (state.tab !== 'visualizer' || !state.result?.steps.length) return;
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        e.preventDefault();
-        state.seek(state.cursor + (e.key === 'ArrowRight' ? 1 : -1));
-        state.patch({ playing: false });
-      }
-      if (e.code === 'Space') {
-        e.preventDefault();
-        if (state.cursor === state.result.steps.length - 1) state.seek(0);
-        state.patch({ playing: !state.playing });
-      }
-    };
-    window.addEventListener('keydown', keys, true);
-    return () => window.removeEventListener('keydown', keys, true);
-  }, [run, booting]);
+  useStoredNotes(code, language, unsupportedLanguage, sourceIssue, implementationId);
+  useWorkspaceShortcuts(run, booting, menu);
   const shareCode = async () => {
     const url =
       window.location.origin + window.location.pathname + encodeShortShare(code, stdin, unsupportedLanguage ?? language);
@@ -379,7 +162,7 @@ export function Workspace() {
     menu.current?.close();
     if (target === 'examples') drawer.current?.showModal();
     else if (target === 'about') about.current?.showModal();
-    else patch({ tab: target });
+    else useStore.getState().selectTab(target);
   };
   return (
     <>
@@ -512,7 +295,7 @@ export function Workspace() {
                         example ? exampleCode(example, next) : code,
                         example ? 'sample' : 'draft',
                       );
-                      patch({
+                      useStore.getState().selectSource({
                         language: next,
                         tab: 'visualizer',
                         selectedLine: null,
@@ -601,7 +384,7 @@ export function Workspace() {
                       setCode(draft.code, 'sample');
                       setStdin(draft.stdin);
                       setExampleName(draft.name);
-                      patch({
+                      useStore.getState().selectSource({
                         language: editorLanguage,
                         unsupportedLanguage: draft.unsupportedLanguage,
                         languageMode: editorLanguage,
@@ -719,7 +502,7 @@ export function Workspace() {
               }}
               onPointerDown={(e) => {
                 e.currentTarget.setPointerCapture(e.pointerId);
-                patch({ playing: false });
+                useStore.getState().setPlaying(false);
               }}
               onPointerMove={(e) => {
                 if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
@@ -747,7 +530,7 @@ export function Workspace() {
                     tabIndex={tab === name ? 0 : -1}
                     className={tab === name ? 'active-tab' : ''}
                     key={name}
-                    onClick={() => patch({ tab: name })}
+                    onClick={() => useStore.getState().selectTab(name)}
                     onKeyDown={(e) => {
                       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                         e.preventDefault();
@@ -759,7 +542,7 @@ export function Workspace() {
                         ] as const;
                         const delta = e.key === 'ArrowRight' ? 1 : -1;
                         const next = names[(i + delta + names.length) % names.length];
-                        patch({ tab: next });
+                        useStore.getState().selectTab(next);
                         document.getElementById(`tab-${next}`)?.focus();
                       }
                     }}
@@ -831,149 +614,7 @@ export function Workspace() {
           </div>
         </footer>
       </div>
-      <dialog ref={menu} className="menu-dialog" aria-labelledby="menu-title">
-        <div className="dialog-top">
-          <span className="wordmark" id="menu-title">
-            / codelens.
-          </span>
-          <button className="text-button mono" onClick={() => menu.current?.close()}>
-            RETURN <X size={19} />
-          </button>
-        </div>
-        <nav className="overlay-nav">
-          {['Visualizer', 'Breakdown', 'Analysis', 'Complexity', 'Examples', 'About'].map(
-            (name, i) => (
-              <button
-                key={name}
-                onClick={() => navigate(name.toLowerCase() as typeof tab | 'examples' | 'about')}
-              >
-                <span className="mono">0{i + 1}</span>
-                <span>{name}</span>
-                <ArrowUpRight />
-              </button>
-            ),
-          )}
-        </nav>
-        <div className="dialog-bottom mono">
-          <span>WATCH CODE THINK.</span>
-          <span>ESC TO RETURN</span>
-        </div>
-      </dialog>
-      <dialog ref={drawer} className="examples-dialog" aria-labelledby="examples-title">
-        <div className="dialog-top">
-          <span className="mono">THE EXAMPLES INDEX</span>
-          <button
-            className="icon-button"
-            aria-label="Close examples"
-            onClick={() => drawer.current?.close()}
-          >
-            <X size={21} />
-          </button>
-        </div>
-        <h2 id="examples-title">
-          A PLACE
-          <br />
-          TO START<span>.</span>
-        </h2>
-        <p className="drawer-intro">
-          {examples.length} small Python programs. A whole lot to see.
-        </p>
-        <div className="example-index">
-          {examples.map((example) => (
-            <button
-              key={example.id}
-              disabled={busy}
-              onClick={() => {
-                loadExample(example);
-                drawer.current?.close();
-                patch({ tab: 'visualizer' });
-              }}
-            >
-              <span className="example-code mono">EX.{example.id}</span>
-              <div className="example-text">
-                <strong>{example.title}</strong>
-                <span className="mono dim">{example.category}</span>
-                <p>{example.description}</p>
-              </div>
-              <div className="mini-preview" aria-hidden="true">
-                {example.preview.slice(0, 5).map((n, i) => (
-                  <span key={i} style={{ height: `${18 + n * 2}px` }}>
-                    {n}
-                  </span>
-                ))}
-              </div>
-              <ArrowUpRight size={20} />
-            </button>
-          ))}
-        </div>
-        <p className="mono dim drawer-end">
-          {`REAL ${LANGUAGE_LABELS[language].toUpperCase()}. REAL EXECUTION.`}{' '}
-          EVERY SINGLE STEP.
-        </p>
-      </dialog>
-      <dialog ref={about} className="about-dialog" aria-labelledby="about-title">
-        <div className="dialog-top">
-          <span className="mono">05 / ABOUT</span>
-          <button
-            className="icon-button"
-            aria-label="Close about"
-            onClick={() => about.current?.close()}
-          >
-            <X size={21} />
-          </button>
-        </div>
-        <div className="about-scroll">
-          <div className="about-content">
-            <h2 id="about-title" className="about-reveal">
-              WATCH
-              <br />
-              CODE THINK<span>.</span>
-            </h2>
-            <p className="about-reveal">
-              CodeLens is a space between writing code and understanding it. Follow a program
-              through its real execution, one line, one variable, one call at a time.
-            </p>
-            <div className="about-facts mono about-reveal">
-              <p>01 / PYTHON AND JAVASCRIPT RUN LOCALLY IN WEB WORKERS.</p>
-              <p>02 / NO API KEY. NO SERVER EXECUTION.</p>
-              <p>03 / SHARING PUTS YOUR CODE IN THE LINK.</p>
-            </div>
-            <p className="about-reveal">
-              Explore real execution, linked structures, recursion, AST analysis and measured
-              complexity estimates. AI notes and suggestions are optional. Requesting AI sends your
-              source to the configured provider only when requesting notes or advice.
-            </p>
-            <p className="mono dim about-reveal">
-              Snapshots capture user-code events, not the internals of library functions. Huge
-              values, deep objects, output, and execution are bounded. The worker is isolated from
-              the page and its network APIs are disabled after loading. It is a learning tool, not a
-              hardened security boundary for hostile code.
-            </p>
-            <Link className="text-button mono" href="/design">
-              / explore the design system <ArrowUpRight size={14} />
-            </Link>
-          </div>
-        </div>
-      </dialog>
-      <dialog ref={share} className="share-dialog" aria-labelledby="share-title">
-        <div className="dialog-top">
-          <h2 id="share-title">Copy your link</h2>
-          <button
-            className="icon-button"
-            aria-label="Close share link"
-            onClick={() => share.current?.close()}
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <p>Code and input are stored in the URL. Anyone with the link can read them.</p>
-        <input
-          aria-label="Share link"
-          readOnly
-          value={shareUrl}
-          onFocus={(e) => e.target.select()}
-        />
-      </dialog>
+      <WorkspaceDialogs menu={menu} drawer={drawer} about={about} share={share} busy={busy} language={language} shareUrl={shareUrl} navigate={navigate} loadExample={loadExample} />
       <AnimatePresence>
         {executing ? (
           <LoadingScreen
