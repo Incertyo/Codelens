@@ -31,3 +31,9 @@
 | ff7307b | clean: remove code comments across touched files and update analysis persistence test to python | -26 (+2 / -28) | Comments & test cleanup |
 
 | Groq compatibility fix (this commit) | Scope best-effort JSON Schema to Groq; retain strict local validation | +156 source/test LOC (+159 / -3) | Generation options +8/-3; new real-SDK/local-HTTP regression test +151; no existing fixture/assertion removal |
+
+| Automatic Insights (uncommitted; acceptance pending) | Merge Breakdown/Analysis, automatic notes/advice, explicit test checks, local fallback | -540 source/test/script LOC (+627 / -1167) | Insights +298/-986; other source +27/-29; styles +82/-0; tests +216/-145; scripts +4/-7. Provider fixtures and golden expectations untouched; browser UI cases migrated to equivalent merged-view assertions. Keyboard focus and remaining affected browser acceptance pending. |
+
+| Structured Insights (uncommitted; cumulative merge + format work) | Fixed sections, provenance/scoped costs, list-copy hints, normalized headings/findings, explicit partial/paused review, real-runtime regressions | -121 source/test/script LOC (+1049 / -1170) | Scripts +4/-7; AI +15/-3; Other source +35/-28; Insights +413/-986; Styles +159/-0; Tests +423/-146. Cumulative working-tree snapshot, not additive to the previous uncommitted row. Frozen fixtures/goldens untouched; old keyboard focus finding remains separate. |
+
+| AI-primary Insights (uncommitted; cumulative working tree) | AI main report, explicit local fallback, no Insights cost estimates, cosmetic-heading acceptance and strict reference/schema rejection | -94 source/test/script LOC (+1076 / -1170) | Scripts +4/-7; AI +12/-3; Other source +35/-28; Insights +392/-986; Styles +159/-0; Tests +474/-146. Cumulative snapshot, not additive to preceding uncommitted rows. No frozen changes; zero added comment-line candidates. |

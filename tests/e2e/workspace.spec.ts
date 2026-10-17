@@ -123,10 +123,10 @@ test('themes, menu, phase boundaries, design page and mobile layout are accessib
   await expect(page.getByRole('dialog', { name: '/ codelens.' })).toBeVisible();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.keyboard.press('Escape');
-  await page.getByRole('tab', { name: '02 breakdown' }).click();
-  await expect(page.getByText('FROM THE AST', { exact: true })).toBeVisible();
-  await page.getByRole('tab', { name: '03 analysis' }).click();
-  await expect(page.getByRole('heading', { name: 'Understand the cost.' })).toBeVisible();
+  await page.getByRole('tab', { name: '02 insights' }).click();
+  await expect(page.locator('.insights-pane[data-notes-source="ai"], .insights-pane[data-notes-source="local"]')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'What matters in your code.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Hot spots' })).toBeVisible();
   await page.getByRole('tab', { name: '01 visualizer' }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: 'artifacts/mobile.png', fullPage: true });

@@ -61,7 +61,7 @@ for (const race of ['rerun', 'source A to B to A', 'step cap', 'stdin']) {
     });
     await page.route('**/api/analyze', async (route) => {
       if (route.request().method() === 'GET') {
-        await route.fulfill({ json: { configured: true } });
+        await route.fulfill({ json: { configured: !payload, reason: 'Fixture paused after the first request.' } });
         return;
       }
       payload = route.request().postDataJSON();
@@ -89,9 +89,8 @@ for (const race of ['rerun', 'source A to B to A', 'step cap', 'stdin']) {
     await paste(page, code);
     await page.getByRole('button', { name: '/ run code', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
-    await page.getByRole('tab', { name: '02 breakdown' }).click();
-    await expect(page.getByText('FROM THE AST', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: '/ enrich with AI' }).click();
+    await page.getByRole('tab', { name: '02 insights' }).click();
+    await expect(page.getByText('Preparing AI notes…', { exact: true })).toBeVisible();
     await expect.poll(() => !!release).toBe(true);
     if (race === 'rerun') {
       await page.getByRole('button', { name: '/ run code', exact: true }).click();
@@ -116,7 +115,7 @@ for (const race of ['rerun', 'source A to B to A', 'step cap', 'stdin']) {
   });
 }
 
-test('Analysis coalesces rapid edits before starting real inspection workers', async ({ page }) => {
+test('Insights coalesces rapid edits before starting real inspection workers', async ({ page }) => {
   await page.addInitScript(() => {
     const nativePost = Worker.prototype.postMessage;
     const inspections: number[] = [];
@@ -129,8 +128,8 @@ test('Analysis coalesces rapid edits before starting real inspection workers', a
   await page.goto('/');
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
   await paste(page, 'def total(n):\n    return n + 1\n');
-  await page.getByRole('tab', { name: '03 analysis' }).click();
-  await expect(page.getByRole('heading', { name: 'Static complexity · AST' })).toBeVisible();
+  await page.getByRole('tab', { name: '02 insights' }).click();
+  await expect(page.getByRole('button', { name: /total\(n\)/ })).toBeVisible();
   const initial = await page.evaluate(
     () => (window as unknown as { inspectionStarts: number[] }).inspectionStarts.length,
   );
@@ -138,7 +137,7 @@ test('Analysis coalesces rapid edits before starting real inspection workers', a
     await paste(page, `def total(n):\n    return n + ${offset}\n`);
     await page.waitForTimeout(100);
   }
-  await expect(page.getByRole('heading', { name: 'Static complexity · AST' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /total\(n\)/ })).toBeVisible();
   const final = await page.evaluate(
     () => (window as unknown as { inspectionStarts: number[] }).inspectionStarts.length,
   );

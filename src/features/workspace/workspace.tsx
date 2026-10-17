@@ -21,11 +21,12 @@ import { LoadingScreen } from "../intro/public/loading-screen";
 import { ScrollStudy } from "../intro/public/scroll-study";
 import { editorLanguage, editorSourceIssue, unsupportedShareLanguage, type UnsupportedEditorLanguage } from "@/features/editor/public/policy";
 import { usePageIntro } from "../intro/public/page-intro";
-const Analysis = dynamic(() => import("../insights/public/analysis").then((m) => m.Analysis));
-const Breakdown = dynamic(() => import("../insights/public/breakdown").then((m) => m.Breakdown), {
-  loading: () => <p className="empty-note mono">/ loading breakdown</p>,
+const Insights = dynamic(() => import("../insights/public/insights").then((m) => m.Insights), {
+  loading: () => <p className="empty-note mono">/ loading insights</p>,
 });
-const ComplexityView = dynamic(() => import("../insights/public/complexity-view").then((m) => m.ComplexityView));
+const ComplexityView = dynamic(() => import("../insights/public/complexity-view").then((m) => m.ComplexityView), {
+  loading: () => <p className="empty-note mono">/ loading complexity</p>,
+});
 const CodeEditor = dynamic(() => import("../editor/public/code-editor").then((m) => m.CodeEditor), {
   ssr: false,
   loading: () => <div className="editor-body editor-loading mono">/ loading editor</div>,
@@ -442,7 +443,7 @@ export function Workspace() {
             </div>
             <section className="results-pane" aria-label="Execution results">
               <div className="tabs" role="tablist" aria-label="Result views">
-                {(['visualizer', 'breakdown', 'analysis', 'complexity'] as const).map((name, i) => (
+                {(['visualizer', 'insights', 'complexity'] as const).map((name, i) => (
                   <button
                     role="tab"
                     id={`tab-${name}`}
@@ -457,8 +458,7 @@ export function Workspace() {
                         e.preventDefault();
                         const names = [
                           'visualizer',
-                          'breakdown',
-                          'analysis',
+                          'insights',
                           'complexity',
                         ] as const;
                         const delta = e.key === 'ArrowRight' ? 1 : -1;
@@ -476,24 +476,21 @@ export function Workspace() {
                 className="tab-content"
                 key={tab}
                 role="tabpanel"
-                id={`panel-${tab}`}
-                aria-labelledby={`tab-${tab}`}
+                id={`panel-${tab === 'insights' ? 'visualizer' : tab}`}
+                aria-labelledby={`tab-${tab === 'insights' ? 'visualizer' : tab}`}
+                hidden={tab === 'insights'}
                 tabIndex={0}
               >
                 {unsupportedLanguage || sourceIssue ? (
                   <p className="empty-note">Use Python to inspect and run this source.</p>
                 ) : tab === 'visualizer' ? (
                   <Visualizer />
-                ) : tab === 'breakdown' ? (
-                  <Breakdown implementationId={implementationId} />
-                ) : tab === 'analysis' ? (
-                  <Analysis
-                    key={`${implementationId}:${language}:${code}`}
-                    implementationId={implementationId}
-                  />
-                ) : (
+                ) : tab === 'complexity' ? (
                   <ComplexityView implementationId={implementationId} />
-                )}
+                ) : null}
+              </div>
+              <div className="tab-content" role="tabpanel" id="panel-insights" aria-labelledby="tab-insights" tabIndex={0} hidden={tab !== 'insights'}>
+                {unsupportedLanguage || sourceIssue ? <p className="empty-note">Use Python to inspect and run this source.</p> : <Insights key={`${implementationId}:${language}:${code}`} implementationId={implementationId} enabled={tab === 'insights'} />}
               </div>
             </section>
           </div>
@@ -504,7 +501,7 @@ export function Workspace() {
             <span className="mono dim">
               {result
                 ? `${result.steps.length} STEPS / ${result.elapsed} MS`
-                : 'YOUR CODE STAYS IN YOUR BROWSER'}
+                : 'EXECUTION STAYS IN YOUR BROWSER'}
             </span>
             <button
               className="text-button mono"

@@ -1,0 +1,158 @@
+.tab-content[hidden] {
+  display: none;
+}
+.insights-pane {
+  max-width: 850px;
+  margin-inline: auto;
+}
+.insights-heading h2 {
+  font-size: clamp(22px, 3vw, 30px);
+  letter-spacing: -1px;
+  line-height: 1.15;
+  margin: 10px 0 16px;
+}
+.insights-privacy,
+.insights-status {
+  color: var(--muted);
+  font-size: 11px;
+}
+.insights-section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.insights-source {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.insights-functions,
+.insights-lines {
+  display: grid;
+  gap: 8px;
+  margin-block: 12px;
+}
+.insights-function {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  border: 1px solid var(--border);
+  padding: 12px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.insights-function > :last-child {
+  grid-column: 1 / -1;
+  color: var(--muted);
+}
+.insights-function:hover {
+  background: var(--surface-raised);
+}
+.insights-pane details {
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+}
+.insights-pane summary {
+  cursor: pointer;
+  padding-block: 14px;
+}
+.insights-pane :is(button, summary):focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 3px;
+}
+.insights-lines .text-button {
+  justify-content: flex-start;
+  text-align: left;
+  min-height: 36px;
+  white-space: normal;
+}
+.insights-estimate + .insights-estimate {
+  margin-top: 20px;
+}
+.insights-attribution {
+  color: var(--muted);
+  font-size: 11px;
+}
+.insights-pane h4 {
+  font-size: 13px;
+  margin-block: 16px 8px;
+}
+.insights-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-block: 20px 0;
+}
+.insights-facts > div {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  min-width: 0;
+}
+.insights-facts dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+.insights-facts dd {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+}
+.insights-facts .insights-source {
+  display: block;
+}
+.insights-function-card {
+  border: 1px solid var(--border);
+  padding: 12px;
+}
+.insights-function-card .insights-function {
+  border: 0;
+  padding: 0;
+  width: 100%;
+}
+.insights-function-card .insights-function > :last-child {
+  grid-column: auto;
+}
+.insights-function-card p {
+  margin-bottom: 0;
+}
+.insights-flow,
+.insights-findings {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+.insights-flow li,
+.insights-findings li {
+  border-inline-start: 1px solid var(--border);
+  padding-inline-start: 12px;
+}
+.insights-flow p {
+  margin-block: 4px;
+}
+.insights-table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.insights-table-scroll table {
+  min-width: 480px;
+  font-size: 12px;
+}
+.insights-warning {
+  border-inline-start: 2px solid var(--accent);
+  padding: 12px;
+  background: var(--surface-raised);
+}
+@media (max-width: 600px) {
+  .insights-pane {
+    padding: 20px 16px;
+  }
+  .insights-function {
+    grid-template-columns: 1fr;
+  }
+  .insights-facts {
+    grid-template-columns: 1fr;
+  }
+}

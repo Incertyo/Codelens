@@ -127,8 +127,8 @@ export default function Design() {
         </div>
         <div className="design-tabs">
           <span className="active-tab">01 Visualizer</span>
-          <span>02 Breakdown</span>
-          <span>03 Analysis</span>
+          <span>02 Insights</span>
+          <span>03 Complexity</span>
         </div>
         <p className="notice">
           Trace truncated at the safety limit. The captured steps remain available.

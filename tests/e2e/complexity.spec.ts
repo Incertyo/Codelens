@@ -16,7 +16,7 @@ for (const language of ['python'] as const) {
     await page.goto('/' + encodeShare(source, '', language));
     await expect(page.locator('.monaco-editor')).toBeVisible();
     await expect(page.getByTestId('site-loading')).not.toBeVisible();
-    await page.getByRole('tab', { name: '04 complexity' }).click();
+    await page.getByRole('tab', { name: '03 complexity' }).click();
     await expect(page.getByLabel('Entry function')).toBeVisible();
     await expect(page.getByRole('list', { name: 'Big-O growth ladder' })).not.toBeVisible();
     await expect(page.getByRole('heading', { name: 'Room to work', exact: true })).toBeVisible();
@@ -119,7 +119,7 @@ test('static and measured disagreement stays neutral after a real bounded-loop r
   await page.goto('/' + encodeShare(source, '', 'python'));
   await expect(page.locator('.monaco-editor')).toBeVisible();
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
-  await page.getByRole('tab', { name: '04 complexity' }).click();
+  await page.getByRole('tab', { name: '03 complexity' }).click();
   await expect(page.getByLabel('Entry function')).toBeVisible();
   await page.getByLabel('Input generator').selectOption('int');
   await page.getByRole('button', { name: 'Measure code', exact: true }).click();
@@ -153,7 +153,7 @@ test('manual measurement cancellation is keyboard accessible and leaves no fitte
       ),
   );
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
-  await page.getByRole('tab', { name: '04 complexity' }).click();
+  await page.getByRole('tab', { name: '03 complexity' }).click();
   await expect(page.getByLabel('Entry function')).toBeVisible();
   await page.getByLabel('Input generator').selectOption('int');
   await page.getByRole('button', { name: 'Measure code', exact: true }).click();

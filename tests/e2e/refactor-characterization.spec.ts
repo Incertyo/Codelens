@@ -1,3 +1,4 @@
+import { fulfillNotes } from './fixtures/ai-notes';
 import { test, expect } from '@playwright/test';
 import { encodeShare } from "../../src/features/share/public/codec";
 
@@ -34,6 +35,7 @@ test('AI proposal applies only explicitly, clears stale execution, and supports 
   await page.route('**/api/analyze', async (route) => {
     if (route.request().method() === 'GET')
       return route.fulfill({ json: { configured: true, reason: null } });
+    if (await fulfillNotes(route)) return;
     const request = route.request().postDataJSON();
     expect(request.mode).toBe('analysis');
     expect(request).not.toHaveProperty('stdin');
@@ -58,10 +60,9 @@ test('AI proposal applies only explicitly, clears stale execution, and supports 
   await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
   await page.getByRole('button', { name: 'Jump to end' }).click();
   await expect(page.getByTestId('stdout')).toHaveText('6\n');
-  await page.getByRole('tab', { name: '03 analysis' }).click();
-  await expect(page.getByLabel('Entry function')).toBeVisible();
-  await page.getByRole('button', { name: 'Request AI suggestions', exact: true }).click();
-  await page.getByText('Proposed optimization · correctness unverified', { exact: true }).click();
+  await page.getByRole('tab', { name: '02 insights' }).click();
+  await expect(page.getByRole('button', { name: /total\(n\)/ })).toBeVisible();
+  await page.getByText('Proposed changes · unverified', { exact: true }).click();
   await expect(page.getByLabel('Optimization diff')).toContainText('+');
   await expect(page.locator('.monaco-editor .view-lines')).toContainText('value += i');
   await page.getByRole('button', { name: 'Apply proposed code to editor' }).click();

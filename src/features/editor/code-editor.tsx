@@ -94,7 +94,7 @@ export function CodeEditor({
 }) {
   const code = useStore((s) => s.code),
     selectedLine = useStore((s) =>
-      s.tab === 'breakdown' || s.tab === 'analysis' || s.tab === 'complexity' ? s.selectedLine : null,
+      s.tab === 'insights' || s.tab === 'complexity' ? s.selectedLine : null,
     ),
     setCode = useStore((s) => s.setCode),
     theme = useStore((s) => s.theme),
@@ -104,7 +104,7 @@ export function CodeEditor({
   const trace = useStore((s) => s.result),
     tab = useStore((s) => s.tab);
   const counts = useMemo(
-    () => (tab === 'analysis' || tab === 'complexity' ? executionCounts(trace) : {}),
+    () => (tab === 'insights' || tab === 'complexity' ? executionCounts(trace) : {}),
     [trace, tab],
   );
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null),
@@ -129,7 +129,7 @@ export function CodeEditor({
     });
     ed.onDidChangeCursorPosition((e) => {
       const currentTab = useStore.getState().tab;
-      if (currentTab === 'breakdown' || currentTab === 'analysis' || currentTab === 'complexity')
+      if (currentTab === 'insights' || currentTab === 'complexity')
         useStore.getState().selectLine(e.position.lineNumber);
     });
     applyTheme(monaco, ed, useStore.getState().theme);

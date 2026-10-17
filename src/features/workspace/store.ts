@@ -26,7 +26,7 @@ export type State = {
   progress: number;
   message: string;
   edited: boolean;
-  tab: 'visualizer' | 'breakdown' | 'analysis' | 'complexity';
+  tab: 'visualizer' | 'insights' | 'complexity';
   theme: 'dark' | 'light';
   reduced: boolean;
   setCode: (code: string, origin?: SourceOrigin) => void;

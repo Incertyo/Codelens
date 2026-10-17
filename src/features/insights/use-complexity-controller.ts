@@ -31,7 +31,14 @@ export function useComplexityController(implementationId: string) {
     delay: limits.complexityDebounceMs,
     failure: 'Analysis failed to initialize.',
     cache: (analysis) => { if (analysis.bigOFit) setTimeFit(analysis.bigOFit); },
-    cleanup: () => { measurementWorker.current?.dispose(); },
+    cleanup: () => {
+      measurementWorker.current?.dispose();
+      setTimeFit(null);
+      setSpaceFit(null);
+      setTimeSamples([]);
+      setSpaceSamples([]);
+      setMeasurementResult(null);
+    },
   });
   const entry = data?.inspection.entries.find((e) => e.name === entryName);
   const enriched = implementationId.startsWith('draft:')

@@ -85,13 +85,10 @@ try {
       await capture('editor');
       await run();
       await capture('trace-recursion');
-      await page.getByRole('tab', { name: '02 breakdown' }).click();
-      await expect(page.getByText('FROM THE AST', { exact: true })).toBeVisible();
-      await capture('breakdown');
-      await page.getByRole('tab', { name: '03 analysis' }).click();
-      await expect(page.getByLabel('Entry function')).toBeVisible();
-      await capture('analysis');
-      await page.getByRole('tab', { name: '04 complexity' }).click();
+      await page.getByRole('tab', { name: '02 insights' }).click();
+      await expect(page.locator('.insights-pane[data-notes-source="ai"], .insights-pane[data-notes-source="local"]')).toBeVisible();
+      await capture('insights');
+      await page.getByRole('tab', { name: '03 complexity' }).click();
       await page.getByLabel('Entry function').selectOption('total');
       await page.getByLabel('Input generator').selectOption('int');
       await page.getByLabel('Measurement sizes').selectOption('small');

@@ -1,5 +1,9 @@
 # Revamp findings
 
+## Automatic Insights follow-up
+
+- Medium: new production keyboard coverage loses focus after ArrowRight from Insights to Complexity. The destination becomes selected but is not focused. Core run: 6/7 pass; isolated reruns reproduce twice, including with keyboard actions before accessibility scans. A diagnostic captured body as the active element; cause unresolved. No application focus workaround applied. Retain automatic-insights.spec.ts as the regression and isolate tab focus from disclosure/viewport/dynamic-mount effects. Stopped after three failures per the implementation-loop rule; remaining migrated browser specs are unverified.
+
 Phase 0 observations and consolidated resolutions. All findings L1 to L8 and gate findings have been addressed under the authorized Python-only consolidation decisions.
 
 | Severity / ID | Finding | Resolution & Status | Commit / Notes |

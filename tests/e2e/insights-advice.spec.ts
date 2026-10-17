@@ -1,3 +1,4 @@
+import { fulfillNotes } from './fixtures/ai-notes';
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { encodeShare } from "../../src/features/share/public/codec";
@@ -15,8 +16,12 @@ async function paste(page: Page, code: string) {
   await page.keyboard.insertText(code);
 }
 async function analysis(page: Page) {
-  await page.getByRole('tab', { name: '03 analysis' }).click();
+  await page.getByRole('tab', { name: '03 complexity' }).click();
   await expect(page.getByLabel('Entry function')).toBeVisible();
+}
+async function insights(page: Page) {
+  await page.getByRole('tab', { name: '02 insights' }).click();
+  await expect(page.locator('.insights-pane[data-notes-source="ai"], .insights-pane[data-notes-source="local"]')).toBeVisible();
 }
 test('real estimates, source hashes, heatmaps, mobile and keyboard accessibility', async ({
   page,
@@ -27,17 +32,19 @@ test('real estimates, source hashes, heatmaps, mobile and keyboard accessibility
   await expect(page.getByRole('button', { name: 'Jump to end' })).toBeDisabled();
   await page.getByRole('button', { name: '/ run code', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Jump to end' })).toBeEnabled();
-  await analysis(page);
-  const hash = await page.locator('.analysis-pane').getAttribute('data-source-hash');
+  await insights(page);
+  const hash = await page.locator('.analysis-pane:visible').getAttribute('data-source-hash');
   expect(hash).toMatch(/^[a-f0-9]{64}$/);
-  await expect(page.locator('.hotspot-list')).toContainText('executions');
+  await expect(page.locator('.hotspot-list:visible')).toContainText('executions');
   await expect(page.locator('.heat-line')).not.toHaveCount(0);
+  await analysis(page);
   await page.getByLabel('Input generator').selectOption('int');
-  await page.getByRole('button', { name: 'Empirically measure', exact: true }).click();
+  await page.getByRole('button', { name: 'Measure code', exact: true }).click();
   await expect(page.getByText('Estimated O(n)', { exact: true })).toBeVisible();
+  await page.getByText('View measurement numbers', { exact: true }).click();
   await expect(
     page
-      .getByRole('table', { name: 'Real captured steps by input size', exact: true })
+      .getByRole('table', { name: 'Snapshot-free measurement counters', exact: true })
       .locator('tbody tr'),
   ).toHaveCount(10);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
@@ -47,10 +54,13 @@ test('real estimates, source hashes, heatmaps, mobile and keyboard accessibility
   await page.screenshot({ path: 'artifacts/phase-three-mobile.png', fullPage: true });
   await paste(page, 'def total(a, b):\n    return a + b\n');
   await expect(page.getByText('Estimated O(n)', { exact: true })).not.toBeVisible();
-  await expect(page.locator('.analysis-pane')).not.toHaveAttribute('data-source-hash', hash!);
-  await expect(page.getByText(/Cannot use this entry driver/)).toBeVisible();
+  await expect(page.locator('.analysis-pane:visible')).not.toHaveAttribute('data-source-hash', hash!);
+  await insights(page);
+  await expect(page.locator('.insights-pane')).not.toContainText(/estimate/i);
+  await expect(page.locator('.insights-pane')).toHaveAttribute('data-notes-source', 'local');
+  await analysis(page);
   await expect(
-    page.getByRole('button', { name: 'Empirically measure', exact: true }),
+    page.getByRole('button', { name: 'Measure code', exact: true }),
   ).toBeDisabled();
   expect(errors).toEqual([]);
 });
@@ -62,11 +72,11 @@ test('Python annotated list and string entry generators use real workers', async
   );
   await analysis(page);
   await expect(page.getByLabel('Input generator')).toHaveValue('list');
-  await page.getByRole('button', { name: 'Empirically measure', exact: true }).click();
+  await page.getByRole('button', { name: 'Measure code', exact: true }).click();
   await expect(page.getByText('Estimated O(n)', { exact: true })).toBeVisible();
   await page.getByLabel('Entry function').selectOption('size');
   await expect(page.getByLabel('Input generator')).toHaveValue('string');
-  await page.getByRole('button', { name: 'Empirically measure', exact: true }).click();
+  await page.getByRole('button', { name: 'Measure code', exact: true }).click();
   await expect(page.getByText('Estimated O(1)', { exact: true })).toBeVisible();
 });
 test('AI suggestions are checked by real workers; expected values stay unverified', async ({
@@ -78,6 +88,7 @@ test('AI suggestions are checked by real workers; expected values stay unverifie
       await route.fulfill({ json: { configured: true, reason: null } });
       return;
     }
+    if (await fulfillNotes(route)) return;
     payload = route.request().postDataJSON();
     await route.fulfill({
       json: {
@@ -112,8 +123,10 @@ test('AI suggestions are checked by real workers; expected values stay unverifie
     });
   });
   await openSource(page);
-  await analysis(page);
-  await page.getByRole('button', { name: 'Request AI suggestions', exact: true }).click();
+  await insights(page);
+  await expect(page.getByText('Suggested tests', { exact: true })).toBeVisible();
+  await page.getByText('Suggested tests', { exact: true }).click();
+  await page.getByRole('button', { name: 'Check suggested tests', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Run this test' })).toHaveCount(2);
   await expect(page.locator('.suggested-test').first()).toContainText('Observed output:');
   await expect(page.locator('.suggested-test').first().locator('pre')).toHaveText('0\n');
@@ -123,7 +136,7 @@ test('AI suggestions are checked by real workers; expected values stay unverifie
   expect(payload).not.toHaveProperty('stdin');
   expect(payload).not.toHaveProperty('stdout');
   expect(payload).not.toHaveProperty('steps');
-  await page.getByText('Proposed optimization · correctness unverified', { exact: true }).click();
+  await page.getByText('Proposed changes · unverified', { exact: true }).click();
   await expect(page.getByLabel('Optimization diff')).toContainText('+');
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.getByRole('button', { name: 'Run this test' }).first().click();
@@ -140,6 +153,7 @@ test('stale AI responses never display after source edits; failed tests are not 
       await route.fulfill({ json: { configured: true, reason: null } });
       return;
     }
+    if (await fulfillNotes(route)) return;
     const payload = route.request().postDataJSON();
     requested = true;
     await new Promise<void>((r) => (release = r));
@@ -159,12 +173,11 @@ test('stale AI responses never display after source edits; failed tests are not 
       .catch(() => {});
   });
   await openSource(page);
-  await analysis(page);
-  await page.getByRole('button', { name: 'Request AI suggestions', exact: true }).click();
+  await insights(page);
   await expect.poll(() => requested).toBe(true);
   await paste(page, 'def other(n):\n    return n\n');
   release();
-  await expect(page.getByLabel('Entry function')).toHaveValue('other');
+  await expect(page.getByRole('button', { name: /other\(n\)/ })).toBeVisible();
   await expect(page.getByText('STALE RESULT MUST NEVER SHOW')).not.toBeVisible();
   await page.unroute('**/api/analyze');
   await page.route('**/api/analyze', async (route) => {
@@ -172,6 +185,7 @@ test('stale AI responses never display after source edits; failed tests are not 
       await route.fulfill({ json: { configured: true, reason: null } });
       return;
     }
+    if (await fulfillNotes(route)) return;
     const p = route.request().postDataJSON();
     await route.fulfill({
       json: {
@@ -189,8 +203,10 @@ test('stale AI responses never display after source edits; failed tests are not 
     });
   });
   await paste(page, 'def other(n):\n    raise RuntimeError("fixture failure")\n');
-  await expect(page.getByLabel('Entry function')).toHaveValue('other');
-  await page.getByRole('button', { name: 'Request AI suggestions', exact: true }).click();
+  await expect(page.getByRole('button', { name: /other\(n\)/ })).toBeVisible();
+  await expect(page.getByText('Suggested tests', { exact: true })).toBeVisible();
+  await page.getByText('Suggested tests', { exact: true }).click();
+  await page.getByRole('button', { name: 'Check suggested tests', exact: true }).click();
   await expect(page.getByText(/Not runnable:.*fixture failure/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Run this test' })).toHaveCount(0);
 });
@@ -204,9 +220,10 @@ test('small profile measures a quadratic entry and measurement budget failures n
   await analysis(page);
   await page.getByLabel('Input generator').selectOption('int');
   await page.getByLabel('Measurement sizes').selectOption('small');
-  await page.getByRole('button', { name: 'Empirically measure', exact: true }).click();
+  await page.getByRole('button', { name: 'Measure code', exact: true }).click();
   await expect(page.getByText('Estimated O(n²)', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Open Complexity Tab →', exact: true }).click();
+  await insights(page);
+  await page.getByRole('tab', { name: '03 complexity' }).click();
   await page.getByLabel('Measurement sizes').selectOption('small');
   await page.getByRole('button', { name: 'Measure code', exact: true }).click();
   await expect(page.getByText(/Local estimate from 5 complete measured runs/)).toBeVisible();
@@ -216,13 +233,13 @@ test('small profile measures a quadratic entry and measurement budget failures n
   await analysis(page);
   await paste(page, 'def endless(n):\n    while True:\n        pass\n');
   await expect(page.getByLabel('Entry function')).toHaveValue('endless');
-  await page.getByRole('button', { name: 'Empirically measure', exact: true }).click();
+  await page.getByRole('button', { name: 'Measure code', exact: true }).click();
   await expect(page.locator('.analysis-status')).toContainText(
     'No estimate is fitted: fewer than four complete positive sizes',
   );
   await expect(page.locator('.estimate-card')).toHaveCount(0);
 });
-test('library Analysis uses the loaded implementation id and exact source hash', async ({
+test('library Insights uses the loaded implementation id and exact source hash', async ({
   page,
   request,
 }) => {
@@ -230,7 +247,7 @@ test('library Analysis uses the loaded implementation id and exact source hash',
   await expect(page.getByTestId('site-loading')).not.toBeVisible();
   await page.getByRole('button', { name: '/ examples', exact: true }).click();
   await page.getByRole('button', { name: /EX.03/ }).click();
-  await analysis(page);
+  await insights(page);
   const index = await (await request.get('/api/library')).json();
   const current = index.implementations.find(
     (i: { language: string; variant: string; algorithm_id: string }) =>
@@ -239,11 +256,11 @@ test('library Analysis uses the loaded implementation id and exact source hash',
       i.algorithm_id.endsWith('/fibonacci-recursion'),
   );
   expect(current).toBeTruthy();
-  await expect(page.locator('.analysis-pane')).toHaveAttribute(
+  await expect(page.locator('.analysis-pane:visible')).toHaveAttribute(
     'data-implementation-id',
     current.id,
   );
-  await expect(page.locator('.analysis-pane')).toHaveAttribute(
+  await expect(page.locator('.analysis-pane:visible')).toHaveAttribute(
     'data-source-hash',
     current.source_hash,
   );
@@ -274,11 +291,9 @@ test('production security headers, content-addressed assets and static fallback'
     await route.continue();
   });
   await openSource(page);
-  await analysis(page);
+  await insights(page);
+  await expect(page.getByRole('button', { name: /Request AI suggestions|enrich with AI/ })).toHaveCount(0);
   await expect(
-    page.getByRole('button', { name: 'Request AI suggestions', exact: true }),
-  ).toBeDisabled();
-  await expect(
-    page.getByText('AI is disabled. Static analysis and traces remain available.', { exact: true }),
+    page.getByText(/AI is disabled/),
   ).toBeVisible();
 });

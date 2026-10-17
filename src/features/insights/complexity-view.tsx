@@ -15,7 +15,7 @@ export function ComplexityView({ implementationId }: { implementationId: string 
       data-implementation-id={data?.identity.implementationId}
     >
       <div className="analysis-heading">
-        <span className="mono eyebrow">04 / COMPLEXITY</span>
+        <span className="mono eyebrow">03 / COMPLEXITY</span>
         <h2>More input. How much work?</h2>
         <p>Compare steps and extra memory as the input grows.</p>
       </div>

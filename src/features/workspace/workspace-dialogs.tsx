@@ -30,7 +30,7 @@ export function WorkspaceDialogs({ menu, drawer, about, share, busy, language, s
           </button>
         </div>
         <nav className="overlay-nav">
-          {['Visualizer', 'Breakdown', 'Analysis', 'Complexity', 'Examples', 'About'].map(
+          {['Visualizer', 'Insights', 'Complexity', 'Examples', 'About'].map(
             (name, i) => (
               <button
                 key={name}
@@ -129,8 +129,9 @@ export function WorkspaceDialogs({ menu, drawer, about, share, busy, language, s
             </div>
             <p className="about-reveal">
               Explore real execution, linked structures, recursion, AST analysis and measured
-              complexity estimates. AI notes and suggestions are optional. Requesting AI sends your
-              source to the configured provider only when requesting notes or advice.
+              complexity estimates. Opening Insights automatically sends your source to the
+              configured AI provider for notes and advice when available. Local AST analysis works
+              without AI. Stdin, output and runtime values stay local.
             </p>
             <p className="mono dim about-reveal">
               Snapshots capture user-code events, not the internals of library functions. Huge

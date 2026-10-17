@@ -31,6 +31,7 @@ Order:
 - intro/study
 - workspace/motion
 - insights/chart
+- insights/insights: AI-primary/fallback report fields, flow, evidence and review; theme tokens and native disclosures, no new motion.
 
 Only positive selector branches whose leading class was absent in the Phase 2A static scan are removed. Dynamic prefixes and remaining intentional overrides are retained. Removed classes: accent-text, array-cells, array-column, array-index, array-view, complexity-definition-card, definition-header, growth-ladder, node-diagram, phase-placeholder, pointer-label, preloader, preloader-number, recursion-scroll, space-breakdown-grid, space-breakdown-item, star-tag. The earlier duplicate mobile hero font-size is removed; the final identical declaration remains. No other differing selector group is deduplicated merely because its selector repeats.
 

@@ -1,5 +1,7 @@
 # CodeLens module orientation
 
+- Merged Insights, automatic AI, local fallback, hot spots and explicit test checks: [INSIGHTS.md](INSIGHTS.md).
+
 - Local Groq endpoint/model and private API-key setup: [GROQ_SETUP.md](../GROQ_SETUP.md).
 
 - Language scope, detection, legacy shares and AI upload boundaries: [LANGUAGES.md](LANGUAGES.md).

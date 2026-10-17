@@ -7,7 +7,7 @@
 - `src/features/runner`: parent runners, internal JavaScript instrumenter/runtime, measurement and module worker entry.
 - `src/features/editor`: Python editor policy, Monaco, retained language detector and its worker.
 - `src/features/visualizer`: detector models/source hints, structure detection, renderer families, viewport, recursion and playback.
-- `src/features/insights`: Breakdown, Analysis, complexity chart/comparison, controller hooks and inspection lifecycle.
+- `src/features/insights`: merged Insights, an AI-primary report model with local AST fallback, structure/flow and real-evidence sections, explicit proposal/test actions, complexity charts and source-inspection lifecycle. AST and trace evidence remain distinct from AI interpretations.
 - `src/features/library`: browser/detail/loader, immutable-data adapters, authored notes and server repositories.
 - `src/features/ai/client`: notices, readiness transport and hook.
 - `src/features/ai/server`: provider adapters/readiness, limiter, mode schemas, generation pipeline and HTTP handler.
